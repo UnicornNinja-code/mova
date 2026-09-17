@@ -149,11 +149,13 @@ export const sendPasswordResetInstructionService = async (email, token) => {
     if (result.previewUrl) {
       console.log(`[AUTH SERVICE] ✉️ Ethereal Preview URL: ${result.previewUrl}`);
     }
+    console.log(`[AUTH SERVICE] 🔗 Direct Reset Link: ${resetUrl}`);
 
     return { sent: true, messageId: result.messageId, previewUrl: result.previewUrl };
   } catch (err) {
     console.error(`[AUTH SERVICE] Gagal mengirim email reset ke ${email}:`, err.message);
     console.log(`[AUTH SERVICE] Fallback — Reset token untuk ${email}: ${token}`);
+    console.log(`[AUTH SERVICE] 🔗 Direct Reset Link (Fallback): ${resetUrl}`);
     return { sent: false, fallback: true };
   }
 };
