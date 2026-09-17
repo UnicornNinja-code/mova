@@ -100,8 +100,8 @@ async function runDssHardeningTests() {
       `, [reg.rows[0].id, confirmedAt]);
     }
 
-    // Set all active zones to low max_capacity so total capacity = 2
-    await pool.query("UPDATE zones SET max_capacity = 0;");
+    // Set all zones to ACTIVE and low max_capacity so total capacity = 2
+    await pool.query("UPDATE zones SET status = 'ACTIVE', max_capacity = 0;");
     const activeZones = (await pool.query("SELECT id, name FROM zones WHERE status = 'ACTIVE' ORDER BY name ASC LIMIT 2;")).rows;
     if (activeZones.length >= 2) {
       await pool.query(`UPDATE zones SET max_capacity = 1 WHERE id IN ('${activeZones[0].id}', '${activeZones[1].id}');`);

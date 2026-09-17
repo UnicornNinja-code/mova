@@ -1,149 +1,74 @@
-/*
- * authService.js
- * Single Source of Truth (SSOT) Authentication Service
- * Strictly conforms to Swagger OpenAPI 3.0.3 Contract for MOVA Single-Tenant
- */
-
-import { axiosInstance } from "../lib/axios.js";
+import { api } from "./api";
 
 export const authService = {
-  /**
-   * User Login (Email or Username + Password + Cloudflare Turnstile Token)
-   * @param {Object} params
-   * @param {string} params.identifier - Email address or username (case-insensitive)
-   * @param {string} params.password - Plaintext password
-   * @param {string} [params.turnstileToken] - Cloudflare Turnstile token
-   * @returns {Promise<{ msg: string, token: string, user: Object }>}
-   */
-  async login({ identifier, password, turnstileToken }) {
-    const payload = {
-      identifier: identifier.trim(),
+  // --- Auth Group 1 ---
+  async login({ username, password, turnstileToken }) {
+    const response = await api.post("/api/auth/login", {
+      identifier: username,
       password,
-      ...(turnstileToken && { turnstileToken, "cf-turnstile-response": turnstileToken }),
-    };
-    const res = await axiosInstance.post("/auth/login", payload);
-    const data = res.data;
-    if (data?.token) {
-      axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
-      localStorage.setItem("token", data.token);
-      if (data.refreshToken) {
-        localStorage.setItem("refreshToken", data.refreshToken);
-      }
-    }
-    return data;
-  },
-
-  /**
-   * Fetch Authenticated User Profile & Active Session
-   * @returns {Promise<{ user: Object }>}
-   */
-  async getMe() {
-    const res = await axiosInstance.get("/auth/me");
-    return res.data;
-  },
-
-  /**
-   * Activate User Account via Invitation Token
-   * @param {Object} params
-   * @param {string} params.token - 32-character invitation/activation token
-   * @param {string} params.password - New password to set
-   * @param {string} [params.email] - Optional verified email
-   * @param {string} [params.name] - Optional full name
-   * @param {string} [params.birth_date] - Optional birth date (YYYY-MM-DD)
-   * @returns {Promise<{ msg: string, user: Object }>}
-   */
-  async activateAccount({ token, password, email, name, birth_date }) {
-    const payload = {
-      token: token?.trim(),
-      password,
-      ...(email && { email: email.trim() }),
-      ...(name && { name: name.trim() }),
-      ...(birth_date && { birth_date }),
-    };
-    const res = await axiosInstance.post("/auth/activate", payload);
-    return res.data;
-  },
-
-  /**
-   * Register New User (Restricted by Role Hierarchy Guard)
-   * @param {Object} userData
-   * @returns {Promise<{ msg: string, user: Object }>}
-   */
-  async register(userData) {
-    const res = await axiosInstance.post("/auth/register", userData);
-    return res.data;
-  },
-
-  /**
-   * Request Password Reset Link / Token
-   * @param {string} email
-   * @returns {Promise<{ msg: string, previewUrl?: string }>}
-   */
-  async forgotPassword(email) {
-    const res = await axiosInstance.post("/auth/forgot-password", {
-      email: email.trim(),
+      turnstileToken,
     });
-    return res.data;
+    return response.data?.data || response.data;
   },
 
-  /**
-   * Submit New Password with Reset Token
-   * @param {Object} params
-   * @param {string} params.token
-   * @param {string} params.password
-   * @returns {Promise<{ msg: string }>}
-   */
-  async resetPassword({ token, password, newPassword }) {
-    const payload = {
-      token: token?.trim(),
-      password: password || newPassword,
-    };
-    const res = await axiosInstance.post("/auth/reset-password", payload);
-    return res.data;
+  async register(userData) {
+    const response = await api.post("/api/auth/register", userData);
+    return response.data?.data || response.data;
   },
 
-  /**
-   * Verify Reset / Activation Token Validity
-   * @param {string} token
-   * @returns {Promise<{ valid: boolean, msg?: string, email?: string }>}
-   */
-  async verifyResetToken(token) {
-    const res = await axiosInstance.get(`/auth/verify-token/${encodeURIComponent(token)}`);
-    return res.data;
+  async getCurrentUser() {
+    const response = await api.get("/api/auth/me");
+    return response.data?.data || response.data;
   },
 
-  /**
-   * Force Password Change on First Superadmin / Staff Login
-   * @param {Object} params
-   * @param {string} params.newPassword
-   * @returns {Promise<{ success: boolean, msg: string, user: Object }>}
-   */
-  async completeFirstLogin({ newPassword }) {
-    const payload = {
-      newPassword,
-      new_password: newPassword,
-    };
-    const res = await axiosInstance.post("/auth/first-login", payload);
-    return res.data;
+  async refreshToken(refreshToken) {
+    const response = await api.post("/api/auth/refresh-token", { refreshToken });
+    return response.data?.data || response.data;
   },
 
-  /**
-   * Refresh Expired Access Token
-   * @returns {Promise<{ msg: string, token: string }>}
-   */
-  async refreshToken() {
-    const res = await axiosInstance.post("/auth/refresh-token");
-    return res.data;
-  },
-
-  /**
-   * Invalidate Session & Revoke Token
-   * @returns {Promise<{ msg: string }>}
-   */
   async logout() {
-    const res = await axiosInstance.post("/auth/logout");
-    return res.data;
+    try {
+      const response = await api.post("/api/auth/logout");
+      return response.data?.data || response.data;
+    } catch (e) {
+      // Ignore network failure on logout
+      return null;
+    }
+  },
+
+  async forgotPassword(email) {
+    const response = await api.post("/api/auth/forgot-password", { email });
+    return response.data?.data || response.data;
+  },
+
+  async resetPassword({ token, newPassword }) {
+    const response = await api.post("/api/auth/reset-password", { token, newPassword });
+    return response.data?.data || response.data;
+  },
+
+  async activateAccount({ token, birthDate, password }) {
+    const response = await api.post("/api/auth/activate", { token, birthDate, password });
+    return response.data?.data || response.data;
+  },
+
+  // --- User Account Group 2 ---
+  async getUsers(params = {}) {
+    const response = await api.get("/api/users", { params });
+    return response.data?.data || response.data;
+  },
+
+  async getUserById(id) {
+    const response = await api.get(`/api/users/${id}`);
+    return response.data?.data || response.data;
+  },
+
+  async updateUser(id, updateData) {
+    const response = await api.patch(`/api/users/${id}`, updateData);
+    return response.data?.data || response.data;
+  },
+
+  async deleteUser(id) {
+    const response = await api.delete(`/api/users/${id}`);
+    return response.data?.data || response.data;
   },
 };
-
-export default authService;

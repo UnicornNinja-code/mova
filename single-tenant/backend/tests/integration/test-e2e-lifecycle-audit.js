@@ -390,7 +390,7 @@ async function runE2ELifecycleAudit() {
     const { rows: dbSalesTotal } = await pool.query(
       `SELECT COALESCE(SUM(total_price), 0)::numeric(14,2) AS rev, COUNT(id)::int AS cnt
        FROM sales_logs
-       WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta')::date = CURRENT_DATE;`
+       WHERE (created_at AT TIME ZONE 'Asia/Jakarta')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta')::date;`
     );
     assertTest(
       "Dashboard Revenue Equals Canonical SUM(sales_logs.total_price)",

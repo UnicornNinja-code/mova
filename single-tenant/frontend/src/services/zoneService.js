@@ -1,77 +1,50 @@
-import { axiosInstance } from "../lib/axios.js";
+import { api } from "./api";
 
-/**
- * Zone & Spatial Domain Service (Canonical Backend Phase 1-7)
- */
 export const zoneService = {
-  getAll: async (params = {}) => {
-    const res = await axiosInstance.get("/zones", { params });
-    return res.data;
+  // --- Zone Master Group 3 ---
+  async getZones(params = {}) {
+    const response = await api.get("/api/zones", { params });
+    return response.data?.data || response.data;
   },
 
-  getById: async (id) => {
-    const res = await axiosInstance.get(`/zones/${id}`);
-    return res.data;
+  async getZoneById(id) {
+    const response = await api.get(`/api/zones/${id}`);
+    return response.data?.data || response.data;
   },
 
-  getConfig: async () => {
-    const res = await axiosInstance.get("/zones/config");
-    return res.data;
+  async createZone(zoneData) {
+    const response = await api.post("/api/zones", zoneData);
+    return response.data?.data || response.data;
   },
 
-  validate: async ({ polygon, name, exclude_id }) => {
-    const res = await axiosInstance.post("/zones/validate", { polygon, name, exclude_id });
-    return res.data;
+  async updateZone(id, zoneData) {
+    const response = await api.put(`/api/zones/${id}`, zoneData);
+    return response.data?.data || response.data;
   },
 
-  create: async ({ name, polygon, max_capacity = 5, status = "ACTIVE" }) => {
-    const res = await axiosInstance.post("/zones", {
-      name,
-      polygon,
-      max_capacity: Number(max_capacity),
-      status,
-    });
-    return res.data;
+  async deleteZone(id) {
+    const response = await api.delete(`/api/zones/${id}`);
+    return response.data?.data || response.data;
   },
 
-  update: async (id, data) => {
-    const res = await axiosInstance.put(`/zones/${id}`, data);
-    return res.data;
+  async checkOverlap(polygon) {
+    const response = await api.post("/api/zones/check-overlap", { polygon });
+    return response.data?.data || response.data;
   },
 
-  updateStatus: async (id, status) => {
-    const res = await axiosInstance.patch(`/zones/${id}/status`, { status });
-    return res.data;
+  // --- Candidate Locations Group 7 ---
+  async getCandidateSpots(zoneId) {
+    const response = await api.get(`/api/candidate-locations/zone/${zoneId}`);
+    return response.data?.data || response.data;
   },
 
-  updateCapacity: async (id, max_capacity) => {
-    const res = await axiosInstance.patch(`/zones/${id}/capacity`, {
-      max_capacity: Number(max_capacity),
-    });
-    return res.data;
+  async createCandidateSpot(spotData) {
+    const response = await api.post("/api/candidate-locations", spotData);
+    return response.data?.data || response.data;
   },
 
-  delete: async (id) => {
-    const res = await axiosInstance.delete(`/zones/${id}`);
-    return res.data;
+  async deleteCandidateSpot(id) {
+    const response = await api.delete(`/api/candidate-locations/${id}`);
+    return response.data?.data || response.data;
   },
-
-  getSpatialRestrictions: async () => {
-    const res = await axiosInstance.get("/system-settings/operational-rules");
-    return res.data;
-  },
-
-  validatePolygon: async (payload) => {
-    const res = await axiosInstance.post("/zones/validate", payload);
-    return res.data;
-  },
-
-  // Aliases for backward compatibility
-  getZones: async (params = {}) => zoneService.getAll(params),
-  getZoneById: async (id) => zoneService.getById(id),
-  createZone: async (data) => zoneService.create(data),
-  updateZone: async (id, data) => zoneService.update(id, data),
-  updateZoneStatus: async (id, status) => zoneService.updateStatus(id, status),
-  updateZoneCapacity: async (id, max_capacity) => zoneService.updateCapacity(id, max_capacity),
-  deleteZone: async (id) => zoneService.delete(id),
 };

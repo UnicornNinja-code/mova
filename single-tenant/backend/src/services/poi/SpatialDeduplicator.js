@@ -44,11 +44,26 @@ export class SpatialDeduplicator {
   }
 
   /**
+   * Calculates completeness score for deterministic canonical selection
+   * Non-generic name (+10), Non-fallback category (+5)
+   */
+  calculateCompletenessScore(poi) {
+    let score = 0;
+    const name = poi.name || "";
+    if (name && !name.includes("(Tanpa Nama)")) {
+      score += 10;
+    }
+    if (poi.category && poi.category !== "Lainnya") {
+      score += 5;
+    }
+    return score;
+  }
+
+  /**
    * Executes 3-Level PostGIS Database Deduplication Engine inside SQL Transaction
    */
   async processDatabaseDeduplication(client) {
-    // STEP 1: Spatial Candidate Query (ST_DWithin up to 15m) using PostGIS GIST Index
-
+    // STEP 1: Spatial Candidate Query (ST_DWithin up to 25m envelope) using PostGIS GIST Index
     const spatialCandidatesQuery = `
       SELECT 
         p1.id AS id_a,
@@ -75,37 +90,36 @@ export class SpatialDeduplicator {
     const { rows: pairs } = await client.query(spatialCandidatesQuery, [POI_SEMANTIC_MATCH_METERS]);
 
     const reviewIds = new Set();
-    const duplicateUpdates = []; // { childId, parentId }
+    const confirmedPairs = []; // [id_a, id_b]
+    const poiMap = new Map(); // id -> poi data
 
     for (const pair of pairs) {
       const dist = parseFloat(pair.distance_meters);
       const similarity = calculateStringSimilarity(pair.name_a, pair.name_b);
 
+      poiMap.set(pair.id_a, {
+        id: pair.id_a,
+        name: pair.name_a,
+        category: pair.category,
+        created_at: pair.created_a,
+        logical_poi_id: pair.logical_a,
+        duplicate_of: pair.dup_a,
+        operational_status: pair.status_a,
+      });
+
+      poiMap.set(pair.id_b, {
+        id: pair.id_b,
+        name: pair.name_b,
+        category: pair.category,
+        created_at: pair.created_b,
+        logical_poi_id: pair.logical_b,
+        duplicate_of: pair.dup_b,
+        operational_status: pair.status_b,
+      });
+
       // LEVEL 3: Confirmed Semantic Duplicate (Dist <= 15m AND Same Category AND Similarity >= 85%)
       if (dist <= POI_SEMANTIC_MATCH_METERS && similarity >= POI_NAME_SIMILARITY_THRESHOLD) {
-        // Determine canonical parent deterministically (oldest record / smallest UUID fallback)
-        let parentId, childId;
-        const timeA = new Date(pair.created_a).getTime();
-        const timeB = new Date(pair.created_b).getTime();
-
-        if (timeA < timeB) {
-          parentId = pair.id_a;
-          childId = pair.id_b;
-        } else if (timeB < timeA) {
-          parentId = pair.id_b;
-          childId = pair.id_a;
-        } else {
-          // UUID string fallback
-          if (pair.id_a < pair.id_b) {
-            parentId = pair.id_a;
-            childId = pair.id_b;
-          } else {
-            parentId = pair.id_b;
-            childId = pair.id_a;
-          }
-        }
-
-        duplicateUpdates.push({ childId, parentId });
+        confirmedPairs.push([pair.id_a, pair.id_b]);
       } 
       // LEVEL 2: Potential Spatial Candidate (Dist <= 3m AND Same Category AND Similarity < 85%)
       else if (dist <= POI_SPATIAL_CANDIDATE_METERS) {
@@ -114,51 +128,87 @@ export class SpatialDeduplicator {
       }
     }
 
-    // Process Level 3 Duplicate Linking with Transitive Cluster Convergence
-    for (const update of duplicateUpdates) {
-      // Resolve canonical root for parent
-      const { rows: parentRows } = await client.query(
-        "SELECT id, COALESCE(duplicate_of, id) AS root_id, logical_poi_id FROM pois WHERE id = $1;",
-        [update.parentId]
-      );
-      if (parentRows.length === 0) continue;
-      const rootId = parentRows[0].root_id;
-      const canonicalLogicalId = parentRows[0].logical_poi_id || rootId;
+    // STEP 2: Build Connected Components (Graph of duplicate clusters)
+    const adj = new Map();
+    for (const [a, b] of confirmedPairs) {
+      if (!adj.has(a)) adj.set(a, []);
+      if (!adj.has(b)) adj.set(b, []);
+      adj.get(a).push(b);
+      adj.get(b).push(a);
+    }
 
-      // Update child POI to link to canonical root
+    const visited = new Set();
+    const clusters = [];
+
+    for (const startId of adj.keys()) {
+      if (visited.has(startId)) continue;
+      const cluster = [];
+      const queue = [startId];
+      visited.add(startId);
+
+      while (queue.length > 0) {
+        const curr = queue.shift();
+        cluster.push(poiMap.get(curr));
+        for (const neighbor of adj.get(curr) || []) {
+          if (!visited.has(neighbor)) {
+            visited.add(neighbor);
+            queue.push(neighbor);
+          }
+        }
+      }
+      clusters.push(cluster);
+    }
+
+    // STEP 3: Process Each Cluster with Deterministic Canonical Selection (completeness_score DESC, id ASC)
+    for (const cluster of clusters) {
+      cluster.sort((a, b) => {
+        const scoreA = this.calculateCompletenessScore(a);
+        const scoreB = this.calculateCompletenessScore(b);
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA; // Highest completeness first
+        }
+        const timeA = new Date(a.created_at).getTime();
+        const timeB = new Date(b.created_at).getTime();
+        if (timeA !== timeB) {
+          return timeA - timeB; // Oldest record first
+        }
+        return String(a.id).localeCompare(String(b.id)); // Deterministic UUID tie-breaker
+      });
+
+      const canonical = cluster[0];
+      // Preserve existing logical_poi_id if available, fallback to canonical.id
+      const canonicalLogicalId = canonical.logical_poi_id || cluster.find(p => p.logical_poi_id)?.logical_poi_id || canonical.id;
+
+      // 1. Update Canonical POI (duplicate_of = NULL, preserve/assign canonical logical_poi_id)
       await client.query(
-        `
-        UPDATE pois 
-        SET 
-          logical_poi_id = $1,
-          duplicate_of = $2,
-          operational_status = CASE 
-            WHEN operational_status = 'EXCLUDED' THEN 'EXCLUDED' 
-            ELSE 'ELIGIBLE' 
-          END
-        WHERE id = $3;
-      `,
-        [canonicalLogicalId, rootId, update.childId]
+        `UPDATE pois 
+         SET duplicate_of = NULL, 
+             logical_poi_id = $1, 
+             operational_status = CASE 
+               WHEN operational_status = 'EXCLUDED' THEN 'EXCLUDED' 
+               ELSE 'ELIGIBLE' 
+             END
+         WHERE id = $2;`,
+        [canonicalLogicalId, canonical.id]
       );
+      reviewIds.delete(canonical.id);
 
-      // Transitive cluster update: Update all descendants in child's previous cluster
-      await client.query(
-        `
-        UPDATE pois 
-        SET logical_poi_id = $1, duplicate_of = $2
-        WHERE duplicate_of = $3;
-      `,
-        [canonicalLogicalId, rootId, update.childId]
-      );
-
-      // Ensure root parent remains root
-      await client.query(
-        "UPDATE pois SET duplicate_of = NULL WHERE id = $1;",
-        [rootId]
-      );
-
-      // Remove child from review set if confirmed duplicate
-      reviewIds.delete(update.childId);
+      // 2. Update Duplicate Child POIs (duplicate_of = canonical.id, logical_poi_id = canonicalLogicalId)
+      for (let i = 1; i < cluster.length; i++) {
+        const child = cluster[i];
+        await client.query(
+          `UPDATE pois 
+           SET duplicate_of = $1, 
+               logical_poi_id = $2, 
+               operational_status = CASE 
+                 WHEN operational_status = 'EXCLUDED' THEN 'EXCLUDED' 
+                 ELSE 'ELIGIBLE' 
+               END
+           WHERE id = $3;`,
+          [canonical.id, canonicalLogicalId, child.id]
+        );
+        reviewIds.delete(child.id);
+      }
     }
 
     // Process Level 2 REVIEW Status Assignment

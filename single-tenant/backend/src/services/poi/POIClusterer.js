@@ -30,6 +30,7 @@ export class POIClusterer {
     const access = String(tags.access || "").toLowerCase().trim();
     const aeroway = String(tags.aeroway || "").toLowerCase().trim();
     const military = String(tags.military || "").toLowerCase().trim();
+    const placeName = String(tags.name || "").toUpperCase().trim();
 
     // 1. Rest Area / Motorway Controlled Services (HIGHEST PRIORITY)
     if (highway === "services" || highway === "rest_area" || amenity === "rest_area") {
@@ -55,6 +56,21 @@ export class POIClusterer {
       };
     }
 
+    // 4. Private Residential & Noise Filter (Non-commercial personal houses & test noise in OSM)
+    if (
+      placeName.match(/^(TEST|DUMMY|SAMPLE)(\s|$)/) ||
+      placeName === "TEST" ||
+      placeName === "HOME" ||
+      placeName.startsWith("RUMAH Q") ||
+      placeName.match(/\b(TEMPAT BEOL|GREEN ZONE|KDO 12|OMAH BU|PAK BAMBANG|RAMA WIJAYA HOME|KASTIL CIMON|OMA CAK|PAKPO)\b/) ||
+      placeName.match(/^(OMAH|RUMAH PRIBADI|RUMAH TANGGA|OMA |PAKPO )\b/)
+    ) {
+      return {
+        operational_status: "EXCLUDED",
+        exclusion_reason: "PRIVATE_RESIDENTIAL",
+      };
+    }
+
     return {
       operational_status: "ELIGIBLE",
       exclusion_reason: null,
@@ -76,9 +92,12 @@ export class POIClusterer {
     // -------------------------------------------------------------------
     if (placeName) {
       if (
-        placeName.match(/\b(TEST|TEMPAT BEOL|GREEN ZONE|KDO 12)\b/) ||
+        placeName.match(/^(TEST|DUMMY|SAMPLE)(\s|$)/) ||
+        placeName === "TEST" ||
         placeName === "HOME" ||
-        placeName.startsWith("RUMAH Q")
+        placeName.startsWith("RUMAH Q") ||
+        placeName.match(/\b(TEMPAT BEOL|GREEN ZONE|KDO 12|OMAH BU|PAK BAMBANG|RAMA WIJAYA HOME|KASTIL CIMON|OMA CAK|PAKPO)\b/) ||
+        placeName.match(/^(OMAH|RUMAH PRIBADI|RUMAH TANGGA|OMA |PAKPO )\b/)
       ) {
         return "IGNORED";
       }
@@ -89,7 +108,12 @@ export class POIClusterer {
     // -------------------------------------------------------------------
 
     // 1. TEMPAT IBADAH (PRIORITAS UTAMA - Cegah "Taman" pada Masjid Taman Pinang)
-    if (amenity === "place_of_worship" || placeName.match(/\b(MASJID|MUSHOLA|MUSHALA|MUSHOLAH|MUSHOLLAH|MUSHOLLA|LANGGAR|GEREJA|CHURCH|GBI|GKP|GPIB|GSJPDI|PURA|VIHARA|BAITUT|BAITUL|BAITUS|HIDAYATUL|BABUS SALAM|BETHESDA|SABDA HAYAT|MIFTAHUL|RAUDHATUL|ROUDHOTUL)\b/) || placeName.startsWith("AL-") || placeName.startsWith("AL ")) {
+    if (
+      amenity === "place_of_worship" ||
+      placeName.match(/\b(MASJID|MUSHOLA|MUSHALA|MUSHOLAH|MUSHOLLAH|MUSHOLLA|LANGGAR|GEREJA|CHURCH|GBI|GKP|GPIB|GSJPDI|PURA|VIHARA|BAITUT|BAITUL|BAITUS|HIDAYATUL|BABUS SALAM|BETHESDA|SABDA HAYAT|MIFTAHUL|RAUDHATUL|ROUDHOTUL)\b/) ||
+      placeName.startsWith("AL-") ||
+      placeName.startsWith("AL ")
+    ) {
       if (religion === "muslim" || placeName.match(/\b(MASJID|MUSHOLA|MUSHALA|MUSHOLLAH|MUSHOLLA|LANGGAR|BAITUT|BAITUL|BAITUS|HIDAYATUL|BABUS SALAM|MIFTAHUL|RAUDHATUL|ROUDHOTUL)\b/) || placeName.startsWith("AL-") || placeName.startsWith("AL ")) return "Masjid & Mushola";
       if (religion === "christian" || religion === "catholic" || placeName.match(/\b(GEREJA|CHURCH|GBI|GKP|GPIB|GSJPDI|BETHESDA|SABDA HAYAT)\b/)) return "Gereja";
       if (religion === "hindu" || placeName.match(/\b(PURA)\b/)) return "Pura";
@@ -108,21 +132,43 @@ export class POIClusterer {
       if (public_transport === "bus_stop" || amenity === "bus_station" || placeName.match(/\b(HALTE|TERMINAL|TERMINAL BUS|BUS STOP|BUS STATION|REDBUS)\b/)) return "Halte / Terminal Bus";
       if (placeName.match(/\b(GOJEK|OJEK|GOJEK POINT|SHELTER|LOKET|TRANS|ADHITRANS|SWK TRANSLOGISTIC)\b/)) return "Fasilitas Transit & Shelter";
 
-      // 4. KULINER & KAFE (SPESIFIK: FOOD COURT, CEPAT SAJI, RESTORAN, MINUMAN, KAFE, ROTI)
-      if (amenity === "food_court" || placeName.match(/\b(FOOD COURT|FOODCOURT|PUJASERA|PAZKUL|SWK)\b/)) return "Food Court";
-      if (amenity === "fast_food" || placeName.match(/\b(KFC|MCDONALD|MCDONALDS|MCD|BURGER|BURGER KING|HISANA|PIZZA|PIZZA HUT|CARL'S|CARLS|BEARD PAPA|RICE BOWL|SOLARIA|RICHEESE|D'COST|HOKBEN|A&W|TOBY'S|TOBYS|MC DONALD)\b/)) return "Cepat Saji";
-      if (amenity === "restaurant" || placeName.match(/\b(RESTAURANT|RESTORAN|RM|RESTO|GEPREK|SUPREK|PECEL|RAWON|SOTO|SATE|MIE|NASGOR|NASI GORENG|PANGSIT|BAKSO|KITCHEN|CRISPY|GADO GADO|GADO-GADO|SAMBEL|SAMBAL|WANGKRINGAN|FOOD|LEKO|SARI RASA|TOUS LES JOURS|WONG SOLO|MIE GACOAN|MIE SETAN|IBC|DEPOT|AYAM|BEBEK|IKAN BAKAR|GUDEG)\b/)) return "Restoran";
-      if (placeName.match(/\b(ES TEH|ESTEH|TEH POCI|BOBA|CHATIME|CHA TIME|MIXUE|MOMOYO)\b/)) return "Toko Minuman";
-      if (amenity === "cafe" || placeName.match(/\b(WARKOP|WARUNG KOPI|KOPI|ANGKRINGAN|EXCELSO|QUICKLY|CAFE|KAFE|KEDAI KOPI|COFFEE|ROASTER|STARBUCKS)\b/)) return "Kafe & Kedai Kopi";
-      if (shop === "bakery" || placeName.match(/\b(BAKERY|DONAT|DONUT|DONUTS|ROTI|KUE|PASTRY|BENARDI)\b/)) return "Toko Roti & Kue";
+      // 4. KULINER KOPI & KAFE (PRIORITAS TINGGI - Mengatasi Brand Kopi & Cafe Hybrid sebelum Fast Food/Restoran)
+      if (
+        amenity === "cafe" ||
+        placeName.match(/\b(WARKOP|WARUNG KOPI|KOPI|ANGKRINGAN|EXCELSO|QUICKLY|CAFE|KAFE|KEDAI KOPI|COFFEE|ROASTER|STARBUCKS|KOPI KENANGAN|JANJI JIWA|FORE|FORE COFFEE|POINT COFFEE|KOPI SOE|KOPI KULO|TOMORO|KOPI LAIN HATI|FLASH COFFEE|KOPIKIMI|AMOR RESTO & CAFE|BRUNDY CAFE & RESTO|CAFE & RESTO|RESTO & CAFE|RESTO & KAFE|KAFE & RESTO)\b/)
+      ) {
+        return "Kafe & Kedai Kopi";
+      }
 
-      // 5. RETAIL, PERBELANJAAN & PASAR (SPESIFIK: MINIMARKET, SUPERMARKET, MALL, PASAR, RETAIL)
-      if (shop === "convenience" || placeName.match(/\b(INDOMARET|INDOMART|ALFAMART|ALFAMIDI|ALFA MIDI|CIRCLE K|CIRCLES K|FAMILYMART|PRIMA MART|LAWSON|YOMART|MART|7-ELEVEN|MINIMARKET|MINI MARKET|MINIPREÇO|ABNISA|ANDISMART|GREENSMART)\b/)) return "Minimarket";
+      // 5. KULINER LAINNYA (FOOD COURT, MINUMAN, CEPAT SAJI, RESTORAN, TOKO ROTI)
+      if (amenity === "food_court" || placeName.match(/\b(FOOD COURT|FOODCOURT|PUJASERA|PAZKUL|SWK)\b/)) return "Food Court";
+      if (placeName.match(/\b(ES TEH|ESTEH|TEH POCI|BOBA|CHATIME|CHA TIME|MIXUE|MOMOYO|HAUS|TEGUK)\b/)) return "Toko Minuman";
+      if (amenity === "fast_food" || placeName.match(/\b(KFC|MCDONALD|MCDONALDS|MCD|BURGER|BURGER KING|HISANA|PIZZA|PIZZA HUT|CARL'S|CARLS|BEARD PAPA|RICE BOWL|RICHEESE|D'COST|HOKBEN|A&W|TOBY'S|TOBYS|MC DONALD|SABANA|CHICLIN|CFC)\b/)) return "Cepat Saji";
+      if (amenity === "restaurant" || placeName.match(/\b(RESTAURANT|RESTORAN|RM|RESTO|GEPREK|SUPREK|PECEL|RAWON|SOTO|SATE|MIE|NASGOR|NASI GORENG|PANGSIT|BAKSO|KITCHEN|CRISPY|GADO GADO|GADO-GADO|SAMBEL|SAMBAL|WANGKRINGAN|FOOD|LEKO|SARI RASA|WONG SOLO|MIE GACOAN|MIE SETAN|IBC|DEPOT|AYAM|BEBEK|IKAN BAKAR|GUDEG|SOLARIA)\b/)) return "Restoran";
+      if (shop === "bakery" || placeName.match(/\b(BAKERY|DONAT|DONUT|DONUTS|ROTI|KUE|PASTRY|BENARDI|TOUS LES JOURS|HOLLAND BAKERY|ROTI'O|ROTI O)\b/)) return "Toko Roti & Kue";
+
+      // 6. OBJEK WISATA, BUDAYA, MONUMEN & HIBURAN
+      if (
+        tourism === "museum" ||
+        tourism === "artwork" ||
+        tourism === "attraction" ||
+        tourism === "theme_park" ||
+        tourism === "zoo" ||
+        tourism === "aquarium" ||
+        amenity === "cinema" ||
+        placeName.match(/\b(CANDI|MUSEUM|MONUMEN|SITUS|PRASASTI|HERITAGE|CAGAR BUDAYA|OBJEK WISATA|WISATA|KASTIL|ATRACTION|ATTRACTION|BIOSKOP|CINEMA|XXI|CGV|CINEPOLIS|HAPPY PUPPY|NAV KARAOKE|KARAOKE|INUL VIZTA|THEME PARK|TUGU)\b/)
+      ) {
+        return "Objek Wisata & Budaya";
+      }
+
+      // 7. RETAIL, PERBELANJAAN & PASAR (MINIMARKET, SUPERMARKET, MALL, PASAR)
+      if (shop === "convenience" || placeName.match(/\b(INDOMARET|INDOMART|ALFAMART|ALFAMIDI|ALFA MIDI|CIRCLE K|CIRCLES K|FAMILYMART|PRIMA MART|LAWSON|YOMART|7-ELEVEN|MINIMARKET|MINI MARKET|GREENSMART|ANDISMART|ABNISA)\b/)) return "Minimarket";
       if (shop === "supermarket" || placeName.match(/\b(SUPERMARKET|SUPER INDO|SUPERINDO|GIANT|HERO|LOTTE MART|LOTTE|HYPERMART|TRANSMART|AZKO)\b/)) return "Supermarket";
       if (shop === "mall" || placeName.match(/\b(PLAZA|MALL|DEPARTMENT STORE|RAMAYANA|PGS|MR\.DIY|MR DIY|MRDIY|BOGAJAYA|UNIQLO|PERTOKOAN)\b/)) return "Mall / Pusat Perbelanjaan";
       if (amenity === "marketplace" || placeName.match(/\b(PASAR)\b/)) return "Pasar Tradisional";
 
-      // 6. MATERIAL, MEBEL, ELEKTRONIK, SALON & RETAIL
+      // 8. RETAIL KHUSUS, MATERIAL, MEBEL, ELEKTRONIK, SALON (CEGAH FALSE POSITIVE SEKOLAH DARI SERAGAM)
+      if (placeName.match(/\b(SERAGAM|SERAGAM SEKOLAH)\b/)) return "Toko Retail (Umum)";
       if (shop === "doityourself" || shop === "hardware" || shop === "building_materials" || placeName.match(/\b(MATERIAL|GALANGAN|BANGUNAN|TOKO BESI|DEPO BANGUNAN|MITRA10|MITRA 10|ALUMINIUM)\b/)) return "Toko Bangunan";
       if (shop === "furniture" || placeName.match(/\b(MEBEL|FURNITURE|FURNITUR)\b/)) return "Toko Mebel";
       if (shop === "mobile_phone" || placeName.match(/\b(SAMSUNG|OPPO|VIVO|XIAOMI|IPHONE|APPLE|CELLULAR|COUNTER HP|GADGET)\b/)) return "Toko HP & Gadget";
@@ -133,33 +179,34 @@ export class POIClusterer {
       if (placeName.match(/\b(JNE|J&T|JNT|SICEPAT|POS INDONESIA|TIKI|LOGISTIK|LOGISTIC|EXPEDITION|WAREHOUSE|GUDANG|LALAMOVE|CARGO|NINJA)\b/)) return "Jasa Pengiriman & Logistik";
       if (shop || placeName.match(/\b(OLEH-OLEH|OLEH OLEH|BORDIR|BUSANA|PAKAIAN|BATIK|BENANG|TAS|BAJU|FASHION|CLOTHING|BOUTIQUE|TOKO|AGEN|UD\.|INDAH BORDIR|INTAKO|PIJAT|HERBAL|PERFUME|PARFUM|OPTIK|LAUNDR|LAUNDRY|LOUNDRE|PRINTING|JAHIT)\b/)) return "Toko Retail (Umum)";
 
-      // 7. PENDIDIKAN & PESANTREN
+      // 9. PENDIDIKAN & PESANTREN
       if (placeName.match(/\b(SD|SDN|MI|MIN|SEKOLAH DASAR|SDK|MINU|MIS)\b/)) return "Sekolah Dasar (SD/MI)";
       if (placeName.match(/\b(SMP|SMPN|MTS|MTSN|SEKOLAH MENENGAH PERTAMA|SMPK)\b/)) return "Sekolah Menengah Pertama (SMP/MTs)";
       if (placeName.match(/\b(SMA|SMAN|SMK|SMKN|MA|MAN|SEKOLAH MENENGAH ATAS|SEKOLAH MENENGAH KEJURUAN)\b/)) return "Sekolah Menengah Atas (SMA/SMK/MA)";
-      if (amenity === "kindergarten" || placeName.match(/\b(PAUD|TK|TKK|TAMAN KANAK|KINDERGARTEN)\b/)) return "Taman Kanak-Kanak / PAUD";
+      if (amenity === "kindergarten" || placeName.match(/\b(PAUD|TK|TKK|TAMAN KANAK|KINDERGARTEN|SEKOLAH ANAK BANGSA|SEKOLAH ANAK)\b/)) return "Taman Kanak-Kanak / PAUD";
       if (amenity === "university" || amenity === "college" || placeName.match(/\b(IAI|UNIVERSITY|UNIVERSITAS|KAMPUS|STAI|UMAHA|POLITEKNIK|INSTITUT|STIE|AKADEMI|COLLEGE)\b/)) return "Perguruan Tinggi";
       if (placeName.match(/\b(PESANTREN|PONDOK PESANTREN|KUTTAB|ZAINUDDIN)\b/)) return "Pondok Pesantren";
       if (amenity === "school" || placeName.match(/\b(SEKOLAH|SCHOOL|MADRASAH|BIMBEL|PRIMAGAMA|GANESHA|KURSUS|ENGLISH FIRST|EF|PERPUSTAKAAN|SLB|LEMBAGA PENDIDIKAN|YAYASAN)\b/)) return "Sekolah (Umum)";
 
-      // 8. LAYANAN PEMERINTAHAN & PUBLIK
+      // 10. LAYANAN PEMERINTAHAN & PUBLIK
       if (office === "government" || amenity === "police" || placeName.match(/\b(BADAN|BPK-RI|BPKP|DISPENDA|DISPERINDAG|KEJAKSAAN|KPU|KOMISI|PENGADILAN|SAMSAT|SEKRETARIAT|KPP|ODITURAT|KANTOR|KECAMATAN|KELURAHAN|BAPAS|POLANTAS|POLISI|POLRES|POLSEK|BUM DESA|PLN|PDAM|LAPAS|RUTAN|LEMBAGA PEMASYARAKATAN|TELKOM|POS|TPST|PUSDIK|DINAS|BPN|PEMERINTAHAN|BPJS)\b/)) return "Layanan Pemerintahan";
 
-      // 9. FASILITAS WARGA, OTOMOTIF & AKOMODASI
+      // 11. FASILITAS WARGA, OTOMOTIF & AKOMODASI
       if (placeName.match(/\b(BALAI|BALEDESA|GEDUNG SERBAGUNA|POS KAMLING|POSYANDU|GKP|GEDUNG|GRAHA)\b/)) return "Fasilitas Warga & Balai";
       if (placeName.match(/\b(BENGKEL|AHASS|MOTOR|OTOMOTIF|BRIDGESTONE|PLANET BAN|CUCI MOTOR|CUCI MOBIL|SERVICE|SUZUKI|YAMAHA|HONDA|HYUNDAI|TAMBAL BAN|AUTO CARE|OLXMOBBI|RAJA MOBIL|AGEN COVER)\b/)) return "Bengkel & Otomotif";
       if (amenity === "hotel" || amenity === "hostel" || amenity === "guest_house" || building === "apartments" || tourism === "hotel" || tourism === "guest_house" || placeName.match(/\b(HOTEL|FAVEHOTEL|FAVE HOTEL|HOSTEL|GUEST HOUSE|APARTMENT|APARTEMEN|IBIS|OYO|KONTRAKAN|KOST|KOS|HOMESTAY|PENGINAPAN|LOSMEN|VILLA|WISMA|PONDOK INAP|INN|SYARIAH|PREMIER PLACE|SWISS-BELINN|SWISS BELIN|ZEIDAN HOUSE|TROPODO)\b/)) return "Hotel & Penginapan";
 
-      // 10. TAMAN, OLAHRAGA & REKREASI (TAMAN KOTA HARUS TERKONTROL)
+      // 12. TAMAN, OLAHRAGA & REKREASI (TAMAN KOTA HARUS TERKONTROL)
       if (leisure === "park" || leisure === "garden" || placeName.match(/\b(ALUN-ALUN|ALUN ALUN|BUNDERAN|BUNDARAN|FARMLAND|SITE)\b/) || (placeName.includes("TAMAN KOTA") || placeName.includes("TAMAN REKREASI") || placeName.startsWith("TAMAN ") || placeName.endsWith(" PARK") || placeName === "TAMAN")) return "Taman Kota / Terbuka";
       if (leisure === "pitch" || leisure === "stadium" || leisure === "sports_centre" || placeName.match(/\b(OLAHRAGA|GELORA|JOGGING|GOR|STADION|LAPANGAN|FUTSAL|BADMINTON|FITNESS|GYM|SPORT|GOLF|SPORTS CLUB|SOCCER FIELD)\b/)) return "Fasilitas Olahraga";
       if (leisure === "water_park" || leisure === "swimming_pool" || placeName.match(/\b(WATERPARK|WATERBOOM|KOLAM RENANG|SWIMMING POOL|REKREASI AIR)\b/)) return "Kolam Renang / Rekreasi Air";
 
-      // 11. BANK, ATM, SPBU, PARKIR & PEMAKAMAN
+      // 13. BANK, ATM, PERKANTORAN, SPBU, PARKIR & PEMAKAMAN
       if (amenity === "atm" || placeName.match(/\b(ATM|GALERI ATM|DRIVE-THRU ATM|DRIVE THRU ATM|MESIN TUNAI|CRM)\b/)) return "ATM / Mesin Tunai";
-      if (amenity === "bank" || placeName.match(/\b(BANK|BCA|BRI|BNI|MANDIRI|BSI|DANAMON|PERMATA|CIMB|BTN|PANIN|MAYBANK|PEGADAIAN|LEASING|KOPERASI|KSP)\b/)) return "Bank & Finansial";
-      if (office === "company" || building === "commercial" || building === "office" || placeName.match(/\b(PT\.|PT|CV\.|CV|KANTOR|OFFICE|HEAD OFFICE|BRANCH OFFICE|TOWER|COMMERCIAL)\b/)) return "Perkantoran Komersial";
-      if (placeName.match(/\b(POM|POM BENSIN|SPBU|PERTAMINA|SHELL|BP|AKR)\b/)) return "SPBU / Stasiun Pengisian Bahan Bakar";
+      if (amenity === "bank" || placeName.match(/\b(BANK|BCA|BRI|BNI|MANDIRI|BSI|DANAMON|PERMATA|CIMB|BTN|PANIN|MAYBANK|PEGADAIAN|LEASING|KOPERASI|KSP|BUKOPIN)\b/)) return "Bank & Finansial";
+      if (placeName.match(/\b(KAWASAN INDUSTRI|INDUSTRIAL ESTATE|PABRIK|FACTORY|INDUSTRIAL PARK)\b/)) return "Kawasan Industri";
+      if (office === "company" || building === "commercial" || building === "office" || placeName.match(/\b(PT\.|PT|CV\.|CV|KANTOR|OFFICE|HEAD OFFICE|BRANCH OFFICE|TOWER|COMMERCIAL|BENTOEL|INDOCEV|SOCIODREAMS|SOCIO DREAMS|BENTOEL GROUP|GROUP ASMO)\b/)) return "Perkantoran Komersial";
+      if (placeName.match(/\b(POM|POM BENSIN|SPBU|PERTAMINA|SHELL|BP|AKR|PERTASHOP|NITROGEN)\b/)) return "SPBU / Stasiun Pengisian Bahan Bakar";
       if (amenity === "parking" || amenity === "motorcycle_parking" || placeName.match(/\b(PARKIR|PARKING|PARKIRAN)\b/)) return "Fasilitas Parkir";
       if (amenity === "grave_yard" || amenity === "cemetery" || landuse === "cemetery" || placeName.match(/\b(MAKAM|PEMAKAMAN|GRAVEYARD|CEMETERY|TPU|QUBURAN|KUBURAN)\b/)) return "Pemakaman";
     }
@@ -203,6 +250,19 @@ export class POIClusterer {
     if (shop === "supermarket") return "Supermarket";
     if (shop === "mall") return "Mall / Pusat Perbelanjaan";
     if (amenity === "marketplace") return "Pasar Tradisional";
+
+    // Objek Wisata, Budaya & Rekreasi
+    if (
+      tourism === "museum" ||
+      tourism === "artwork" ||
+      tourism === "attraction" ||
+      tourism === "theme_park" ||
+      tourism === "zoo" ||
+      tourism === "aquarium" ||
+      amenity === "cinema"
+    ) {
+      return "Objek Wisata & Budaya";
+    }
 
     // Material & Retail Spesifik
     if (shop === "doityourself" || shop === "hardware" || shop === "building_materials") return "Toko Bangunan";

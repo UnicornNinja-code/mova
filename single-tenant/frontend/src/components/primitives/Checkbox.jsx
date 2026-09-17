@@ -1,0 +1,47 @@
+import React from "react";
+import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
+import * as SwitchPrimitive from "@radix-ui/react-switch";
+import { Check } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+export function Checkbox({ checked, onCheckedChange, disabled = false, id, className, ...props }) {
+  return (
+    <CheckboxPrimitive.Root
+      id={id}
+      checked={checked}
+      onCheckedChange={onCheckedChange}
+      disabled={disabled}
+      className={cn(
+        "peer h-4 w-4 shrink-0 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-[var(--accent-primary)] data-[state=checked]:border-[var(--accent-primary)] data-[state=checked]:text-white flex items-center justify-center transition-colors",
+        className
+      )}
+      {...props}
+    >
+      <CheckboxPrimitive.Indicator className="flex items-center justify-center text-current">
+        <Check className="h-3 w-3 stroke-[3]" />
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
+  );
+}
+
+export function Switch({ checked, onCheckedChange, disabled = false, id, className, ...props }) {
+  return (
+    <SwitchPrimitive.Root
+      id={id}
+      checked={checked}
+      onCheckedChange={onCheckedChange}
+      disabled={disabled}
+      className={cn(
+        "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-[var(--accent-primary)] data-[state=unchecked]:bg-[var(--border)]",
+        className
+      )}
+      {...props}
+    >
+      <SwitchPrimitive.Thumb
+        className={cn(
+          "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm ring-0 transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0"
+        )}
+      />
+    </SwitchPrimitive.Root>
+  );
+}

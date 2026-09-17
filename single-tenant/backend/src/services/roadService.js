@@ -73,38 +73,11 @@ export class RoadService {
 
 export const roadService = RoadService.getInstance();
 
-export async function syncProtocolRoadsService() {
-  let geojson = await roadService.getProtocolRoadsGeoJson();
-  if (!geojson.features || geojson.features.length === 0) {
-    const geoJsonPath = path.join(process.cwd(), DEFAULT_GEOJSON_REL_PATH);
-    if (fs.existsSync(geoJsonPath)) {
-      const rawData = fs.readFileSync(geoJsonPath, "utf8");
-      const parsed = JSON.parse(rawData);
-      const features = parsed.features || [];
-      const validFeatures = features
-        .filter((f) => f.geometry?.type === "LineString" && Array.isArray(f.geometry.coordinates))
-        .map((feat, idx) => ({
-          external_id: feat.properties?.id || `way/gen-${idx + 1}`,
-          name: feat.properties?.name || "Jalan Protokol Utama",
-          highway_type: feat.properties?.highway || "secondary",
-          restriction_type: "PROHIBITED_ROAD",
-          metadata: feat.properties || {},
-          geometry: feat.geometry,
-        }));
-      if (validFeatures.length > 0) {
-        await roadRepository.bulkCreate(validFeatures);
-        geojson = await roadService.getProtocolRoadsGeoJson();
-      }
-    }
-  }
-  return {
-    success: true,
-    totalRoads: geojson.features ? geojson.features.length : 0,
-    msg: "Protocol roads spatial layer synchronized successfully.",
-  };
+export async function syncProtocolRoadsService(options = {}) {
+  return await roadOverpassSyncService.syncProtocolRoadsFromOverpass(options);
 }
 
-export async function syncTollRoadsService() {
-  return await roadOverpassSyncService.syncTollRoadsFromOverpass();
+export async function syncTollRoadsService(options = {}) {
+  return await roadOverpassSyncService.syncTollRoadsFromOverpass(options);
 }
 

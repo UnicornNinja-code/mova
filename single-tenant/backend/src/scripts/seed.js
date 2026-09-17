@@ -156,6 +156,7 @@ async function seedCleanData() {
       { name: "Taman & Ruang Terbuka", score_pagi: 4, score_siang: 2, score_sore: 5, score_malam: 4 },
       { name: "Fasilitas Olahraga", score_pagi: 5, score_siang: 2, score_sore: 5, score_malam: 4 },
       { name: "Kolam Renang / Rekreasi Air", score_pagi: 4, score_siang: 4, score_sore: 4, score_malam: 1 },
+      { name: "Objek Wisata & Budaya", score_pagi: 3, score_siang: 4, score_sore: 5, score_malam: 4 },
 
       // Finansial, Perkantoran & Utilitas
       { name: "ATM / Mesin Tunai", score_pagi: 4, score_siang: 5, score_sore: 5, score_malam: 4 },
@@ -255,11 +256,37 @@ async function seedCleanData() {
     // 6. System Settings Default
     console.log("⏳ Seeding Pengaturan Sistem...");
     const settings = [
-      { key: "APP_NAME", value: "MOVA - Coffee Operational Zone Intelligence System", description: "Nama identitas sistem" },
+      { key: "SYSTEM_INITIALIZED", value: "true", description: "Status Inisialisasi Sistem" },
+      { key: "SYSTEM_NAME", value: "MOVA", description: "Nama Resmi Sistem Operasional" },
+      { key: "APP_NAME", value: "MOVA — Mobile Operations & Visibility Application", description: "Nama identitas resmi sistem" },
+      { key: "BUSINESS_NAME", value: "MOVA Coffee Operations", description: "Nama Bisnis Operasional" },
+      { key: "HUB_CITY_NAME", value: "Sidoarjo", description: "Kota Hub Operasional Utama" },
+      { key: "CENTRAL_HUB_NAME", value: "Central Hub Sidoarjo", description: "Nama Gudang / Hub Pusat" },
+      { key: "CENTRAL_HUB_LATITUDE", value: "-7.4478", description: "Latitude Pusat Operasional Hub Sidoarjo" },
+      { key: "CENTRAL_HUB_LONGITUDE", value: "112.7183", description: "Longitude Pusat Operasional Hub Sidoarjo" },
+      { key: "CENTRAL_HUB_ADDRESS", value: "Jl. Pahlawan No. 1, Sidoarjo, Jawa Timur", description: "Alamat Fisik Gudang Hub" },
+      { key: "OPERATING_HOURS_START", value: "07:00", description: "Jam Mulai Operasi Harian" },
+      { key: "OPERATING_HOURS_END", value: "21:00", description: "Jam Selesai Operasi Harian" },
+      { key: "OPERATIONAL_RADIUS_KM", value: "15", description: "Radius Maksimal Operasi dari Hub (KM)" },
       { key: "ARMADA_HOLD_DURATION_MINUTES", value: "5", description: "Batas durasi lock booking armada sementara bagi rider" },
       { key: "RESTRICTED_ROAD_PROXIMITY_METERS", value: "50", description: "Jarak batas aman telemetri rider dari jalan protokol terlarang" },
       { key: "MAX_ZONE_CAPACITY_DEFAULT", value: "3", description: "Batas maksimal rider dalam 1 zona operasional secara default" },
+      { key: "OPERATIONAL_RULE_PROTOCOL_ROAD", value: "true", description: "Aturan restriksi operasional jalan protokol" },
+      { key: "OPERATIONAL_RULE_TOLL_ROAD", value: "true", description: "Aturan restriksi operasional jalan tol" },
     ];
+
+    for (const s of settings) {
+      await pool.query(
+        `INSERT INTO system_settings (key, value, description)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (key) DO UPDATE SET
+           value = EXCLUDED.value,
+           description = EXCLUDED.description,
+           updated_at = CURRENT_TIMESTAMP;`,
+        [s.key, s.value, s.description]
+      );
+    }
+    console.log(`✅ ${settings.length} Pengaturan Sistem siap.`);
 
     // 7. Master Operational Zones Sidoarjo
     console.log("⏳ Seeding Master Zona Operasional Sidoarjo...");
@@ -302,18 +329,86 @@ async function seedCleanData() {
       }
     ];
 
+    const zoneIdMap = {};
     for (const z of zones) {
+      let zoneId;
       const checkZone = await pool.query("SELECT id FROM zones WHERE name = $1", [z.name]);
+      const polyGeoJsonStr = JSON.stringify(z.polygon);
       if (checkZone.rows.length === 0) {
-        const polyGeoJsonStr = JSON.stringify(z.polygon);
-        await pool.query(
+        const insertRes = await pool.query(
           `INSERT INTO zones (name, description, max_capacity, status, polygon, geom)
-           VALUES ($1, $2, $3, $4::"ZoneStatus", $5::jsonb, ST_SetSRID(ST_GeomFromGeoJSON($6), 4326));`,
+           VALUES ($1, $2, $3, $4::"ZoneStatus", $5::jsonb, ST_SetSRID(ST_GeomFromGeoJSON($6), 4326))
+           RETURNING id;`,
           [z.name, z.description, z.max_capacity, z.status, polyGeoJsonStr, polyGeoJsonStr]
         );
+        zoneId = insertRes.rows[0].id;
+      } else {
+        zoneId = checkZone.rows[0].id;
+        await pool.query(
+          `UPDATE zones 
+           SET description = $2, max_capacity = $3, status = $4::"ZoneStatus", polygon = $5::jsonb, geom = ST_SetSRID(ST_GeomFromGeoJSON($6), 4326), updated_at = CURRENT_TIMESTAMP
+           WHERE id = $1;`,
+          [zoneId, z.description, z.max_capacity, z.status, polyGeoJsonStr, polyGeoJsonStr]
+        );
       }
+      zoneIdMap[z.name] = zoneId;
     }
     console.log(`✅ ${zones.length} Master Zona Operasional berhasil disiapkan.`);
+
+    // 8. Sample Baseline Competitor Surveys (Pilar 4 / Kriteria C6)
+    console.log("⏳ Seeding Data Sampel Survei Lapangan Kompetitor (C6)...");
+    const sampleCompetitors = [
+      {
+        zoneName: "Zona Alun-Alun Sidoarjo",
+        name: "Kopi Keliling Cak Mat (Starling)",
+        category: "DIRECT_STARLING",
+        weight: 3,
+        latitude: -7.4475,
+        longitude: 112.7178,
+      },
+      {
+        zoneName: "Zona Alun-Alun Sidoarjo",
+        name: "Booth Kopi Sachet Alun-Alun",
+        category: "DIRECT_BOOTH",
+        weight: 2,
+        latitude: -7.4485,
+        longitude: 112.7190,
+      },
+      {
+        zoneName: "Zona GOR Delta Sidoarjo",
+        name: "Starling Mas Bro Pintu Barat GOR",
+        category: "DIRECT_STARLING",
+        weight: 3,
+        latitude: -7.4550,
+        longitude: 112.7085,
+      },
+      {
+        zoneName: "Zona GOR Delta Sidoarjo",
+        name: "Kedai Kopi Sudut GOR",
+        category: "INDIRECT_CAFE",
+        weight: 1,
+        latitude: -7.4565,
+        longitude: 112.7100,
+      }
+    ];
+
+    for (const comp of sampleCompetitors) {
+      const targetZoneId = zoneIdMap[comp.zoneName];
+      if (targetZoneId) {
+        const existComp = await pool.query(
+          "SELECT id FROM competitors WHERE name = $1 AND zone_id = $2",
+          [comp.name, targetZoneId]
+        );
+        if (existComp.rows.length === 0) {
+          await pool.query(
+            `INSERT INTO competitors (zone_id, name, category, weight, latitude, longitude, geom, reconciliation_status)
+             VALUES ($1, $2, $3, $4, $5, $6, ST_SetSRID(ST_MakePoint($6, $5), 4326), 'UNLINKED');`,
+            [targetZoneId, comp.name, comp.category, comp.weight, comp.latitude, comp.longitude]
+          );
+        }
+      }
+    }
+    console.log(`✅ ${sampleCompetitors.length} Titik Sampel Survei Kompetitor C6 berhasil disiapkan.`);
 
     console.log("\n🎉 Seeding Master Data Single-Tenant Sukses 100%!");
   } catch (error) {

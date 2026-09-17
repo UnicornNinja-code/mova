@@ -421,6 +421,16 @@ export class POIRepository {
         const osmId = p.osm_id || null;
         const canonicalExternalId = p.external_id || (osmId ? `osm:${osmType || 'node'}:${osmId}` : null);
 
+        let safeCategory = p.category;
+        let safeOpStatus = p.operational_status || "ELIGIBLE";
+        let safeExclusionReason = p.exclusion_reason || null;
+
+        if (safeCategory === "IGNORED" || !safeCategory) {
+          safeCategory = "Lainnya";
+          safeOpStatus = "EXCLUDED";
+          safeExclusionReason = safeExclusionReason || "BLACKLIST_NOISE";
+        }
+
         // Match existing POI by external_id OR by legacy osm_id (only when osmType is NULL)
         let existingMatch = null;
         if (canonicalExternalId && existingByExternalId.has(canonicalExternalId)) {
@@ -454,12 +464,12 @@ export class POIRepository {
             osmId,
             canonicalExternalId || existingMatch.external_id,
             p.name,
-            p.category,
+            safeCategory,
             p.latitude,
             p.longitude,
             p.approval_status || "APPROVED",
-            p.operational_status || "ELIGIBLE",
-            p.exclusion_reason || null,
+            safeOpStatus,
+            safeExclusionReason,
             JSON.stringify(p.metadata || {}),
             existingMatch.id,
           ]);
@@ -493,12 +503,12 @@ export class POIRepository {
             osmType,
             osmId,
             p.name,
-            p.category,
+            safeCategory,
             p.latitude,
             p.longitude,
             p.approval_status || "APPROVED",
-            p.operational_status || "ELIGIBLE",
-            p.exclusion_reason || null,
+            safeOpStatus,
+            safeExclusionReason,
             JSON.stringify(p.metadata || {}),
           ]);
 

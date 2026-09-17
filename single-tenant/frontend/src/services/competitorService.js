@@ -1,39 +1,53 @@
-import { axiosInstance } from "../lib/axios.js";
+import { api } from "./api";
 
-/**
- * Competitor Intelligence & Spatial Survey Domain Service (Canonical Backend Phase 2/7)
- */
 export const competitorService = {
-  getCompetitorsByZone: async (zone_id) => {
-    if (!zone_id) return { competitors: [], count: 0 };
-    const res = await axiosInstance.get(`/competitors/zone/${zone_id}`);
-    return res.data;
+  // --- Competitors Group 6 ---
+  async getSummary() {
+    const response = await api.get("/api/competitors/summary");
+    return response.data?.data || response.data;
   },
 
-  getC6Score: async (zone_id) => {
-    if (!zone_id) return { skor_c6: 0 };
-    const res = await axiosInstance.get(`/competitors/score/${zone_id}`);
-    return res.data;
+  async getZoneC6Score(zoneId) {
+    const response = await api.get(`/api/competitors/score/${zoneId}`);
+    return response.data?.data || response.data;
   },
 
-  createCompetitor: async (data) => {
-    const res = await axiosInstance.post("/competitors", data);
-    return res.data;
+  async getCompetitorsByZone(zoneId) {
+    const response = await api.get(`/api/competitors/zone/${zoneId}`);
+    return response.data?.data || response.data;
   },
 
-  deleteCompetitor: async (id) => {
-    const res = await axiosInstance.delete(`/competitors/${id}`);
-    return res.data;
+  async createCompetitor(competitorData) {
+    const response = await api.post("/api/competitors", competitorData);
+    return response.data?.data || response.data;
   },
 
-  getCompetitorSummary: async () => {
-    const res = await axiosInstance.get("/competitors/summary");
-    return res.data;
+  async bulkCreateCompetitors(competitorsArray) {
+    const response = await api.post("/api/competitors/bulk", { competitors: competitorsArray });
+    return response.data?.data || response.data;
   },
 
-  getProtocolRoads: async () => {
-    const res = await axiosInstance.get("/roads/protocol");
-    return res.data;
+  async deleteCompetitor(id) {
+    const response = await api.delete(`/api/competitors/${id}`);
+    return response.data?.data || response.data;
+  },
+
+  async detectCandidates(zoneId) {
+    const response = await api.post(`/api/competitors/candidates/${zoneId}`);
+    return response.data?.data || response.data;
+  },
+
+  async reconcileExplicitLink(competitorId, { logicalPoiId, externalId, poiId }) {
+    const response = await api.post(`/api/competitors/${competitorId}/reconcile`, {
+      logical_poi_id: logicalPoiId,
+      external_id: externalId,
+      poi_id: poiId,
+    });
+    return response.data?.data || response.data;
+  },
+
+  async unlinkReconciliation(competitorId) {
+    const response = await api.post(`/api/competitors/${competitorId}/unlink`);
+    return response.data?.data || response.data;
   },
 };
-

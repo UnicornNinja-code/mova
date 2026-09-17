@@ -95,23 +95,84 @@ async function seedFresh() {
     console.log("⏳ [3/5] Menyiapkan Kategori POI & Matriks Skor Keramaian Waktu (Likert 1-5)...");
 
     const poiCategories = [
-      { name: "Hotel & Penginapan",                    score_pagi: 3, score_siang: 2, score_sore: 3, score_malam: 4 },
-      { name: "Kafe & Kedai Kopi",                     score_pagi: 2, score_siang: 3, score_sore: 5, score_malam: 5 },
-      { name: "Cepat Saji",                            score_pagi: 2, score_siang: 4, score_sore: 4, score_malam: 5 },
-      { name: "Food Court",                            score_pagi: 2, score_siang: 5, score_sore: 4, score_malam: 5 },
-      { name: "Restoran",                              score_pagi: 2, score_siang: 5, score_sore: 3, score_malam: 5 },
-      { name: "Toko Minuman",                          score_pagi: 2, score_siang: 4, score_sore: 5, score_malam: 4 },
-      { name: "Toko Roti & Kue",                       score_pagi: 3, score_siang: 3, score_sore: 4, score_malam: 3 },
-      { name: "Minimarket",                            score_pagi: 3, score_siang: 4, score_sore: 4, score_malam: 4 },
-      { name: "Supermarket",                           score_pagi: 2, score_siang: 4, score_sore: 4, score_malam: 4 },
-      { name: "Mall / Pusat Perbelanjaan",             score_pagi: 2, score_siang: 4, score_sore: 5, score_malam: 5 },
-      { name: "Pasar Tradisional",                     score_pagi: 5, score_siang: 4, score_sore: 2, score_malam: 1 },
-      { name: "Perkantoran Komersial",                 score_pagi: 4, score_siang: 5, score_sore: 4, score_malam: 2 },
-      { name: "Stasiun Kereta Api",                    score_pagi: 5, score_siang: 4, score_sore: 5, score_malam: 3 },
-      { name: "Halte / Terminal Bus",                  score_pagi: 5, score_siang: 4, score_sore: 5, score_malam: 3 },
-      { name: "Taman Kota / Terbuka",                  score_pagi: 4, score_siang: 2, score_sore: 5, score_malam: 4 },
-      { name: "SPBU / Stasiun Pengisian Bahan Bakar",  score_pagi: 4, score_siang: 4, score_sore: 5, score_malam: 3 },
-      { name: "Lainnya",                               score_pagi: 2, score_siang: 2, score_sore: 2, score_malam: 2 },
+      // Tempat Ibadah
+      { name: "Masjid & Mushola", score_pagi: 4, score_siang: 4, score_sore: 4, score_malam: 5 },
+      { name: "Gereja", score_pagi: 3, score_siang: 3, score_sore: 4, score_malam: 3 },
+      { name: "Pura", score_pagi: 3, score_siang: 3, score_sore: 3, score_malam: 3 },
+      { name: "Vihara", score_pagi: 3, score_siang: 3, score_sore: 3, score_malam: 3 },
+      { name: "Tempat Ibadah (Lainnya)", score_pagi: 3, score_siang: 3, score_sore: 3, score_malam: 3 },
+      { name: "Tempat Ibadah", score_pagi: 4, score_siang: 4, score_sore: 3, score_malam: 3 },
+
+      // Kesehatan
+      { name: "Apotek", score_pagi: 3, score_siang: 4, score_sore: 4, score_malam: 3 },
+      { name: "Rumah Sakit", score_pagi: 4, score_siang: 5, score_sore: 4, score_malam: 3 },
+      { name: "Klinik & Puskesmas", score_pagi: 4, score_siang: 5, score_sore: 3, score_malam: 1 },
+
+      // Transportasi & Transit
+      { name: "Stasiun Kereta Api", score_pagi: 5, score_siang: 4, score_sore: 5, score_malam: 4 },
+      { name: "Halte / Terminal Bus", score_pagi: 5, score_siang: 4, score_sore: 5, score_malam: 3 },
+      { name: "Fasilitas Transit & Shelter", score_pagi: 4, score_siang: 4, score_sore: 4, score_malam: 3 },
+      { name: "Transportasi / Stasiun", score_pagi: 5, score_siang: 3, score_sore: 5, score_malam: 3 },
+
+      // Kuliner & Kafe
+      { name: "Food Court", score_pagi: 2, score_siang: 5, score_sore: 5, score_malam: 5 },
+      { name: "Cepat Saji", score_pagi: 3, score_siang: 5, score_sore: 5, score_malam: 5 },
+      { name: "Restoran", score_pagi: 3, score_siang: 5, score_sore: 5, score_malam: 5 },
+      { name: "Toko Minuman", score_pagi: 2, score_siang: 5, score_sore: 5, score_malam: 4 },
+      { name: "Kafe & Kedai Kopi", score_pagi: 3, score_siang: 4, score_sore: 5, score_malam: 5 },
+      { name: "Toko Roti & Kue", score_pagi: 4, score_siang: 4, score_sore: 4, score_malam: 3 },
+
+      // Retail, Supermarket & Perbelanjaan
+      { name: "Minimarket", score_pagi: 4, score_siang: 5, score_sore: 5, score_malam: 5 },
+      { name: "Supermarket", score_pagi: 3, score_siang: 4, score_sore: 5, score_malam: 5 },
+      { name: "Mall / Pusat Perbelanjaan", score_pagi: 2, score_siang: 4, score_sore: 5, score_malam: 5 },
+      { name: "Pusat Perbelanjaan", score_pagi: 2, score_siang: 4, score_sore: 5, score_malam: 5 },
+      { name: "Pasar Tradisional", score_pagi: 5, score_siang: 4, score_sore: 2, score_malam: 1 },
+      { name: "Toko Bangunan", score_pagi: 4, score_siang: 4, score_sore: 3, score_malam: 1 },
+      { name: "Toko Mebel", score_pagi: 3, score_siang: 3, score_sore: 3, score_malam: 1 },
+      { name: "Toko HP & Gadget", score_pagi: 2, score_siang: 4, score_sore: 4, score_malam: 4 },
+      { name: "Provider & Telekomunikasi", score_pagi: 3, score_siang: 4, score_sore: 4, score_malam: 2 },
+      { name: "Toko Elektronik", score_pagi: 3, score_siang: 4, score_sore: 4, score_malam: 3 },
+      { name: "Pangkas Rambut & Salon", score_pagi: 2, score_siang: 4, score_sore: 4, score_malam: 4 },
+      { name: "Studio & Fotografi", score_pagi: 2, score_siang: 3, score_sore: 4, score_malam: 3 },
+      { name: "Jasa Pengiriman & Logistik", score_pagi: 4, score_siang: 5, score_sore: 4, score_malam: 2 },
+      { name: "Toko Retail (Umum)", score_pagi: 3, score_siang: 4, score_sore: 4, score_malam: 3 },
+
+      // Pendidikan
+      { name: "Sekolah Dasar (SD/MI)", score_pagi: 5, score_siang: 4, score_sore: 2, score_malam: 1 },
+      { name: "Sekolah Menengah Pertama (SMP/MTs)", score_pagi: 5, score_siang: 5, score_sore: 2, score_malam: 1 },
+      { name: "Sekolah Menengah Atas (SMA/SMK/MA)", score_pagi: 5, score_siang: 5, score_sore: 3, score_malam: 1 },
+      { name: "Taman Kanak-Kanak / PAUD", score_pagi: 5, score_siang: 2, score_sore: 1, score_malam: 1 },
+      { name: "Perguruan Tinggi", score_pagi: 5, score_siang: 5, score_sore: 4, score_malam: 3 },
+      { name: "Pondok Pesantren", score_pagi: 4, score_siang: 4, score_sore: 4, score_malam: 4 },
+      { name: "Sekolah (Umum)", score_pagi: 5, score_siang: 4, score_sore: 2, score_malam: 1 },
+      { name: "Sekolah & Universitas", score_pagi: 5, score_siang: 4, score_sore: 3, score_malam: 1 },
+
+      // Layanan Pemerintahan & Publik
+      { name: "Layanan Pemerintahan", score_pagi: 5, score_siang: 5, score_sore: 2, score_malam: 1 },
+
+      // Fasilitas Warga, Otomotif & Akomodasi
+      { name: "Fasilitas Warga & Balai", score_pagi: 3, score_siang: 3, score_sore: 4, score_malam: 4 },
+      { name: "Bengkel & Otomotif", score_pagi: 4, score_siang: 5, score_sore: 4, score_malam: 2 },
+      { name: "Hotel & Penginapan", score_pagi: 3, score_siang: 3, score_sore: 4, score_malam: 4 },
+
+      // Taman, Olahraga & Rekreasi
+      { name: "Taman Kota / Terbuka", score_pagi: 5, score_siang: 2, score_sore: 5, score_malam: 4 },
+      { name: "Taman & Ruang Terbuka", score_pagi: 4, score_siang: 2, score_sore: 5, score_malam: 4 },
+      { name: "Fasilitas Olahraga", score_pagi: 5, score_siang: 2, score_sore: 5, score_malam: 4 },
+      { name: "Kolam Renang / Rekreasi Air", score_pagi: 4, score_siang: 4, score_sore: 4, score_malam: 1 },
+      { name: "Objek Wisata & Budaya", score_pagi: 3, score_siang: 4, score_sore: 5, score_malam: 4 },
+
+      // Finansial, Perkantoran & Utilitas
+      { name: "ATM / Mesin Tunai", score_pagi: 4, score_siang: 5, score_sore: 5, score_malam: 4 },
+      { name: "Bank & Finansial", score_pagi: 5, score_siang: 5, score_sore: 2, score_malam: 1 },
+      { name: "Perkantoran Komersial", score_pagi: 5, score_siang: 5, score_sore: 4, score_malam: 1 },
+      { name: "Perkantoran", score_pagi: 5, score_siang: 5, score_sore: 4, score_malam: 1 },
+      { name: "Kawasan Industri", score_pagi: 4, score_siang: 4, score_sore: 3, score_malam: 1 },
+      { name: "SPBU / Stasiun Pengisian Bahan Bakar", score_pagi: 4, score_siang: 4, score_sore: 5, score_malam: 4 },
+      { name: "Fasilitas Parkir", score_pagi: 3, score_siang: 4, score_sore: 4, score_malam: 3 },
+      { name: "Pemakaman", score_pagi: 2, score_siang: 1, score_sore: 1, score_malam: 1 },
+      { name: "Lainnya", score_pagi: 1, score_siang: 1, score_sore: 1, score_malam: 1 },
     ];
 
     for (const cat of poiCategories) {

@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <!-- Body & Box Gradients -->
+    <linearGradient id="scooterBodyGrad_rider-compliant" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="60%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="cargoBoxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="50%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="helmetGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F8FAFC" />
+      <stop offset="60%" stop-color="#E2E8F0" />
+      <stop offset="100%" stop-color="#94A3B8" />
+    </linearGradient>
+    <linearGradient id="wheelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="groundShadow_rider-compliant" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3" />
+    </filter>
+    <filter id="scooterDropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0F172A" flood-opacity="0.4" />
+    </filter>
+    <filter id="beaconGlow_rider-compliant" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Telemetry Ground Radar LED Halo -->
+  <ellipse cx="32" cy="54" rx="26" ry="8" fill="#10B981" opacity="0.22" filter="url(#groundShadow_rider-compliant)" />
+  <ellipse cx="32" cy="54" rx="23" ry="7" stroke="#10B981" stroke-width="1.8" stroke-dasharray="4,3" fill="none" opacity="0.85" />
+  
+  <!-- Ground Wheel Contact Shadows -->
+  <ellipse cx="17" cy="53" rx="7" ry="2.5" fill="#0F172A" opacity="0.4" />
+  <ellipse cx="47" cy="53" rx="7" ry="2.5" fill="#0F172A" opacity="0.4" />
+
+  <!-- 3D Isometric Delivery Scooter & Rider Group -->
+  <g filter="url(#scooterDropShadow)">
+    <!-- Back Wheel -->
+    <circle cx="17" cy="47" r="7.5" fill="url(#wheelGrad)" stroke="#64748B" stroke-width="1" />
+    <circle cx="17" cy="47" r="3.5" fill="#E2E8F0" />
+
+    <!-- Front Wheel -->
+    <circle cx="47" cy="47" r="7.5" fill="url(#wheelGrad)" stroke="#64748B" stroke-width="1" />
+    <circle cx="47" cy="47" r="3.5" fill="#E2E8F0" />
+
+    <!-- Scooter Chassis & Floorboard -->
+    <path d="M19 45 L36 45 L43 38 L45 32 L41 32 L35 40 L24 40 L19 45 Z" fill="#334155" />
+
+    <!-- Fairing Front Body (Colored Status) -->
+    <path d="M38 41 L46 30 L49 30 L44 43 L38 41 Z" fill="url(#scooterBodyGrad_rider-compliant)" />
+    <!-- Front Mudguard -->
+    <path d="M42 43 C42 40 48 40 51 44 L46 45 Z" fill="url(#scooterBodyGrad_rider-compliant)" />
+    <!-- Handlebar & Headlight -->
+    <path d="M43 27 L46 25 L48 27 L45 29 Z" fill="#64748B" />
+    <circle cx="49" cy="30" r="2" fill="#FEF08A" />
+
+    <!-- MOVA Insulated Coffee Cargo Box (Rear Mount) -->
+    <g transform="translate(10, 24)">
+      <!-- Box Left/Front Face -->
+      <polygon points="0,6 14,0 14,16 0,22" fill="url(#cargoBoxGrad)" stroke="#475569" stroke-width="0.75" />
+      <!-- Box Right Face -->
+      <polygon points="14,0 20,4 20,20 14,16" fill="#0F172A" stroke="#334155" stroke-width="0.75" />
+      <!-- Box Top Face -->
+      <polygon points="0,6 14,0 20,4 6,10" fill="#334155" stroke="#64748B" stroke-width="0.75" />
+      <!-- MOVA Coffee Cup Emblem on Cargo Box -->
+      <circle cx="7" cy="11" r="3" fill="#10B981" opacity="0.9" />
+      <path d="M5.5 10 h3 v2.5 a1.5 1.5 0 0 1 -3 0 Z" fill="#FFFFFF" />
+    </g>
+
+    <!-- Rider Torso (Seat Position) -->
+    <path d="M26 36 L30 26 L36 27 L33 37 Z" fill="#1E293B" />
+
+    <!-- 3D Rider Helmet with Dark Gloss Visor -->
+    <circle cx="34" cy="19" r="6.5" fill="url(#helmetGrad)" stroke="#CBD5E1" stroke-width="0.5" />
+    <path d="M35 17 C38 17 40 19 40 21 L35 22 Z" fill="#0F172A" />
+
+    <!-- Top Telemetry Status Beacon Pin -->
+    <circle cx="34" cy="9" r="3.5" fill="#10B981" filter="url(#beaconGlow_rider-compliant)" stroke="#FFFFFF" stroke-width="0.75" />
+  </g>
+</svg>

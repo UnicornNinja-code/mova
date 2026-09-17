@@ -1,0 +1,158 @@
+import React, { Suspense, lazy } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { ProtectedRoute } from "./ProtectedRoute";
+import { Spinner } from "@/components/primitives";
+
+// Lazy-loaded pages
+const LoginPage = lazy(() => import("@/pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
+const OverviewPage = lazy(() => import("@/pages/overview/OverviewPage").then((m) => ({ default: m.OverviewPage })));
+const MapOpsPage = lazy(() => import("@/pages/mapops/MapOpsPage").then((m) => ({ default: m.MapOpsPage })));
+const WeatherPage = lazy(() => import("@/pages/operations/WeatherPage").then((m) => ({ default: m.WeatherPage })));
+const RiderHomePage = lazy(() => import("@/pages/rider/RiderHomePage").then((m) => ({ default: m.RiderHomePage })));
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })));
+
+function PageSuspense({ children }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[50vh] w-full">
+          <Spinner size="lg" label="Memuat Halaman..." />
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
+
+export function AppRoutes() {
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route
+        path="/login"
+        element={
+          <PageSuspense>
+            <LoginPage />
+          </PageSuspense>
+        }
+      />
+
+      {/* Control Room Routes (Superadmin, Management, Supervisor) */}
+      <Route
+        path="/"
+        element={<Navigate to="/overview" replace />}
+      />
+
+      <Route
+        path="/overview"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"]}>
+            <PageSuspense>
+              <OverviewPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/operations/mapops"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"]}>
+            <PageSuspense>
+              <MapOpsPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/operations/weather"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"]}>
+            <PageSuspense>
+              <WeatherPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Placeholder Operations Routes */}
+      <Route
+        path="/operations/*"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"]}>
+            <PageSuspense>
+              <OverviewPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/intelligence/*"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"]}>
+            <PageSuspense>
+              <OverviewPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/data/*"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN", "SUPERVISOR"]}>
+            <PageSuspense>
+              <OverviewPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/*"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN"]}>
+            <PageSuspense>
+              <OverviewPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Rider Mobile-First Dedicated Routes */}
+      <Route
+        path="/rider"
+        element={
+          <ProtectedRoute allowedRoles={["RIDER"]}>
+            <PageSuspense>
+              <RiderHomePage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/rider/*"
+        element={
+          <ProtectedRoute allowedRoles={["RIDER"]}>
+            <PageSuspense>
+              <RiderHomePage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 404 Fallback */}
+      <Route
+        path="*"
+        element={
+          <PageSuspense>
+            <NotFoundPage />
+          </PageSuspense>
+        }
+      />
+    </Routes>
+  );
+}

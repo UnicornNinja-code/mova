@@ -27,11 +27,15 @@ async function runFullSetup() {
     console.log("\n3️⃣  Langkah 3: Menjalankan Seeding Master Data (db:seed)...");
     execSync("node src/scripts/seed.js", { stdio: "inherit" });
 
-    // 4. Full-City POI Master Data Sync
+    // 4. Full-City POI Master Data Sync (Overpass API - Non-Blocking)
     console.log("\n4️⃣  Langkah 4: Sinkronisasi Otomatis Master Data POI Skala Kota (Overpass API)...");
-    const poiResult = await syncCityPoisService();
-    console.log(`✅ Status POI Kota: ${poiResult.message}`);
-    console.log(`📊 Total Master Data POI Disimpan di Database: ${poiResult.count}`);
+    try {
+      const poiResult = await syncCityPoisService();
+      console.log(`✅ Status POI Kota: ${poiResult.message}`);
+      console.log(`📊 Total Master Data POI Disimpan di Database: ${poiResult.count}`);
+    } catch (poiErr) {
+      console.warn("⚠️  [Non-Blocking] Sinkronisasi POI Kota via Overpass API dilewati / gagal:", poiErr.message);
+    }
 
     // 5. Protocol Roads Seeding (PostGIS)
     console.log("\n5️⃣  Langkah 5: Seeding Data Spasial Jalan Protokol (PostGIS)...");
@@ -54,9 +58,14 @@ async function runFullSetup() {
 
   } catch (error) {
     console.error("\n💥 Gagal menjalankan Full DB Setup & Sync:", error.message);
+    process.exit(1);
   } finally {
-    await pool.end();
+    try {
+      await pool.end();
+    } catch (_) {}
+    process.exit(0);
   }
 }
 
 runFullSetup();
+

@@ -150,7 +150,7 @@ async function runDashboardTests() {
     const { rows: canonicalRevenueRows } = await pool.query(
       `SELECT COALESCE(SUM(total_price), 0)::numeric(14,2) AS total_revenue, COUNT(id)::int AS total_trans
        FROM sales_logs
-       WHERE (created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta')::date = CURRENT_DATE;`
+       WHERE (created_at AT TIME ZONE 'Asia/Jakarta')::date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta')::date;`
     );
     const dbRevenue = parseFloat(canonicalRevenueRows[0].total_revenue);
     const dbTransactions = canonicalRevenueRows[0].total_trans;

@@ -9,8 +9,12 @@ import {
   getZoneC6Score,
   getCompetitorsByZone,
   createCompetitor,
+  bulkCreateCompetitors,
   deleteCompetitor,
   getCompetitorSummary,
+  reconcileCompetitor,
+  detectCandidates,
+  unlinkCompetitor,
 } from "../controllers/competitorController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 import { checkRole } from "../middlewares/roleMiddleware.js";
@@ -33,6 +37,38 @@ router.get(
   "/zone/:zone_id",
   authenticateToken,
   getCompetitorsByZone
+);
+
+// Detect candidate matches for a zone (Data Quality / Review metadata)
+router.post(
+  "/candidates/:zone_id",
+  authenticateToken,
+  checkRole(["SUPERADMIN", "SUPERVISOR"]),
+  detectCandidates
+);
+
+// Explicit reconciliation link
+router.post(
+  "/:competitor_id/reconcile",
+  authenticateToken,
+  checkRole(["SUPERADMIN", "SUPERVISOR"]),
+  reconcileCompetitor
+);
+
+// Unlink reconciliation
+router.post(
+  "/:competitor_id/unlink",
+  authenticateToken,
+  checkRole(["SUPERADMIN", "SUPERVISOR"]),
+  unlinkCompetitor
+);
+
+// Ingest a batch of field competitor records (RBAC: SUPERADMIN, SUPERVISOR)
+router.post(
+  "/bulk",
+  authenticateToken,
+  checkRole(["SUPERADMIN", "SUPERVISOR"]),
+  bulkCreateCompetitors
 );
 
 // Add new field competitor record (RBAC: SUPERADMIN, SUPERVISOR)

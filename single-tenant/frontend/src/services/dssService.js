@@ -1,107 +1,54 @@
-import { axiosInstance } from "../lib/axios.js";
+import { api } from "./api";
 
 export const dssService = {
-  // 1. Evaluation & Execution
-  evaluate: async (payload) => {
-    const res = await axiosInstance.post("/dss/evaluate", payload);
-    return res.data;
-  },
-  evaluateHybridBwmTopsis: async (payload) => {
-    const res = await axiosInstance.post("/dss/evaluate", payload);
-    return res.data;
-  },
-  getExplanation: async (runId) => {
-    const res = await axiosInstance.get(`/dss/explanation/${runId}`);
-    return res.data;
-  },
-
-  // 2. BWM Solver & Config Management
-  getConfigs: async () => {
-    const res = await axiosInstance.get("/dss/configs");
-    return res.data;
-  },
-  getBwmConfigs: async () => {
-    const res = await axiosInstance.get("/dss/configs");
-    return res.data;
-  },
-  getActiveDssConfig: async () => {
-    const res = await axiosInstance.get("/dss/bwm/active");
-    return res.data;
-  },
-  calculateBwm: async (payload) => {
-    const res = await axiosInstance.post("/dss/calculate-bwm", payload);
-    return res.data;
-  },
-  calculateBwmWeights: async (payload) => {
-    const res = await axiosInstance.post("/dss/calculate-bwm", payload);
-    return res.data;
-  },
-  saveConfig: async (payload) => {
-    const res = await axiosInstance.post("/dss/save-config", payload);
-    return res.data;
-  },
-  activateConfig: async (id) => {
-    const res = await axiosInstance.put(`/dss/configs/${id}/activate`);
-    return res.data;
-  },
-  activateBwmConfig: async (id) => {
-    const res = await axiosInstance.put(`/dss/configs/${id}/activate`);
-    return res.data;
-  },
-  deleteConfig: async (id) => {
-    const res = await axiosInstance.delete(`/dss/configs/${id}`);
-    return res.data;
+  // --- DSS Engine Group 4 ---
+  async getRecommendations({ timeSlot, latitude, longitude, hubOrigin } = {}) {
+    const response = await api.get("/api/dss/recommendations", {
+      params: {
+        time_slot: timeSlot,
+        latitude,
+        longitude,
+        hub_origin: hubOrigin,
+      },
+    });
+    return response.data?.data || response.data;
   },
 
-  // 3. What-If Simulator
-  previewImpact: async (payload) => {
-    const res = await axiosInstance.post("/dss/preview-impact", payload);
-    return res.data;
-  },
-  previewBwmImpact: async (payload) => {
-    const res = await axiosInstance.post("/dss/preview-impact", payload);
-    return res.data;
+  async getSpotRankings(zoneId, { timeSlot } = {}) {
+    const response = await api.get(`/api/dss/spots/${zoneId}`, {
+      params: { time_slot: timeSlot },
+    });
+    return response.data?.data || response.data;
   },
 
-  // 4. History & Records
-  getHistory: async (params = {}) => {
-    const res = await axiosInstance.get("/dss/history", { params });
-    return res.data;
-  },
-  getDssHistory: async (params = {}) => {
-    const res = await axiosInstance.get("/dss/history", { params });
-    return res.data;
-  },
-  getHistoryById: async (id) => {
-    const res = await axiosInstance.get(`/dss/history/${id}`);
-    return res.data;
-  },
-  getDssHistoryById: async (id) => {
-    const res = await axiosInstance.get(`/dss/history/${id}`);
-    return res.data;
-  },
-  getHistoryByZone: async (zoneId) => {
-    const res = await axiosInstance.get(`/dss/history/zone/${zoneId}`);
-    return res.data;
+  async calculateBwmWeights(payload) {
+    const response = await api.post("/api/dss/bwm/calculate", payload);
+    return response.data?.data || response.data;
   },
 
-  // 5. Recommendations & Snapshots
-  getTopsisRecommendations: async () => {
-    const res = await axiosInstance.get("/dss/recommendations");
-    return res.data;
+  async getActiveWeights() {
+    const response = await api.get("/api/dss/weights/active");
+    return response.data?.data || response.data;
   },
-  getZoneRawEvaluation: async (zoneId, params = {}) => {
-    const res = await axiosInstance.get(`/dss/zones/${zoneId}/raw-evaluation`, { params });
-    return res.data;
+
+  async setActiveWeights(configId) {
+    const response = await api.post(`/api/dss/weights/${configId}/activate`);
+    return response.data?.data || response.data;
   },
-  getDssSnapshots: async (params = {}) => {
-    const res = await axiosInstance.get("/dss/snapshots", { params });
-    return res.data;
+
+  async getCriteriaMatrix(zoneId, params = {}) {
+    const response = await api.get(`/api/dss/criteria-matrix/${zoneId}`, { params });
+    return response.data?.data || response.data;
   },
-  getDssSnapshotById: async (id) => {
-    const res = await axiosInstance.get(`/dss/snapshots/${id}`);
-    return res.data;
+
+  // --- DSS Flashback Group 18 ---
+  async getHistoricalSnapshots(params = {}) {
+    const response = await api.get("/api/dss/history", { params });
+    return response.data?.data || response.data;
+  },
+
+  async getSnapshotDetail(snapshotId) {
+    const response = await api.get(`/api/dss/history/${snapshotId}`);
+    return response.data?.data || response.data;
   },
 };
-
-export default dssService;

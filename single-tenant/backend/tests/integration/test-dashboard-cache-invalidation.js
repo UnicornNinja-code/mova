@@ -104,7 +104,7 @@ async function runDashboardCacheRegression() {
 
     // STEP 2: Request Dashboard Summary to Populate Redis Cache
     const initialSummary = await dashboardService.getDashboardSummary("MANAGEMENT", { date: todayJakarta });
-    const initialRevenue = initialSummary.financials.total_revenue;
+    const initialRevenue = parseFloat(initialSummary.financials?.total_revenue || 0);
 
     const cachedRawBefore = await redisClient.get(cacheKeyMgt);
     assertTest("Step 1: Dashboard Summary Cache is Populated on Read", cachedRawBefore !== null);
@@ -135,12 +135,12 @@ async function runDashboardCacheRegression() {
 
     // STEP 5: Request Dashboard Summary again and verify fresh revenue is returned
     const freshSummary = await dashboardService.getDashboardSummary("MANAGEMENT", { date: todayJakarta });
-    const freshRevenue = freshSummary.financials.total_revenue;
+    const freshRevenue = parseFloat(freshSummary.financials?.total_revenue || 0);
     const expectedRevenue = initialRevenue + expectedSaleDelta;
 
     assertTest(
       "Step 4: Next Dashboard Read Fetches Fresh PostgreSQL Snapshot without Delay",
-      freshRevenue === expectedRevenue,
+      Math.abs(freshRevenue - expectedRevenue) < 0.01,
       `Fresh: Rp${freshRevenue.toLocaleString("id-ID")} | Expected: Rp${expectedRevenue.toLocaleString("id-ID")}`
     );
 

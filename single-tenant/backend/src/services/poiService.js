@@ -424,7 +424,12 @@ export const getZoneC6ScoreService = (zoneId) => poiCompetitorService.getZoneC6S
 export const getCompetitorsByZoneService = (zoneId) => poiCompetitorService.getCompetitorsByZone(zoneId);
 export const getCompetitorsSummaryService = () => poiCompetitorService.getCompetitorsSummary();
 export const createCompetitorService = (data) => poiCompetitorService.createCompetitor(data);
+export const bulkCreateCompetitorsService = (items) => poiCompetitorService.bulkCreateCompetitors(items);
 export const deleteCompetitorService = (id) => poiCompetitorService.deleteCompetitor(id);
+export const reconcileExplicitLinkService = (payload) => poiCompetitorService.reconcileExplicitLink(payload);
+export const detectCandidateMatchesService = (zoneId) => poiCompetitorService.detectCandidateMatches(zoneId);
+export const unlinkReconciliationService = (id) => poiCompetitorService.unlinkReconciliation(id);
+
 
 
 

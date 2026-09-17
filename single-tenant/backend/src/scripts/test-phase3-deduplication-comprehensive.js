@@ -92,7 +92,7 @@ async function runComprehensivePhase3Tests() {
     );
     await poiRepository.syncCityPoisWithTransaction([mcd1, mcd2]);
 
-    const { rows: mcdRows } = await pool.query("SELECT id, name, operational_status, duplicate_of, logical_poi_id FROM pois WHERE external_id IN ('osm:node:88004', 'osm:node:88005') ORDER BY created_at ASC;");
+    const { rows: mcdRows } = await pool.query("SELECT id, name, operational_status, duplicate_of, logical_poi_id FROM pois WHERE external_id IN ('osm:node:88004', 'osm:node:88005') ORDER BY created_at ASC, id ASC;");
     assert(mcdRows.length === 2, "Dua McDonald's tersimpan fisik 2 record");
     const parentMcd = mcdRows[0];
     const childMcd = mcdRows[1];

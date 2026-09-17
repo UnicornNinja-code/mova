@@ -1,87 +1,50 @@
-import { axiosInstance } from "../lib/axios.js";
+import { api } from "./api";
 
 export const poiService = {
-  getPois: async (params = {}) => {
-    const res = await axiosInstance.get("/pois", { params });
-    return res.data;
+  // --- POI & Spatial Group 5 ---
+  async getPois(params = {}) {
+    const response = await api.get("/api/pois", { params });
+    return response.data?.data || response.data;
   },
-  createPoi: async (payload) => {
-    const res = await axiosInstance.post("/pois", payload);
-    return res.data;
+
+  async getPoisByZone(zoneId) {
+    const response = await api.get(`/api/pois/zone/${zoneId}`);
+    return response.data?.data || response.data;
   },
-  getUnapprovedPois: async (params = {}) => {
-    const res = await axiosInstance.get("/pois/unapproved", { params });
-    return res.data;
+
+  async syncOverpassPois(hubCity = "Sidoarjo") {
+    const response = await api.post("/api/pois/sync-overpass", { hubCity });
+    return response.data?.data || response.data;
   },
-  approvePoi: async (id, payload = {}) => {
-    const res = await axiosInstance.patch(`/pois/${id}/approve`, payload);
-    return res.data;
+
+  async reclusterPois() {
+    const response = await api.post("/api/pois/recluster");
+    return response.data?.data || response.data;
   },
-  rejectPoi: async (id, payload = {}) => {
-    const res = await axiosInstance.patch(`/pois/${id}/reject`, payload);
-    return res.data;
+
+  async getQualitySummary() {
+    const response = await api.get("/api/pois/quality-summary");
+    return response.data?.data || response.data;
   },
-  getPoiCategories: async () => {
-    const res = await axiosInstance.get("/pois/categories");
-    return res.data;
+
+  async getPendingApprovals() {
+    const response = await api.get("/api/pois/pending-approvals");
+    return response.data?.data || response.data;
   },
-  getPoiDensityScore: async (zone_id) => {
-    const res = await axiosInstance.get(`/pois/density/${zone_id}`);
-    return res.data;
+
+  async approveOrRejectPoi(id, { status, notes }) {
+    const response = await api.post(`/api/pois/${id}/approval`, { status, notes });
+    return response.data?.data || response.data;
   },
-  getPoiEventScore: async (zone_id) => {
-    const res = await axiosInstance.get(`/pois/events/${zone_id}`);
-    return res.data;
+
+  // --- POI & C3 Criteria Group 17 ---
+  async getCategoryTimeScores() {
+    const response = await api.get("/api/pois/categories/time-scores");
+    return response.data?.data || response.data;
   },
-  syncCityPois: async (payload = {}) => {
-    const res = await axiosInstance.post("/pois/sync-city", payload);
-    return res.data;
-  },
-  getPendingPois: async () => {
-    const res = await axiosInstance.get("/pois/pending");
-    return res.data;
-  },
-  approveOrRejectPoi: async (payload) => {
-    const res = await axiosInstance.post("/pois/approve", payload);
-    return res.data;
-  },
-  getApprovalLogs: async () => {
-    const res = await axiosInstance.get("/pois/approval-logs");
-    return res.data;
-  },
-  getOperationalAreaPois: async () => {
-    const res = await axiosInstance.get("/pois/operational-area");
-    return res.data;
-  },
-  getPoisByZone: async (zone_id) => {
-    if (!zone_id) return { pois: [] };
-    const res = await axiosInstance.get(`/pois/zone/${zone_id}`);
-    return res.data;
-  },
-  getC1C2Scores: async (zone_id) => {
-    if (!zone_id) return null;
-    const res = await axiosInstance.get(`/pois/scores/c1-c2/${zone_id}`);
-    return res.data;
-  },
-  getCrowdScores: async () => {
-    const res = await axiosInstance.get("/poi-categories/crowd-scores");
-    return res.data;
-  },
-  updateBulkCrowdScores: async (payload) => {
-    const res = await axiosInstance.put("/poi-categories/crowd-scores", payload);
-    return res.data;
-  },
-  updateSingleCrowdScores: async (id, payload) => {
-    const res = await axiosInstance.put(`/poi-categories/${id}/crowd-scores`, payload);
-    return res.data;
-  },
-  getPoiStats: async () => {
-    const res = await axiosInstance.get("/pois/stats");
-    return res.data;
-  },
-  getQualitySummary: async () => {
-    const res = await axiosInstance.get("/pois/quality-summary");
-    return res.data;
+
+  async updateCategoryTimeScores(categoryId, scores) {
+    const response = await api.put(`/api/pois/categories/${categoryId}/time-scores`, scores);
+    return response.data?.data || response.data;
   },
 };
-

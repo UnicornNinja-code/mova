@@ -39,7 +39,7 @@ export class DashboardRepository {
         COALESCE(SUM(total_price), 0)::numeric(14,2) AS total_revenue,
         COALESCE(AVG(total_price), 0)::numeric(14,2) AS avg_order_value
       FROM sales_logs
-      WHERE created_at >= $1::timestamp AND created_at < $2::timestamp;
+      WHERE created_at >= $1::timestamptz AND created_at < $2::timestamptz;
     `;
 
     // 2. Rider Operational State Metrics Query

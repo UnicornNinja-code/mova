@@ -2,8 +2,12 @@ import {
   getZoneC6ScoreService,
   getCompetitorsByZoneService,
   createCompetitorService,
+  bulkCreateCompetitorsService,
   deleteCompetitorService,
   getCompetitorsSummaryService,
+  reconcileExplicitLinkService,
+  detectCandidateMatchesService,
+  unlinkReconciliationService,
 } from "../services/poiService.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 
@@ -45,6 +49,17 @@ export const createCompetitor = async (req, res) => {
   }
 };
 
+export const bulkCreateCompetitors = async (req, res) => {
+  try {
+    const { competitors } = req.body;
+    const items = Array.isArray(competitors) ? competitors : req.body;
+    const result = await bulkCreateCompetitorsService(items);
+    return sendSuccess(res, result, "Batch data kompetitor berhasil ditambahkan", 201, result);
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
 export const deleteCompetitor = async (req, res) => {
   try {
     const { id } = req.params;
@@ -61,6 +76,49 @@ export const getCompetitorSummary = async (req, res) => {
     return sendSuccess(res, summary, "Ringkasan data kompetitor berhasil dimuat.", 200, {
       status: "success",
       data: summary,
+    });
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
+export const reconcileCompetitor = async (req, res) => {
+  try {
+    const { competitor_id } = req.params;
+    const { logical_poi_id, external_id, poi_id } = req.body;
+    const result = await reconcileExplicitLinkService({
+      competitorId: competitor_id,
+      logicalPoiId: logical_poi_id,
+      externalId: external_id,
+      poiId: poi_id,
+    });
+    return sendSuccess(res, result, "Rekonsiliasi kompetitor berhasil diperbarui.", 200, {
+      competitor: result,
+    });
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
+export const detectCandidates = async (req, res) => {
+  try {
+    const { zone_id } = req.params;
+    const candidates = await detectCandidateMatchesService(zone_id);
+    return sendSuccess(res, candidates, "Deteksi kandidat rekonsiliasi berhasil dijalankan.", 200, {
+      candidates,
+      count: candidates.length,
+    });
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
+export const unlinkCompetitor = async (req, res) => {
+  try {
+    const { competitor_id } = req.params;
+    const result = await unlinkReconciliationService(competitor_id);
+    return sendSuccess(res, result, "Tautan rekonsiliasi berhasil direset ke UNLINKED.", 200, {
+      competitor: result,
     });
   } catch (error) {
     return handleControllerError(res, error);
