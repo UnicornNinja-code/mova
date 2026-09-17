@@ -9,6 +9,7 @@ export const Input = forwardRef(function Input(
     invalid = false,
     leadingIcon: LeadingIcon,
     trailingIcon: TrailingIcon,
+    trailingElement,
     size = "md",
     ...props
   },
@@ -39,17 +40,22 @@ export const Input = forwardRef(function Input(
         className={cn(
           "w-full border text-[var(--text-primary)] placeholder:text-[var(--text-muted)] rounded-[var(--radius-md)] transition-all duration-150 focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] disabled:opacity-50 disabled:cursor-not-allowed",
           variantStyles,
-          LeadingIcon && "pl-9",
-          TrailingIcon && "pr-9",
-          invalid && "border-[var(--status-danger)] focus:border-[var(--status-danger)] focus:ring-[var(--status-danger)]",
           sizeStyles,
+          LeadingIcon && "pl-10",
+          (TrailingIcon || trailingElement) && "pr-10",
+          invalid && "border-[var(--status-danger)] focus:border-[var(--status-danger)] focus:ring-[var(--status-danger)]",
           className
         )}
         {...props}
       />
-      {TrailingIcon && (
+      {TrailingIcon && !trailingElement && (
         <div className="absolute right-3 flex items-center pointer-events-none text-[var(--text-muted)]">
           <TrailingIcon className="w-4 h-4" aria-hidden="true" />
+        </div>
+      )}
+      {trailingElement && (
+        <div className="absolute right-2.5 flex items-center">
+          {trailingElement}
         </div>
       )}
     </div>

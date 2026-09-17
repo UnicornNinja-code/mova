@@ -38,6 +38,17 @@ export const useAuthStore = create((set, get) => {
       set({ token: newToken, lastActivity: Date.now() });
     },
 
+    updateUser: (partialUser) => {
+      const currentUser = get().user || {};
+      const updatedUser = { ...currentUser, ...partialUser };
+      try {
+        sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(updatedUser));
+      } catch (err) {
+        console.warn("Storage save warning:", err);
+      }
+      set({ user: updatedUser, lastActivity: Date.now() });
+    },
+
     touchActivity: () => {
       set({ lastActivity: Date.now() });
     },

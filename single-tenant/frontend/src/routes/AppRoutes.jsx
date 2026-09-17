@@ -5,6 +5,10 @@ import { Spinner } from "@/components/primitives";
 
 // Lazy-loaded pages
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage").then((m) => ({ default: m.LoginPage })));
+const FirstLoginPage = lazy(() => import("@/pages/auth/FirstLoginPage").then((m) => ({ default: m.FirstLoginPage })));
+const ActivatePage = lazy(() => import("@/pages/auth/ActivatePage").then((m) => ({ default: m.ActivatePage })));
+const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
 const OverviewPage = lazy(() => import("@/pages/overview/OverviewPage").then((m) => ({ default: m.OverviewPage })));
 const MapOpsPage = lazy(() => import("@/pages/mapops/MapOpsPage").then((m) => ({ default: m.MapOpsPage })));
 const WeatherPage = lazy(() => import("@/pages/operations/WeatherPage").then((m) => ({ default: m.WeatherPage })));
@@ -28,13 +32,49 @@ function PageSuspense({ children }) {
 export function AppRoutes() {
   return (
     <Routes>
-      {/* Public Routes */}
+      {/* Public Auth & Onboarding Routes */}
       <Route
         path="/login"
         element={
           <PageSuspense>
             <LoginPage />
           </PageSuspense>
+        }
+      />
+      <Route
+        path="/activate"
+        element={
+          <PageSuspense>
+            <ActivatePage />
+          </PageSuspense>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <PageSuspense>
+            <ForgotPasswordPage />
+          </PageSuspense>
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <PageSuspense>
+            <ResetPasswordPage />
+          </PageSuspense>
+        }
+      />
+
+      {/* Mandatory First Login Protected Route */}
+      <Route
+        path="/first-login"
+        element={
+          <ProtectedRoute>
+            <PageSuspense>
+              <FirstLoginPage />
+            </PageSuspense>
+          </ProtectedRoute>
         }
       />
 

@@ -18,7 +18,7 @@
     "db:setup": "node src/scripts/setup-db.js",
     "db:init": "node src/scripts/setup-db.js",
     "db:recluster": "node src/scripts/recluster-poi.js",
-    "test:onboarding": "node src/scripts/test-onboarding.js",
+    "test:onboarding": "node tests/integration/test-onboarding-lifecycle.test.js",
     "test:reports": "node src/scripts/test-reports-suite.js",
     "test:unit": "node src/scripts/test-runner.js unit",
     "test:integration": "node src/scripts/test-runner.js integration",

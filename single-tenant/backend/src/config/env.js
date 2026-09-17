@@ -52,7 +52,7 @@ export const env = {
         PORT: Number(process.env.SMTP_PORT || DEFAULT_SMTP_PORT),
         USER: process.env.SMTP_USER,
         PASS: process.env.SMTP_PASS,
-        FROM: process.env.SMTP_FROM || '"Mova Support" <support@mova.test>',
+        FROM: process.env.SMTP_FROM || '"MOVA Control Room" <noreply@mantakopi.com>',
       }
     : null,
   TURNSTILE: {

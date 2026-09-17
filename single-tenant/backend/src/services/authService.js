@@ -35,65 +35,49 @@ const formatSanitizedUser = (user) => ({
   birth_date: user.birth_date || null,
 });
 
-export const registerService = async ({ token, username, name, email, password, birth_date }) => {
-  if (token) {
-    if (!password) {
-      throw createHttpError("Kata sandi baru wajib diisi untuk aktivasi.", 400);
-    }
-
-    const resetRecord = await PasswordResetTokenModel.findByToken(token);
-    if (!resetRecord || resetRecord.used) {
-      throw createHttpError("Token aktivasi tidak valid atau telah kedaluwarsa.", 400);
-    }
-
-    const expiresAt = new Date(resetRecord.expires_at || resetRecord.expiresAt);
-    if (expiresAt < new Date()) {
-      throw createHttpError("Token aktivasi telah kedaluwarsa.", 400);
-    }
-
-    const userId = resetRecord.user_id || resetRecord.userId;
-    const targetUser = await UserModel.findById(userId);
-    if (!targetUser) {
-      throw createHttpError("Pengguna tidak ditemukan.", 404);
-    }
-
-    const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
-    const activatedUser = await UserModel.activateUser(userId, {
-      hashedPassword,
-      name: name || targetUser.name,
-      birth_date: birth_date || null,
-    });
-
-    await PasswordResetTokenModel.markAsUsed(token);
-    await RefreshTokenModel.revokeAllForUser(userId);
-
-    return formatSanitizedUser(activatedUser);
+export const registerService = async ({ token, username, name, email, password, phone, birth_date }) => {
+  if (!token) {
+    throw createHttpError(
+      "Pendaftaran publik tidak tersedia. Hubungi Superadmin atau Management untuk penerbitan akun staf.",
+      403
+    );
   }
 
-  if (!username || !name || !email || !password) {
-    throw createHttpError("Semua field wajib diisi: username, nama, email, dan kata sandi.", 400);
+  if (!password) {
+    throw createHttpError("Kata sandi baru wajib diisi untuk aktivasi.", 400);
   }
 
-  const [existingUser, hashedPassword] = await Promise.all([
-    UserModel.findByEmail(email),
-    bcrypt.hash(password, BCRYPT_SALT_ROUNDS),
-  ]);
-
-  if (existingUser) {
-    throw createHttpError("Email sudah terdaftar di sistem.", 400);
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    throw createHttpError(`Kata sandi minimal ${MIN_PASSWORD_LENGTH} karakter.`, 400);
   }
 
-  const newUser = await UserModel.create({
-    username,
-    name,
-    email,
-    role: ALLOWED_PUBLIC_ROLES[0],
-    password: hashedPassword,
-    is_active: true,
-    first_login: false,
+  const resetRecord = await PasswordResetTokenModel.findByToken(token);
+  if (!resetRecord || resetRecord.used) {
+    throw createHttpError("Token aktivasi tidak valid atau telah kedaluwarsa.", 400);
+  }
+
+  const expiresAt = new Date(resetRecord.expires_at || resetRecord.expiresAt);
+  if (expiresAt < new Date()) {
+    throw createHttpError("Token aktivasi telah kedaluwarsa.", 400);
+  }
+
+  const userId = resetRecord.user_id || resetRecord.userId;
+  const targetUser = await UserModel.findById(userId);
+  if (!targetUser) {
+    throw createHttpError("Pengguna tidak ditemukan.", 404);
+  }
+
+  const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+  const activatedUser = await UserModel.activateUser(userId, {
+    hashedPassword,
+    name: name || targetUser.name,
+    birth_date: birth_date || null,
   });
 
-  return formatSanitizedUser(newUser);
+  await PasswordResetTokenModel.markAsUsed(token);
+  await RefreshTokenModel.revokeAllForUser(userId);
+
+  return formatSanitizedUser(activatedUser);
 };
 
 export const loginService = async ({ identifier, password }) => {

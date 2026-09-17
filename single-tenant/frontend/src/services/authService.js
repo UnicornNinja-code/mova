@@ -41,13 +41,32 @@ export const authService = {
     return response.data?.data || response.data;
   },
 
-  async resetPassword({ token, newPassword }) {
-    const response = await api.post("/api/auth/reset-password", { token, newPassword });
+  async resetPassword({ token, password, newPassword }) {
+    const response = await api.post("/api/auth/reset-password", {
+      token,
+      password: password || newPassword,
+    });
     return response.data?.data || response.data;
   },
 
-  async activateAccount({ token, birthDate, password }) {
-    const response = await api.post("/api/auth/activate", { token, birthDate, password });
+  async verifyToken(token) {
+    const response = await api.get(`/api/auth/verify-token/${token}`);
+    return response.data?.data || response.data;
+  },
+
+  async completeFirstLogin({ newPassword }) {
+    const response = await api.post("/api/auth/first-login", { newPassword });
+    return response.data?.data || response.data;
+  },
+
+  async activateAccount({ token, password, name, phone, birth_date, birthDate }) {
+    const response = await api.post("/api/auth/activate", {
+      token,
+      password,
+      name,
+      phone,
+      birth_date: birth_date || birthDate,
+    });
     return response.data?.data || response.data;
   },
 

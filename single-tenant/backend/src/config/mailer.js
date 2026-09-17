@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 import { env } from "./env.js";
 
 const SECURE_SMTP_PORT = 465;
-const DEFAULT_FROM_ADDRESS = '"Mova Support" <noreply@mova_app.com>';
+const DEFAULT_FROM_ADDRESS = '"MOVA Control Room" <noreply@mantakopi.com>';
 
 let transporter = null;
 
