@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <linearGradient id="mistGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#94A3B8" stop-opacity="0.2" />
+      <stop offset="50%" stop-color="#64748B" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#94A3B8" stop-opacity="0.2" />
+    </linearGradient>
+    <linearGradient id="mistGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#CBD5E1" stop-opacity="0.2" />
+      <stop offset="50%" stop-color="#94A3B8" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="#CBD5E1" stop-opacity="0.2" />
+    </linearGradient>
+  </defs>
+
+  <!-- Mist / Fog Streamlines -->
+  <rect x="24" y="38" width="80" height="8" rx="4" fill="url(#mistGrad1)" />
+  <rect x="16" y="52" width="96" height="8" rx="4" fill="url(#mistGrad2)" />
+  <rect x="28" y="66" width="72" height="8" rx="4" fill="url(#mistGrad1)" />
+  <rect x="20" y="80" width="88" height="8" rx="4" fill="url(#mistGrad2)" />
+  <rect x="36" y="94" width="56" height="8" rx="4" fill="url(#mistGrad1)" />
+</svg>

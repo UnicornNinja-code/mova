@@ -1,0 +1,3 @@
+-- Migration 003 Rollback
+ALTER TABLE "zones" DROP COLUMN IF EXISTS "invalid_reason";
+DELETE FROM "system_settings" WHERE "key" IN ('OPERATIONAL_RULE_PROTOCOL_ROAD', 'OPERATIONAL_RULE_TOLL_ROAD');

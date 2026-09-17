@@ -1,0 +1,8 @@
+{
+  "ignore": [
+    "public/*",
+    "public/geojson/*",
+    "scratch/*",
+    "src/scripts/test-api.js"
+  ]
+}

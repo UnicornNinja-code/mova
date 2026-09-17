@@ -1,0 +1,23 @@
+{
+  "name": "mova-fullstack",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MOVA DSS Fullstack Application (Bun + Svelte 5)",
+  "scripts": {
+    "dev": "bun dev.ts",
+    "start": "bun dev.ts",
+    "build": "cd frontend && bun run build",
+    "prod:start": "bun run build && pm2 start ecosystem.config.cjs",
+    "prod:stop": "pm2 stop ecosystem.config.cjs 2>/dev/null || fuser -k 9967/tcp 9968/tcp 2>/dev/null || true",
+    "prod:restart": "pm2 restart ecosystem.config.cjs",
+    "prod:logs": "pm2 logs",
+    "stop": "fuser -k 9967/tcp 9968/tcp 2>/dev/null || pkill -f 'index.ts' 2>/dev/null || pkill -f 'vite' 2>/dev/null || true",
+    "kill": "fuser -k 9967/tcp 9968/tcp 2>/dev/null || pkill -f 'index.ts' 2>/dev/null || pkill -f 'vite' 2>/dev/null || true",
+    "dev:backend": "cd backend && bun run dev",
+    "dev:frontend": "cd frontend && bun run dev",
+    "build:frontend": "cd frontend && bun run build",
+    "db:migrate": "cd backend && bun run db:migrate",
+    "db:seed": "cd backend && bun run db:seed",
+    "db:fresh": "cd backend && bun run db:fresh"
+  }
+}

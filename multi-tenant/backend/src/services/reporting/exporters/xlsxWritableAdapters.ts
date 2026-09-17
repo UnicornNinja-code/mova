@@ -1,0 +1,90 @@
+/*
+ * xlsxWritableAdapters.ts
+ * Writable Destination Adapters for Binary Streaming XLSX Exporter
+ * MOVA Architecture
+ */
+
+import fs from "fs";
+import path from "path";
+import type { XlsxWritable } from "./streamingXlsxExporter.js";
+
+/**
+ * In-Memory XlsxWritable for unit testing and fast in-memory assertions
+ */
+export class MemoryXlsxWritable implements XlsxWritable {
+  private chunks: Uint8Array[] = [];
+  public isEnded = false;
+
+  public async write(chunk: Uint8Array): Promise<void> {
+    if (this.isEnded) {
+      throw new Error("Cannot write to an ended MemoryXlsxWritable stream.");
+    }
+    this.chunks.push(new Uint8Array(chunk));
+  }
+
+  public async end(): Promise<void> {
+    this.isEnded = true;
+  }
+
+  public getBuffer(): Buffer {
+    return Buffer.concat(this.chunks.map((c) => Buffer.from(c)));
+  }
+
+  public getByteLength(): number {
+    return this.chunks.reduce((acc, c) => acc + c.byteLength, 0);
+  }
+}
+
+/**
+ * File-backed XlsxWritable utilizing Node fs.WriteStream with backpressure handling
+ */
+export class FileStreamXlsxWritable implements XlsxWritable {
+  private stream: fs.WriteStream;
+  private filePath: string;
+  private isEnded = false;
+
+  constructor(filePath: string) {
+    this.filePath = filePath;
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    this.stream = fs.createWriteStream(filePath);
+  }
+
+  public async write(chunk: Uint8Array): Promise<void> {
+    if (this.isEnded) {
+      throw new Error("Cannot write to an ended FileStreamXlsxWritable stream.");
+    }
+
+    if (!this.stream.write(Buffer.from(chunk))) {
+      await new Promise<void>((resolve, reject) => {
+        const onDrain = () => {
+          this.stream.off("error", onError);
+          resolve();
+        };
+        const onError = (err: Error) => {
+          this.stream.off("drain", onDrain);
+          reject(err);
+        };
+        this.stream.once("drain", onDrain);
+        this.stream.once("error", onError);
+      });
+    }
+  }
+
+  public async end(): Promise<void> {
+    if (this.isEnded) return;
+    this.isEnded = true;
+    await new Promise<void>((resolve, reject) => {
+      this.stream.end((err: Error | null) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+
+  public getFilePath(): string {
+    return this.filePath;
+  }
+}

@@ -1,0 +1,327 @@
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis, uuid_ossp(map: "uuid-ossp")]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+enum Role {
+  RIDER
+  SUPERVISOR
+  MANAGEMENT
+  SUPERADMIN
+}
+
+enum ZoneStatus {
+  ACTIVE
+  RESTRICTED
+  INACTIVE
+}
+
+enum ArmadaStatus {
+  ACTIVE
+  IN_USE
+  MAINTENANCE
+  RESERVED
+}
+
+enum ArmadaType {
+  MOTOR_LISTRIK
+  GEROBAK
+  LAINNYA
+}
+
+enum ProductStatus {
+  AVAILABLE
+  DISCONTINUED
+}
+
+enum SessionStatus {
+  QUEUE
+  ASSIGNED
+  CHECKED_IN
+  COMPLETED
+}
+
+enum CriteriaType {
+  BENEFIT
+  COST
+}
+
+model Tenant {
+  id                         String                     @id @db.VarChar(100)
+  name                       String                     @db.VarChar(255)
+  code                       String                     @unique @db.VarChar(50)
+  status                     String                     @default("ACTIVE") @db.VarChar(50)
+  maxFleets                  Int                        @default(50) @map("max_fleets")
+  maxRiders                  Int                        @default(100) @map("max_riders")
+  maxZones                   Int                        @default(10) @map("max_zones")
+  metadata                   Json?                      @default("{}")
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                  DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  users                      User[]
+  armadas                    Armada[]
+  zones                      Zone[]
+  products                   Product[]
+  salesLogs                  SalesLog[]
+  candidateLocations         CandidateSellingLocation[]
+
+  @@map("tenants")
+}
+
+model User {
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                   String                     @default("thesis-default") @map("tenant_id") @db.VarChar(100)
+  email                      String                     @unique @db.VarChar(255)
+  username                   String                     @unique @db.VarChar(100)
+  password                   String                     @db.VarChar(255)
+  name                       String?                    @db.VarChar(255)
+  role                       Role                       @default(SUPERADMIN)
+  birthDate                  DateTime?                  @map("birth_date") @db.Date
+  isActive                   Boolean                    @default(true) @map("is_active")
+  firstLogin                 Boolean                    @default(false) @map("first_login")
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                  DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  tenant                     Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  refreshTokens              RefreshToken[]
+  passwordResetTokens        PasswordResetToken[]
+  notifications              Notification[]
+  salesLogs                  SalesLog[]
+  currentArmadas             Armada[]                   @relation("CurrentRider")
+  reservedArmadas            Armada[]                   @relation("ReservedRider")
+  poiApprovalLogs            PoiApprovalLog[]
+
+  @@index([tenantId], map: "idx_users_tenant_id")
+  @@map("users")
+}
+
+model RefreshToken {
+  id                         String                     @id @db.VarChar(255)
+  token                      String                     @unique @db.VarChar(255)
+  userId                     String                     @map("user_id") @db.Uuid
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  expiresAt                  DateTime                   @map("expires_at") @db.Timestamp(6)
+  revoked                    Boolean                    @default(false)
+
+  user                       User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id                         String                     @id @db.VarChar(255)
+  token                      String                     @unique @db.VarChar(255)
+  userId                     String                     @map("user_id") @db.Uuid
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  expiresAt                  DateTime                   @map("expires_at") @db.Timestamp(6)
+  used                       Boolean                    @default(false)
+
+  user                       User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model Notification {
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                     String                     @map("user_id") @db.Uuid
+  title                      String                     @db.VarChar(255)
+  message                    String
+  isRead                     Boolean                    @default(false) @map("is_read")
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                  DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  user                       User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Armada {
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                   String                     @default("thesis-default") @map("tenant_id") @db.VarChar(100)
+  code                       String                     @unique @db.VarChar(100)
+  type                       ArmadaType                 @default(GEROBAK)
+  status                     ArmadaStatus               @default(ACTIVE)
+  batteryLevel               Int?                       @default(100) @map("battery_level")
+  currentRiderId             String?                    @map("current_rider_id") @db.Uuid
+  reservedByRiderId          String?                    @map("reserved_by_rider_id") @db.Uuid
+  reservedUntil              DateTime?                  @map("reserved_until") @db.Timestamp(6)
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                  DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  tenant                     Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  currentRider               User?                      @relation("CurrentRider", fields: [currentRiderId], references: [id], onDelete: SetNull)
+  reservedByRider            User?                      @relation("ReservedRider", fields: [reservedByRiderId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId], map: "idx_armadas_tenant_id")
+  @@map("armadas")
+}
+
+model Product {
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                   String                     @default("thesis-default") @map("tenant_id") @db.VarChar(100)
+  name                       String                     @unique @db.VarChar(255)
+  sku                        String?                    @db.VarChar(100)
+  category                   String                     @default("KOPI") @db.VarChar(100)
+  description                String?
+  basePrice                  Float                      @default(0) @map("base_price")
+  price                      Float
+  imageUrl                   String?                    @map("image_url")
+  status                     ProductStatus              @default(AVAILABLE)
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                  DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  tenant                     Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  salesLogs                  SalesLog[]
+
+  @@index([tenantId], map: "idx_products_tenant_id")
+  @@map("products")
+}
+
+model Zone {
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                   String                     @default("thesis-default") @map("tenant_id") @db.VarChar(100)
+  name                       String                     @unique @db.VarChar(255)
+  description                String?
+  maxCapacity                Int?                       @map("max_capacity")
+  status                     ZoneStatus                 @default(ACTIVE)
+  polygon                    Json
+  invalidReason              Json?                      @map("invalid_reason")
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                  DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  tenant                     Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  candidateLocations         CandidateSellingLocation[]
+  weathers                   Weather[]
+  salesLogs                  SalesLog[]
+
+  @@index([tenantId], map: "idx_zones_tenant_id")
+  @@map("zones")
+}
+
+model Poi {
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  osmId                      BigInt?                    @map("osm_id")
+  osmType                    String?                    @map("osm_type") @db.VarChar(20)
+  externalId                 String?                    @map("external_id") @db.VarChar(255)
+  logicalPoiId               String?                    @map("logical_poi_id") @db.Uuid
+  name                       String                     @db.VarChar(255)
+  category                   String                     @db.VarChar(100)
+  latitude                   Float
+  longitude                  Float
+  status                     String                     @default("APPROVED") @db.VarChar(50)
+  approvalStatus             String                     @default("APPROVED") @map("approval_status") @db.VarChar(50)
+  operationalStatus          String                     @default("ELIGIBLE") @map("operational_status") @db.VarChar(50)
+  exclusionReason            String?                    @map("exclusion_reason") @db.VarChar(100)
+  metadata                   Json?                      @default("{}")
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                  DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  candidateLocations         CandidateSellingLocation[]
+  approvalLogs               PoiApprovalLog[]
+
+  @@map("pois")
+}
+
+model CandidateSellingLocation {
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                   String                     @default("thesis-default") @map("tenant_id") @db.VarChar(100)
+  zoneId                     String                     @map("zone_id") @db.Uuid
+  poiId                      String?                    @map("poi_id") @db.Uuid
+  name                       String                     @db.VarChar(255)
+  latitude                   Float
+  longitude                  Float
+  source                     String?                    @default("MANUAL") @db.VarChar(100)
+  validationStatus           String                     @default("ALLOWED") @map("validation_status") @db.VarChar(50)
+  rejectionReason            String?                    @map("rejection_reason") @db.VarChar(255)
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                  DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  tenant                     Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  zone                       Zone                       @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  poi                        Poi?                       @relation(fields: [poiId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId], map: "idx_candidate_selling_locations_tenant_id")
+  @@map("candidate_selling_locations")
+}
+
+model PoiApprovalLog {
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  poiId                      String                     @map("poi_id") @db.Uuid
+  action                     String                     @db.VarChar(50)
+  actionBy                   String?                    @map("action_by") @db.Uuid
+  notes                      String?
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+
+  poi                        Poi                        @relation(fields: [poiId], references: [id], onDelete: Cascade)
+  user                       User?                      @relation(fields: [actionBy], references: [id], onDelete: SetNull)
+
+  @@map("poi_approval_logs")
+}
+
+model Weather {
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  zoneId                     String                     @map("zone_id") @db.Uuid
+  timestamp                  DateTime                   @db.Timestamp(6)
+  temperature2m              Float?                     @map("temperature_2m")
+  relativeHumidity2m         Float?                     @map("relative_humidity_2m")
+  dewPoint2m                 Float?                     @map("dew_point_2m")
+  apparentTemperature        Float?                     @map("apparent_temperature")
+  precipitationProbability   Float?                     @map("precipitation_probability")
+  precipitation              Float?
+  rain                       Float?
+  weatherCode                Int?                       @map("weather_code")
+  showers                    Float?
+  visibility                 Float?
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                  DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  zone                       Zone                       @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  @@map("weathers")
+}
+
+model SalesLog {
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId                   String                     @default("thesis-default") @map("tenant_id") @db.VarChar(100)
+  riderId                    String                     @map("rider_id") @db.Uuid
+  assignmentId               String?                    @map("assignment_id") @db.Uuid
+  productId                  String                     @map("product_id") @db.Uuid
+  qty                        Int
+  unitPrice                  Decimal                    @default(0) @map("unit_price") @db.Decimal(12, 2)
+  totalPrice                 Decimal                    @default(0) @map("total_price") @db.Decimal(14, 2)
+  paymentMethod              String?                    @default("CASH") @map("payment_method") @db.VarChar(20)
+  latitude                   Float
+  longitude                  Float
+  zoneId                     String?                    @map("zone_id") @db.Uuid
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                  DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  tenant                     Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  rider                      User                       @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  product                    Product                    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  zone                       Zone?                      @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId], map: "idx_sales_logs_tenant_id")
+  @@map("sales_logs")
+}
+
+model SpatialSnapshot {
+  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  version                    String                     @unique @db.VarChar(50)
+  sha256Checksum             String                     @map("sha256_checksum") @db.VarChar(64)
+  filePath                   String                     @map("file_path") @db.VarChar(500)
+  totalPois                  Int                        @default(0) @map("total_pois")
+  status                     String                     @default("STAGING") @db.VarChar(20) // STAGING, ACTIVE, RETIRED, FAILED
+  bbox                       Json?
+  metadata                   Json?                      @default("{}")
+  createdAt                  DateTime                   @default(now()) @map("created_at") @db.Timestamp(6)
+  promotedAt                 DateTime?                  @map("promoted_at") @db.Timestamp(6)
+
+  @@map("spatial_snapshots")
+}

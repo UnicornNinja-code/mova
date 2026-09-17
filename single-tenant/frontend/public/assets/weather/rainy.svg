@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <linearGradient id="rainCloudGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E2E8F0" />
+      <stop offset="60%" stop-color="#94A3B8" />
+      <stop offset="100%" stop-color="#64748B" />
+    </linearGradient>
+    <linearGradient id="dropGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#60A5FA" />
+      <stop offset="100%" stop-color="#2563EB" />
+    </linearGradient>
+    <filter id="rShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#0F172A" flood-opacity="0.2" />
+    </filter>
+  </defs>
+
+  <!-- Volumetric Cloud -->
+  <g filter="url(#rShadow)">
+    <path d="M34 78 h60 a20 20 0 0 0 2 -39.9 a28 28 0 0 0 -50.4 -8.1 a22 22 0 0 0 -23.6 22 a22 22 0 0 0 12 26 z" fill="url(#rainCloudGrad)" />
+    <!-- Highlights -->
+    <ellipse cx="58" cy="36" rx="16" ry="8" fill="#FFFFFF" opacity="0.5" />
+  </g>
+
+  <!-- Teardrop Raindrops -->
+  <g fill="url(#dropGrad)">
+    <!-- Drop 1 -->
+    <path d="M36 90 C34 94, 32 98, 32 102 A5 5 0 0 0 42 102 C42 98, 40 94, 38 90 Z" transform="rotate(-15 37 98)" />
+    <!-- Drop 2 -->
+    <path d="M58 92 C56 96, 54 100, 54 104 A5 5 0 0 0 64 104 C64 100, 62 96, 60 92 Z" transform="rotate(-15 59 100)" />
+    <!-- Drop 3 -->
+    <path d="M80 88 C78 92, 76 96, 76 100 A5 5 0 0 0 86 100 C86 96, 84 92, 82 88 Z" transform="rotate(-15 81 96)" />
+    <!-- Drop 4 (lower) -->
+    <path d="M48 106 C46 110, 44 113, 44 116 A4 4 0 0 0 52 116 C52 113, 50 110, 49 106 Z" transform="rotate(-15 48 112)" />
+    <!-- Drop 5 (lower) -->
+    <path d="M70 104 C68 108, 66 111, 66 114 A4 4 0 0 0 74 114 C74 111, 72 108, 71 104 Z" transform="rotate(-15 70 110)" />
+  </g>
+</svg>

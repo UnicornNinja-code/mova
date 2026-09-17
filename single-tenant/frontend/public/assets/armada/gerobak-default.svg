@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" width="100%" height="100%">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="canopyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563EB" />
+      <stop offset="100%" stop-color="#1D4ED8" />
+    </linearGradient>
+    <linearGradient id="canopyStripe" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F97316" />
+      <stop offset="100%" stop-color="#EA580C" />
+    </linearGradient>
+    <linearGradient id="woodBodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#B45309" />
+      <stop offset="100%" stop-color="#78350F" />
+    </linearGradient>
+    <linearGradient id="counterTopGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F8FAFC" />
+      <stop offset="100%" stop-color="#CBD5E1" />
+    </linearGradient>
+    <linearGradient id="wheelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <filter id="cartShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#0F172A" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Ground Shadow -->
+  <ellipse cx="100" cy="150" rx="70" ry="8" fill="#0F172A" opacity="0.18" />
+
+  <g filter="url(#cartShadow)">
+    <!-- Roof Canopy (Canopy / Tenda Atap) -->
+    <g>
+      <!-- Canopy Main -->
+      <path d="M40 32 L160 32 L150 16 L50 16 Z" fill="url(#canopyGrad)" />
+      <!-- Canopy Stripes -->
+      <path d="M60 32 L80 32 L75 16 L62 16 Z" fill="url(#canopyStripe)" />
+      <path d="M100 32 L120 32 L115 16 L102 16 Z" fill="url(#canopyStripe)" />
+      <path d="M140 32 L160 32 L150 16 L142 16 Z" fill="url(#canopyStripe)" />
+      <!-- Canopy Scallop bottom fringe -->
+      <path d="M40 32 Q45 38 50 32 Q55 38 60 32 Q65 38 70 32 Q75 38 80 32 Q85 38 90 32 Q95 38 100 32 Q105 38 110 32 Q115 38 120 32 Q125 38 130 32 Q135 38 140 32 Q145 38 150 32 Q155 38 160 32" stroke="#1E40AF" stroke-width="2" fill="none" />
+    </g>
+
+    <!-- Support Poles (Tiang Penyangga) -->
+    <line x1="48" y1="32" x2="48" y2="70" stroke="#94A3B8" stroke-width="4" stroke-linecap="round" />
+    <line x1="152" y1="32" x2="152" y2="70" stroke="#94A3B8" stroke-width="4" stroke-linecap="round" />
+
+    <!-- Coffee Machine & Equipment on Counter -->
+    <!-- Espresso Machine -->
+    <rect x="56" y="52" width="28" height="18" rx="2" fill="#E2E8F0" stroke="#64748B" stroke-width="1.5" />
+    <rect x="60" y="55" width="20" height="6" rx="1" fill="#0F172A" />
+    <circle cx="70" cy="65" r="2" fill="#F97316" />
+    <line x1="77" y1="64" x2="81" y2="68" stroke="#0F172A" stroke-width="2" stroke-linecap="round" />
+    <!-- Steam -->
+    <path d="M68 48 Q70 44 68 40" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.8" />
+    <path d="M72 47 Q74 43 72 39" stroke="#CBD5E1" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.8" />
+
+    <!-- Syrups & Cups -->
+    <rect x="130" y="54" width="6" height="16" rx="1" fill="#F59E0B" opacity="0.9" />
+    <rect x="138" y="50" width="6" height="20" rx="1" fill="#EF4444" opacity="0.9" />
+    <rect x="116" y="58" width="10" height="12" rx="1" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1" />
+
+    <!-- Countertop Surface -->
+    <rect x="36" y="69" width="128" height="6" rx="3" fill="url(#counterTopGrad)" stroke="#94A3B8" stroke-width="1" />
+
+    <!-- Main Wooden Cart Body -->
+    <rect x="42" y="74" width="116" height="42" rx="4" fill="url(#woodBodyGrad)" />
+    
+    <!-- Wooden Plank Lines & Details -->
+    <line x1="42" y1="88" x2="158" y2="88" stroke="#582307" stroke-width="1.5" />
+    <line x1="42" y1="102" x2="158" y2="102" stroke="#582307" stroke-width="1.5" />
+    
+    <!-- MOVA Brand Plate on Cart -->
+    <rect x="74" y="82" width="52" height="18" rx="4" fill="#0F172A" stroke="#F97316" stroke-width="1.5" />
+    <text x="100" y="94" font-family="'Inter', sans-serif" font-weight="800" font-size="9" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">MOVA</text>
+
+    <!-- Handlebar for pushing / bike mount -->
+    <path d="M38 82 L24 82 L20 74" stroke="#475569" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+    <rect x="16" y="72" width="8" height="4" rx="2" fill="#0F172A" />
+
+    <!-- Cart Wheels (Roda Gerobak) -->
+    <!-- Front/Left Small Wheel / Support -->
+    <circle cx="34" cy="132" r="10" fill="url(#wheelGrad)" stroke="#64748B" stroke-width="3" />
+    <circle cx="34" cy="132" r="3" fill="#F8FAFC" />
+    <line x1="42" y1="116" x2="34" y2="132" stroke="#475569" stroke-width="3.5" />
+
+    <!-- Main Large Rear Wheel -->
+    <circle cx="132" cy="124" r="22" fill="none" stroke="#1E293B" stroke-width="5" />
+    <circle cx="132" cy="124" r="19" fill="#F8FAFC" opacity="0.1" />
+    <circle cx="132" cy="124" r="6" fill="#F97316" stroke="#C2410C" stroke-width="2" />
+    <!-- Spokes -->
+    <g stroke="#94A3B8" stroke-width="1.5">
+      <line x1="132" y1="102" x2="132" y2="146" />
+      <line x1="110" y1="124" x2="154" y2="124" />
+      <line x1="116" y1="108" x2="148" y2="140" />
+      <line x1="116" y1="140" x2="148" y2="108" />
+    </g>
+    <!-- Fender over Wheel -->
+    <path d="M108 124 A24 24 0 0 1 156 124" fill="none" stroke="#2563EB" stroke-width="4" stroke-linecap="round" />
+  </g>
+</svg>

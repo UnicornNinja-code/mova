@@ -1,0 +1,299 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --font-sans: 'Outfit', 'Outfit Fallback', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', 'Outfit Fallback', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Outfit', 'Outfit Fallback', system-ui, -apple-system, sans-serif;
+}
+
+@keyframes shine {
+  0% { left: -100px; }
+  100% { left: 150%; }
+}
+
+@layer base {
+  /* ==========================================================================
+     OBSIDIAN KINETIC - DARK MODE FIRST (SSOT DESIGN SYSTEM)
+     ========================================================================== */
+  :root {
+    /* Global Canvas & Surfaces */
+    --background: 240 10% 3.9%;          /* Canvas Base #09090b */
+    --foreground: 0 0% 98%;              /* Text Primary #fafafa */
+
+    --surface-1: 240 7% 7.8%;            /* Elevation 1 (Sidebar/Panel) #121215 */
+    --surface-2: 240 5.9% 10%;           /* Elevation 2 (Card/Container) #18181b */
+    --surface-3: 240 5.3% 16.1%;         /* Elevation 3 (Hover/Active) #27272a */
+
+    --card: 240 5.9% 10%;                /* #18181b */
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 5.9% 10%;             /* #18181b */
+    --popover-foreground: 0 0% 98%;
+
+    /* Brand Primary Orange Accents */
+    --primary: 21 90% 48%;               /* Primary Accent #ea580c */
+    --primary-hover: 25 95% 53%;         /* Secondary Accent #f97316 */
+    --primary-foreground: 0 0% 98%;
+    --primary-muted: rgba(234, 88, 12, 0.15);
+
+    --secondary: 240 5.9% 10%;           /* #18181b */
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 5.3% 16.1%;             /* #27272a */
+    --muted-foreground: 240 5% 64.9%;    /* Text Secondary #a1a1aa */
+    --text-muted: 240 3.8% 46.1%;        /* Text Inactive #71717a */
+
+    --accent: 240 5.3% 16.1%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;        /* #7f1d1d */
+    --destructive-foreground: 0 0% 98%;
+
+    /* Laser-sharp borders */
+    --border: 240 5.3% 16.1%;            /* Border Subtle #27272a */
+    --border-strong: 240 5.2% 26.1%;     /* Border Strong #3f3f46 */
+    --input: 240 5.3% 16.1%;
+    --ring: 25 95% 53%;                  /* Focus ring #f97316 */
+
+    /* Disciplined Radius */
+    --radius-sm: 0.125rem;               /* 2px */
+    --radius: 0.375rem;                  /* 6px (Base) */
+    --radius-md: 0.375rem;               /* 6px */
+    --radius-lg: 0.5rem;                 /* 8px (Container) */
+    --radius-xl: 0.75rem;                /* 12px */
+
+    /* Semantic Status */
+    --color-success: #10B981;
+    --color-success-bg: rgba(16, 185, 129, 0.12);
+    --color-warning: #F59E0B;
+    --color-warning-bg: rgba(245, 158, 11, 0.12);
+    --color-danger: #EF4444;
+    --color-danger-bg: rgba(239, 68, 68, 0.12);
+    --color-info: #3B82F6;
+    --color-info-bg: rgba(59, 130, 246, 0.12);
+
+    /* Unified Typography Family: Outfit Only */
+    --font-heading: 'Outfit', 'Outfit Fallback', system-ui, -apple-system, sans-serif;
+    --font-sans: 'Outfit', 'Outfit Fallback', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Outfit', 'Outfit Fallback', system-ui, -apple-system, sans-serif;
+  }
+
+  /* OPTIONAL LIGHT THEME (INVERSE) */
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 98%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 21 90% 48%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 21 90% 48%;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border-color: hsl(var(--border));
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html, body {
+    font-family: var(--font-sans);
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: hsl(var(--foreground));
+  }
+}
+
+/* ==========================================================================
+   OBSIDIAN KINETIC TYPOGRAPHY SYSTEM
+   ========================================================================== */
+@layer components {
+  /* Boxicons-Grade Hero Display Heading (84px / 600 / -2.1px tracking) */
+  .text-display-hero {
+    font-family: var(--font-heading);
+    font-size: clamp(2.75rem, 5.5vw, 5.25rem); /* 44px to 84px */
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: -0.025em; /* -2.1px at 84px */
+  }
+
+  .text-display-lg {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;       /* 40px */
+    line-height: 3rem;       /* 48px */
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+
+  .text-headline-lg {
+    font-family: var(--font-heading);
+    font-size: 1.875rem;     /* 30px */
+    line-height: 2.375rem;   /* 38px */
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .text-headline-md {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;       /* 24px */
+    line-height: 2rem;       /* 32px */
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  .text-headline-sm {
+    font-family: var(--font-heading);
+    font-size: 1.125rem;     /* 18px */
+    line-height: 1.625rem;   /* 26px */
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .text-body-lg {
+    font-family: var(--font-sans);
+    font-size: 1rem;         /* 16px */
+    line-height: 1.5rem;     /* 24px */
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  .text-body-md {
+    font-family: var(--font-sans);
+    font-size: 0.875rem;     /* 14px */
+    line-height: 1.25rem;    /* 20px */
+    font-weight: 400;
+    letter-spacing: -0.005em;
+  }
+
+  .text-body-sm {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;      /* 12px */
+    line-height: 1rem;       /* 16px */
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  .text-code-md {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;    /* 13px */
+    line-height: 1.125rem;   /* 18px */
+    font-weight: 400;
+    background-color: hsl(var(--muted));
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    border: 1px solid hsl(var(--border));
+  }
+
+  .text-label-md {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;    /* 13px */
+    line-height: 1rem;       /* 16px */
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .text-label-mono {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;    /* 11px */
+    line-height: 0.875rem;   /* 14px */
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* Backward-compatible aliasing */
+  .text-display {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    line-height: 3rem;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+  .text-h1 {
+    font-family: var(--font-heading);
+    font-size: 1.875rem;
+    line-height: 2.375rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .text-h2 {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  .text-h3 {
+    font-family: var(--font-heading);
+    font-size: 1.125rem;
+    line-height: 1.625rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .text-h4 {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    line-height: 1rem;
+    font-weight: 500;
+  }
+  .text-lead {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 400;
+    color: #a1a1aa;
+  }
+  .text-large {
+    font-family: var(--font-heading);
+    font-size: 1.125rem;
+    line-height: 1.625rem;
+    font-weight: 600;
+  }
+  .text-body {
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: #d4d4d8;
+  }
+  .text-subtle {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: #a1a1aa;
+  }
+  .text-detail {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 0.875rem;
+    text-transform: uppercase;
+    color: #a1a1aa;
+  }
+  .text-code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.125rem;
+    background-color: hsl(var(--muted));
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    border: 1px solid hsl(var(--border));
+  }
+}

@@ -1,0 +1,25 @@
+# Environment & Local Configuration
+.env
+.env.*
+*.env
+env/
+env
+
+# Documentation / Docs
+docs/
+docs
+
+# Dependencies & Build Outputs
+node_modules/
+dist/
+build/
+.turbo/
+.next/
+
+# Logs & OS artifacts
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db

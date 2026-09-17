@@ -1,0 +1,134 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "osm:way:tol-sub-gempol-1",
+        "name": "Jalan Tol Surabaya - Gempol (Seksi Waru - Sidoarjo Utara)",
+        "highway": "motorway",
+        "toll": "yes",
+        "ref": "AH2",
+        "operator": "PT Jasa Marga (Persero) Tbk"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [112.7271, -7.3522],
+          [112.7235, -7.3684],
+          [112.7202, -7.3855],
+          [112.7168, -7.4022],
+          [112.7135, -7.4190],
+          [112.7088, -7.4345],
+          [112.7012, -7.4428]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "osm:way:tol-sub-gempol-2",
+        "name": "Jalan Tol Surabaya - Gempol (Seksi Sidoarjo - Tanggulangin)",
+        "highway": "motorway",
+        "toll": "yes",
+        "ref": "AH2",
+        "operator": "PT Jasa Marga (Persero) Tbk"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [112.7012, -7.4428],
+          [112.6985, -7.4550],
+          [112.6970, -7.4680],
+          [112.6995, -7.4820],
+          [112.7050, -7.4950],
+          [112.7092, -7.5080]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "osm:way:tol-sub-gempol-3",
+        "name": "Jalan Tol Surabaya - Gempol (Relokasi Porong - Kejapanan)",
+        "highway": "motorway",
+        "toll": "yes",
+        "ref": "AH2",
+        "operator": "PT Jasa Marga (Persero) Tbk"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [112.7092, -7.5080],
+          [112.7115, -7.5210],
+          [112.7080, -7.5340],
+          [112.7010, -7.5450],
+          [112.6950, -7.5580],
+          [112.6890, -7.5720]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "osm:way:tol-waru-juanda-1",
+        "name": "Jalan Tol Waru - Juanda (Seksi Waru - Berbek)",
+        "highway": "motorway",
+        "toll": "yes",
+        "ref": "Tol Juanda",
+        "operator": "PT Citra Margatama Surabaya"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [112.7275, -7.3525],
+          [112.7380, -7.3490],
+          [112.7510, -7.3485],
+          [112.7630, -7.3510]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "osm:way:tol-waru-juanda-2",
+        "name": "Jalan Tol Waru - Juanda (Seksi Berbek - Tambak Sumur - Bandara Juanda)",
+        "highway": "motorway",
+        "toll": "yes",
+        "ref": "Tol Juanda",
+        "operator": "PT Citra Margatama Surabaya"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [112.7630, -7.3510],
+          [112.7720, -7.3560],
+          [112.7780, -7.3650],
+          [112.7820, -7.3750],
+          [112.7865, -7.3850]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "osm:way:tol-klbm-1",
+        "name": "Jalan Tol Krian - Legundi - Bunder - Manyar (KLBM Sidoarjo)",
+        "highway": "motorway",
+        "toll": "yes",
+        "ref": "Tol KLBM",
+        "operator": "PT Waskita Bumi Wira"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [112.5780, -7.4120],
+          [112.5850, -7.3950],
+          [112.5920, -7.3780],
+          [112.6010, -7.3550],
+          [112.6100, -7.3320]
+        ]
+      }
+    }
+  ]
+}

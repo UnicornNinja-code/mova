@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <linearGradient id="stormGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#64748B" />
+      <stop offset="60%" stop-color="#334155" />
+      <stop offset="100%" stop-color="#1E293B" />
+    </linearGradient>
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFBEB" />
+      <stop offset="30%" stop-color="#FDE047" />
+      <stop offset="100%" stop-color="#EAB308" />
+    </linearGradient>
+    <filter id="boltGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#FACC15" flood-opacity="0.9" />
+    </filter>
+    <filter id="tShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#0F172A" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Storm Cloud -->
+  <g filter="url(#tShadow)">
+    <path d="M34 72 h60 a20 20 0 0 0 2 -39.9 a28 28 0 0 0 -50.4 -8.1 a22 22 0 0 0 -23.6 22 a22 22 0 0 0 12 26 z" fill="url(#stormGrad)" />
+    <ellipse cx="58" cy="32" rx="16" ry="8" fill="#94A3B8" opacity="0.4" />
+  </g>
+
+  <!-- Electric Lightning Bolt -->
+  <polygon points="62,64 48,90 60,90 52,118 78,82 66,82 74,64" fill="url(#boltGrad)" filter="url(#boltGlow)" />
+
+  <!-- Heavy Rain Drops -->
+  <g fill="#60A5FA" opacity="0.85">
+    <path d="M32 86 C30 90, 28 93, 28 97 A4 4 0 0 0 36 97 C36 93, 34 90, 33 86 Z" transform="rotate(-15 32 92)" />
+    <path d="M88 84 C86 88, 84 91, 84 95 A4 4 0 0 0 92 95 C92 91, 90 88, 89 84 Z" transform="rotate(-15 88 90)" />
+  </g>
+</svg>

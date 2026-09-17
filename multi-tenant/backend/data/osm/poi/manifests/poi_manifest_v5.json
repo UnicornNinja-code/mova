@@ -1,0 +1,15 @@
+{
+  "dataset": "poi",
+  "version": 5,
+  "source": "OpenStreetMap Overpass API",
+  "fetched_at": "2026-09-07T09:29:38.207Z",
+  "feature_count": 9848,
+  "checksum_sha256": "999cc195869b9337f726b912f947175f7c647ed837ad4bcb5e35e426eb1dd331",
+  "validation_status": "VALIDATED",
+  "status": "ACTIVE",
+  "metadata": {
+    "city": "Surabaya",
+    "raw_elements": 10188,
+    "duplicates_filtered": 103
+  }
+}

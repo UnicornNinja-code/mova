@@ -1,0 +1,10 @@
+{
+  "dataset": "toll_roads",
+  "version": 1,
+  "source": "OpenStreetMap Overpass API",
+  "fetched_at": "2026-09-07T09:15:52.324Z",
+  "feature_count": 477,
+  "checksum_sha256": "6817c17737a31c62451fba90429ac233d7e18d158af80dfcb053a3b7e7148cd3",
+  "validation_status": "VALIDATED",
+  "status": "ACTIVE"
+}
