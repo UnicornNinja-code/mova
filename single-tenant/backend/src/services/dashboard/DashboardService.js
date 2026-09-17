@@ -197,6 +197,49 @@ export class DashboardService {
   }
 
   /**
+   * Invalidate Dashboard Summary Cache for affected roles on the target date
+   * @param {string|Date|null} targetDate - Date string (YYYY-MM-DD), Date instance, or ISO timestamp
+   */
+  async invalidateDashboardSummaryCache(targetDate = null) {
+    if (!redisClient || (!redisClient.isOpen && !redisClient.isReady)) {
+      return;
+    }
+
+    try {
+      let dateStr = targetDate;
+      if (dateStr instanceof Date) {
+        dateStr = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Jakarta",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(dateStr);
+      } else if (typeof dateStr === "string" && dateStr.includes("T")) {
+        dateStr = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Jakarta",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date(dateStr));
+      } else if (!dateStr) {
+        dateStr = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Jakarta",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date());
+      }
+
+      const affectedRoles = ["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"];
+      const keys = affectedRoles.map((role) => `cache:dashboard:summary:${role}:${dateStr}`);
+
+      await Promise.all(keys.map((key) => redisClient.del(key)));
+    } catch (err) {
+      console.warn("⚠️ [DASHBOARD CACHE] Error invalidating summary cache:", err.message);
+    }
+  }
+
+  /**
    * Get Sales Trend Time-Series Data
    */
   async getSalesTrend(userRole, { range = "7d", startDate, endDate } = {}) {

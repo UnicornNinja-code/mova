@@ -15,6 +15,9 @@ import { isPointInPolygonRing } from "../../src/socket/lbsHandler.js";
 import { EventPublisher } from "../../src/events/eventPublisher.js";
 import { EVENT_TYPES } from "../../src/events/eventTypes.js";
 
+import { redisClient } from "../../src/config/redis.js";
+import { pool } from "../../src/config/database.js";
+
 describe("⚡ [UNIT] Socket.IO Real-Time Engine & LBS Fast-Path", () => {
   let server;
   let socketMgr;
@@ -41,8 +44,18 @@ describe("⚡ [UNIT] Socket.IO Real-Time Engine & LBS Fast-Path", () => {
   });
 
   after(async () => {
-    socketMgr.close();
-    await new Promise((resolve) => server.close(resolve));
+    if (socketMgr) {
+      socketMgr.close();
+    }
+    if (server && server.listening) {
+      await new Promise((resolve) => server.close(resolve));
+    }
+    if (redisClient && (redisClient.isOpen || redisClient.isReady)) {
+      await redisClient.quit();
+    }
+    if (pool) {
+      await pool.end();
+    }
   });
 
   describe("1. LBS Fast-Path Point-in-Polygon Ray-Casting", () => {

@@ -15,6 +15,7 @@ import { productRepository } from "../../repositories/productRepository.js";
 import { addArmadaHoldReleaseJob, removeArmadaHoldReleaseJob } from "../../queues/armadaHoldQueue.js";
 import { broadcastArmadaHeld, broadcastArmadaReleased } from "../../socket/armadaLockSocketHandler.js";
 import { eventPublisher } from "../../events/eventPublisher.js";
+import { dashboardService } from "../dashboard/DashboardService.js";
 
 /**
  * Coordinate parser and validator helper
@@ -381,7 +382,14 @@ export class RiderOperationalService {
       lon: finalLon,
     });
 
-    // 7. Non-blocking Real-Time Event Emission
+    // 7. Post-Commit Dashboard Read-Model Cache Invalidation
+    try {
+      await dashboardService.invalidateDashboardSummaryCache(salesLog.created_at);
+    } catch (cacheErr) {
+      console.warn("⚠️ [DASHBOARD CACHE] Failed to invalidate summary cache post-sale:", cacheErr.message);
+    }
+
+    // 8. Non-blocking Real-Time Event Emission
     try {
       this.eventPublisher.publishSaleRecorded({
         saleId: salesLog.id,
@@ -462,6 +470,13 @@ export class RiderOperationalService {
       lon,
       notes,
     });
+
+    // Post-Commit Dashboard Read-Model Cache Invalidation
+    try {
+      await dashboardService.invalidateDashboardSummaryCache();
+    } catch (cacheErr) {
+      console.warn("⚠️ [DASHBOARD CACHE] Failed to invalidate summary cache post-checkout:", cacheErr.message);
+    }
 
     // 1. Emit Session Checkout to Supervisors Room (Non-blocking)
     try {

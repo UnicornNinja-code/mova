@@ -39,20 +39,31 @@ export class LbsGeofenceService {
   /**
    * Parse and validate GPS telemetry payload with strict bounds checking
    */
-  parseAndValidatePing({ latitude, longitude, lat, lon, speed = 0, heading = 0, recorded_at = null, recordedAt = null }) {
-    const rawLat = latitude !== undefined ? latitude : (lat !== undefined ? lat : NaN);
-    const rawLon = longitude !== undefined ? longitude : (lon !== undefined ? lon : NaN);
+  parseAndValidatePing({ latitude, longitude, lat, lon, speed = 0, heading = 0, recorded_at = null, recordedAt = null } = {}) {
+    const rawLat = (latitude !== undefined && latitude !== null) ? latitude : (lat !== undefined && lat !== null ? lat : NaN);
+    const rawLon = (longitude !== undefined && longitude !== null) ? longitude : (lon !== undefined && lon !== null ? lon : NaN);
 
-    const parsedLat = parseFloat(rawLat);
-    const parsedLon = parseFloat(rawLon);
+    if (rawLat === null || rawLat === "" || (typeof rawLat === "string" && rawLat.trim() === "")) {
+      const error = new Error("Parameter 'latitude' tidak valid (harus berupa angka di antara -90 dan 90).");
+      error.statusCode = 400;
+      throw error;
+    }
+    if (rawLon === null || rawLon === "" || (typeof rawLon === "string" && rawLon.trim() === "")) {
+      const error = new Error("Parameter 'longitude' tidak valid (harus berupa angka di antara -180 dan 180).");
+      error.statusCode = 400;
+      throw error;
+    }
 
-    if (isNaN(parsedLat) || parsedLat < -90 || parsedLat > 90) {
+    const parsedLat = typeof rawLat === "number" ? rawLat : parseFloat(rawLat);
+    const parsedLon = typeof rawLon === "number" ? rawLon : parseFloat(rawLon);
+
+    if (!Number.isFinite(parsedLat) || parsedLat < -90 || parsedLat > 90) {
       const error = new Error("Parameter 'latitude' tidak valid (harus berupa angka di antara -90 dan 90).");
       error.statusCode = 400;
       throw error;
     }
 
-    if (isNaN(parsedLon) || parsedLon < -180 || parsedLon > 180) {
+    if (!Number.isFinite(parsedLon) || parsedLon < -180 || parsedLon > 180) {
       const error = new Error("Parameter 'longitude' tidak valid (harus berupa angka di antara -180 dan 180).");
       error.statusCode = 400;
       throw error;
@@ -113,15 +124,25 @@ export class LbsGeofenceService {
 
   /**
    * Calculate Geodesic Haversine Distance in meters between two coordinates
+   * Supports both (pointA, pointB) where point is {lat/latitude, lon/longitude} and (lat1, lon1, lat2, lon2)
    */
-  calculateGeodesicDistance(pointA, pointB) {
-    if (!pointA || !pointB) return 0;
-    const lat1 = parseFloat(pointA.lat ?? pointA.latitude);
-    const lon1 = parseFloat(pointA.lon ?? pointA.longitude);
-    const lat2 = parseFloat(pointB.lat ?? pointB.latitude);
-    const lon2 = parseFloat(pointB.lon ?? pointB.longitude);
+  calculateGeodesicDistance(pointA, pointB, lat2Arg, lon2Arg) {
+    let lat1, lon1, lat2, lon2;
 
-    if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) return 0;
+    if (typeof pointA === "number" && typeof pointB === "number" && typeof lat2Arg === "number" && typeof lon2Arg === "number") {
+      lat1 = pointA;
+      lon1 = pointB;
+      lat2 = lat2Arg;
+      lon2 = lon2Arg;
+    } else {
+      if (!pointA || !pointB) return 0;
+      lat1 = parseFloat(pointA.lat ?? pointA.latitude);
+      lon1 = parseFloat(pointA.lon ?? pointA.longitude);
+      lat2 = parseFloat(pointB.lat ?? pointB.latitude);
+      lon2 = parseFloat(pointB.lon ?? pointB.longitude);
+    }
+
+    if (!Number.isFinite(lat1) || !Number.isFinite(lon1) || !Number.isFinite(lat2) || !Number.isFinite(lon2)) return 0;
     if (lat1 === lat2 && lon1 === lon2) return 0;
 
     const R = 6371000; // Earth radius in meters
@@ -135,6 +156,13 @@ export class LbsGeofenceService {
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return Math.round(R * c);
+  }
+
+  /**
+   * Alias for calculateGeodesicDistance
+   */
+  calculateHaversineDistance(pointA, pointB, lat2Arg, lon2Arg) {
+    return this.calculateGeodesicDistance(pointA, pointB, lat2Arg, lon2Arg);
   }
 
   /**
