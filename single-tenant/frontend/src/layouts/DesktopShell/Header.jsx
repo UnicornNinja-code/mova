@@ -13,7 +13,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/primitives";
-import { Sun, Moon, LogOut, Menu, Shield, Search, Bell, ChevronDown } from "lucide-react";
+import { Sun, Moon, LogOut, Menu, Shield, Search, Bell, ChevronDown, User } from "lucide-react";
 
 export function Header({ onMobileMenuToggle }) {
   const location = useLocation();
@@ -142,12 +142,18 @@ export function Header({ onMobileMenuToggle }) {
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Akun Operasional</DropdownMenuLabel>
             <div className="px-3 py-1.5 text-xs text-[var(--text-secondary)]">
               <span className="text-[10px] uppercase font-mono text-[var(--text-muted)] block">Email Pengguna</span>
-              <span className="font-medium text-[var(--text-primary)] truncate block">{user?.username || "admin@mova.id"}</span>
+              <span className="font-medium text-[var(--text-primary)] truncate block" title={user?.email || "admin@mova.id"}>
+                {user?.email || "admin@mova.id"}
+              </span>
             </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem icon={User} onSelect={() => navigate("/profile")}>
+              Profil Saya
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem icon={LogOut} destructive onSelect={handleLogout}>
               Keluar Sesi

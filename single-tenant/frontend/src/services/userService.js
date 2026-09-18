@@ -84,4 +84,30 @@ export const userService = {
     const response = await api.delete(`/api/users/${id}`);
     return response.data?.data || response.data;
   },
+
+  /**
+   * Fetch current authenticated user profile
+   */
+  async getProfile() {
+    const response = await api.get("/api/users/profile");
+    return response.data?.data || response.data?.user || response.data;
+  },
+
+  /**
+   * Update current authenticated user profile (name, phone, birth_date)
+   * @param {Object} profileData
+   */
+  async updateProfile(profileData) {
+    const response = await api.put("/api/users/profile", profileData);
+    return response.data?.data || response.data?.user || response.data;
+  },
+
+  /**
+   * Change current authenticated user password
+   * @param {Object} passwordData - { currentPassword, newPassword }
+   */
+  async changePassword(passwordData) {
+    const response = await api.put("/api/users/change-password", passwordData);
+    return response.data;
+  },
 };

@@ -16,6 +16,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/primitives";
 import { DataTable, ConfirmDialog, RoleTransitionModal } from "@/components/composites";
 import {
