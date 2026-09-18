@@ -71,6 +71,7 @@ export const registerService = async ({ token, username, name, email, password, 
   const activatedUser = await UserModel.activateUser(userId, {
     hashedPassword,
     name: name || targetUser.name,
+    phone: phone !== undefined ? phone : targetUser.phone,
     birth_date: birth_date || null,
   });
 
@@ -99,7 +100,11 @@ export const loginService = async ({ identifier, password }) => {
     throw createHttpError("Kredensial login tidak valid.", 400);
   }
 
-  const payload = { id: user.id, role: user.role };
+  const payload = {
+    id: user.id,
+    role: user.role,
+    auth_version: user.auth_version || 1,
+  };
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 
   const refreshTokenString = crypto.randomBytes(REFRESH_TOKEN_BYTES).toString("hex");
@@ -245,6 +250,7 @@ export const verifyResetTokenService = async (token) => {
     email: user ? user.email : null,
     name: user ? user.name : null,
     role: user ? user.role : null,
+    phone: user ? user.phone : null,
   };
 };
 
@@ -290,7 +296,11 @@ export const refreshTokenService = async (token) => {
   }
 
   const newAccessToken = jwt.sign(
-    { id: user.id, role: user.role },
+    {
+      id: user.id,
+      role: user.role,
+      auth_version: user.auth_version || 1,
+    },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES }
   );

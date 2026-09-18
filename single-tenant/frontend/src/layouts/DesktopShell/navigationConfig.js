@@ -12,6 +12,7 @@ import {
   ShieldAlert,
   Store,
   Users,
+  Shield,
   Sliders,
   History,
 } from "lucide-react";
@@ -62,9 +63,10 @@ export const NAVIGATION_PILLARS = [
     title: "ADMINISTRATION",
     roles: ["SUPERADMIN"],
     items: [
-      { label: "Manajemen User", path: "/admin/users", icon: Users, roles: ["SUPERADMIN"] },
+      { label: "Users", path: "/admin/users", icon: Users, roles: ["SUPERADMIN"] },
+      { label: "Roles & Access", path: "/admin/roles", icon: Shield, roles: ["SUPERADMIN"] },
+      { label: "Audit Log", path: "/admin/audit-logs", icon: History, roles: ["SUPERADMIN"] },
       { label: "Pengaturan Sistem", path: "/admin/settings", icon: Sliders, roles: ["SUPERADMIN"] },
-      { label: "Log Audit Forensik", path: "/admin/audit-logs", icon: History, roles: ["SUPERADMIN"] },
     ],
   },
 ];

@@ -18,7 +18,7 @@ const router = express.Router();
 
 router.post("/register", registerLimiter, register);
 router.post("/activate", registerLimiter, register);
-router.post("/login", loginLimiter, login);
+router.post("/login", loginLimiter, requireTurnstile, login);
 router.post("/first-login", authenticateToken, completeFirstLogin);
 router.post("/forgot-password", forgotPasswordLimiter, forgotPassword);
 router.post("/reset-password", resetPassword);

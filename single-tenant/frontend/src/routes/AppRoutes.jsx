@@ -1,3 +1,4 @@
+
 import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
@@ -9,10 +10,15 @@ const FirstLoginPage = lazy(() => import("@/pages/auth/FirstLoginPage").then((m)
 const ActivatePage = lazy(() => import("@/pages/auth/ActivatePage").then((m) => ({ default: m.ActivatePage })));
 const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage").then((m) => ({ default: m.ForgotPasswordPage })));
 const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
+const AccessChangedPage = lazy(() => import("@/pages/auth/AccessChangedPage").then((m) => ({ default: m.AccessChangedPage })));
 const OverviewPage = lazy(() => import("@/pages/overview/OverviewPage").then((m) => ({ default: m.OverviewPage })));
 const MapOpsPage = lazy(() => import("@/pages/mapops/MapOpsPage").then((m) => ({ default: m.MapOpsPage })));
 const WeatherPage = lazy(() => import("@/pages/operations/WeatherPage").then((m) => ({ default: m.WeatherPage })));
 const RiderHomePage = lazy(() => import("@/pages/rider/RiderHomePage").then((m) => ({ default: m.RiderHomePage })));
+const UsersPage = lazy(() => import("@/pages/admin/UsersPage").then((m) => ({ default: m.UsersPage })));
+const CreateUserPage = lazy(() => import("@/pages/admin/CreateUserPage").then((m) => ({ default: m.CreateUserPage })));
+const UserDetailPage = lazy(() => import("@/pages/admin/UserDetailPage").then((m) => ({ default: m.UserDetailPage })));
+const RolesPage = lazy(() => import("@/pages/admin/RolesPage").then((m) => ({ default: m.RolesPage })));
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })));
 
 function PageSuspense({ children }) {
@@ -62,6 +68,14 @@ export function AppRoutes() {
         element={
           <PageSuspense>
             <ResetPasswordPage />
+          </PageSuspense>
+        }
+      />
+      <Route
+        path="/access-changed"
+        element={
+          <PageSuspense>
+            <AccessChangedPage />
           </PageSuspense>
         }
       />
@@ -151,12 +165,57 @@ export function AppRoutes() {
         }
       />
 
+      {/* Administration Control Room Routes (SUPERADMIN ONLY) */}
+      <Route
+        path="/admin"
+        element={<Navigate to="/admin/users" replace />}
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN"]}>
+            <PageSuspense>
+              <UsersPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users/create"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN"]}>
+            <PageSuspense>
+              <CreateUserPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/users/:id"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN"]}>
+            <PageSuspense>
+              <UserDetailPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/roles"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN"]}>
+            <PageSuspense>
+              <RolesPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/admin/*"
         element={
           <ProtectedRoute allowedRoles={["SUPERADMIN"]}>
             <PageSuspense>
-              <OverviewPage />
+              <UsersPage />
             </PageSuspense>
           </ProtectedRoute>
         }

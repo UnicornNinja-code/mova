@@ -12,3 +12,4 @@ export { riderService } from "./riderService";
 export { distributionService } from "./distributionService";
 export { catalogService } from "./catalogService";
 export { dashboardService } from "./dashboardService";
+export { userService } from "./userService";

@@ -45,7 +45,11 @@ export function Button({
       ) : LeadingIcon ? (
         <LeadingIcon className="w-4 h-4 shrink-0" aria-hidden="true" />
       ) : null}
-      <span className="truncate">{children}</span>
+      {typeof children === "string" || typeof children === "number" ? (
+        <span className="truncate">{children}</span>
+      ) : (
+        <span className="inline-flex items-center justify-center gap-1.5 truncate">{children}</span>
+      )}
       {!loading && TrailingIcon ? (
         <TrailingIcon className="w-4 h-4 shrink-0" aria-hidden="true" />
       ) : null}

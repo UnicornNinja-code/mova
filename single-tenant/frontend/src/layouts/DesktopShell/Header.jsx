@@ -1,4 +1,5 @@
 import React from "react";
+import { formatRoleName } from "@/lib/formatters";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useUiStore } from "@/stores/useUiStore";
@@ -29,12 +30,31 @@ export function Header({ onMobileMenuToggle }) {
     navigate("/login");
   };
 
-  // Convert pathname to clean breadcrumb
+  // Convert pathname to clean semantic breadcrumb segments
   const pathSegments = location.pathname.split("/").filter(Boolean);
-  const pageTitle =
-    pathSegments.length > 0
-      ? pathSegments[pathSegments.length - 1].replace(/-/g, " ").toUpperCase()
-      : "DASHBOARD";
+
+  const formattedSegments = pathSegments.map((segment, index) => {
+    // Check if segment is a UUID or long hexadecimal hash
+    const isUuidOrHash =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment) ||
+      /^[0-9a-fA-F-]{16,}$/.test(segment);
+
+    if (isUuidOrHash) {
+      const prev = pathSegments[index - 1];
+      if (prev === "users") return "DETAIL USER";
+      return "DETAIL";
+    }
+    if (segment === "users") return "USERS";
+    if (segment === "create") return "CREATE USER";
+    if (segment === "roles") return "ROLES & ACCESS";
+    if (segment === "mapops") return "MAP OPERATIONS";
+    if (segment === "weather") return "PREDIKSI CUACA";
+    if (segment === "overview") return "OVERVIEW";
+    return segment.replace(/-/g, " ").toUpperCase();
+  });
+
+  const rootPillar = formattedSegments[0] || "MOVA";
+  const trailingSegments = formattedSegments.slice(1);
 
   return (
     <header className="h-16 border-b border-[var(--border-subtle)] bg-[var(--surface)] px-6 flex items-center justify-between gap-4 z-10 select-none">
@@ -49,14 +69,25 @@ export function Header({ onMobileMenuToggle }) {
             className="md:hidden"
           />
         ) : null}
-        <div className="flex items-center gap-2.5">
-          <span className="text-xs font-mono font-semibold text-[var(--accent-primary)] uppercase tracking-wider">
-            {pathSegments[0]?.toUpperCase() || "MOVA"}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-mono font-semibold text-[var(--accent-primary)] uppercase tracking-wider shrink-0">
+            {rootPillar}
           </span>
-          <span className="text-[var(--text-muted)] text-xs">/</span>
-          <h1 className="text-sm font-bold tracking-tight text-[var(--text-primary)] uppercase">
-            {pageTitle}
-          </h1>
+          {trailingSegments.length > 0 &&
+            trailingSegments.map((seg, sIdx) => (
+              <React.Fragment key={`${seg}-${sIdx}`}>
+                <span className="text-[var(--text-muted)] text-xs">/</span>
+                <span
+                  className={`text-xs uppercase truncate ${
+                    sIdx === trailingSegments.length - 1
+                      ? "font-bold text-[var(--text-primary)]"
+                      : "text-[var(--text-secondary)] font-medium"
+                  }`}
+                >
+                  {seg}
+                </span>
+              </React.Fragment>
+            ))}
         </div>
       </div>
 
@@ -103,8 +134,8 @@ export function Header({ onMobileMenuToggle }) {
                 <span className="text-xs font-semibold text-[var(--text-primary)] block leading-tight">
                   {user?.name || "Admin Operasional"}
                 </span>
-                <span className="text-[10px] text-[var(--text-muted)] font-mono block leading-none mt-0.5">
-                  {user?.role || "SUPERADMIN"}
+                <span className="text-[10px] text-[var(--text-muted)] font-medium block leading-none mt-0.5">
+                  {formatRoleName(user?.role || "SUPERADMIN")}
                 </span>
               </div>
               <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] hidden lg:block" />

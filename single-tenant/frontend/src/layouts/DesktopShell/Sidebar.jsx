@@ -25,34 +25,48 @@ export function Sidebar({ className }) {
         )}
       >
         {/* Brand Header */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-[var(--border-subtle)] bg-[var(--surface)]">
-          {!isSidebarCollapsed ? (
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-[var(--radius-md)] bg-[var(--accent-primary)] flex items-center justify-center text-white shrink-0 font-bold font-mono text-sm shadow-xs">
-                M
-              </div>
-              <div className="min-w-0">
-                <span className="font-bold text-sm tracking-tight text-[var(--text-primary)] block leading-none">
-                  MOVA CONTROL
-                </span>
-                <span className="text-[10px] text-[var(--text-muted)] tracking-wider uppercase font-mono block mt-1">
-                  Sidoarjo Hub
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="w-8 h-8 mx-auto rounded-[var(--radius-md)] bg-[var(--accent-primary)] flex items-center justify-center text-white font-bold font-mono text-sm shadow-xs">
-              M
-            </div>
+        <div
+          className={cn(
+            "flex items-center h-16 border-b border-[var(--border-subtle)] bg-[var(--surface)] transition-all",
+            isSidebarCollapsed ? "justify-center px-2" : "justify-between px-4"
           )}
+        >
+          {!isSidebarCollapsed ? (
+            <>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-[var(--radius-md)] bg-[var(--accent-primary)] flex items-center justify-center text-white shrink-0 font-bold font-mono text-sm shadow-xs">
+                  M
+                </div>
+                <div className="min-w-0">
+                  <span className="font-bold text-sm tracking-tight text-[var(--text-primary)] block leading-none">
+                    MOVA CONTROL
+                  </span>
+                  <span className="text-[10px] text-[var(--text-muted)] tracking-wider uppercase font-mono block mt-1">
+                    Sidoarjo Hub
+                  </span>
+                </div>
+              </div>
 
-          <IconButton
-            icon={isSidebarCollapsed ? ChevronRight : ChevronLeft}
-            label={isSidebarCollapsed ? "Perluas Menu" : "Kecilkan Menu"}
-            size="sm"
-            onClick={toggleSidebar}
-            className={cn("text-[var(--text-muted)] hover:text-[var(--text-primary)]", isSidebarCollapsed ? "hidden md:flex mx-auto mt-2" : "")}
-          />
+              <IconButton
+                icon={ChevronLeft}
+                label="Kecilkan Menu"
+                size="sm"
+                onClick={toggleSidebar}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              />
+            </>
+          ) : (
+            <Tooltip content="Perluas Menu (MOVA Control)" side="right">
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white flex items-center justify-center font-bold font-mono text-sm shadow-xs transition-all hover:scale-105 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                aria-label="Perluas Menu"
+              >
+                M
+              </button>
+            </Tooltip>
+          )}
         </div>
 
         {/* Navigation Pillars */}
@@ -111,7 +125,7 @@ export function Sidebar({ className }) {
         </div>
 
         {/* Operational Telemetry Pulse Footer */}
-        <div className="p-3.5 border-t border-[var(--border-subtle)] bg-[var(--surface)]">
+        <div className="p-3 border-t border-[var(--border-subtle)] bg-[var(--surface)]">
           {!isSidebarCollapsed ? (
             <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
               <div className="flex items-center gap-2">
@@ -123,8 +137,21 @@ export function Sidebar({ className }) {
               <span className="font-mono text-[10px] text-[var(--text-muted)]">v1.0.0</span>
             </div>
           ) : (
-            <div className="flex justify-center">
-              <span className="w-2.5 h-2.5 rounded-full bg-[var(--status-success)] animate-pulse" title="System Online" />
+            <div className="flex flex-col items-center justify-center gap-2">
+              <Tooltip content="Perluas Menu" side="right">
+                <IconButton
+                  icon={ChevronRight}
+                  label="Perluas Menu"
+                  size="sm"
+                  onClick={toggleSidebar}
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] h-7 w-7"
+                />
+              </Tooltip>
+              <Tooltip content="Status: System Online (v1.0.0)" side="right">
+                <div className="p-0.5 cursor-default">
+                  <span className="w-2 h-2 rounded-full bg-[var(--status-success)] animate-pulse block" />
+                </div>
+              </Tooltip>
             </div>
           )}
         </div>

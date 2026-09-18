@@ -50,7 +50,12 @@ export const authService = {
   },
 
   async verifyToken(token) {
-    const response = await api.get(`/api/auth/verify-token/${token}`);
+    let cleanToken = String(token || "").trim();
+    if (cleanToken.includes("token=")) {
+      const match = cleanToken.match(/token=([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) cleanToken = match[1];
+    }
+    const response = await api.get(`/api/auth/verify-token/${encodeURIComponent(cleanToken)}`);
     return response.data?.data || response.data;
   },
 

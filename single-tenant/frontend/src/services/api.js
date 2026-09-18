@@ -45,8 +45,28 @@ api.interceptors.response.use(
     const status = error.response?.status;
 
     // Handle 401 Unauthorized
-    if (status === 401 && !originalRequest._retry) {
-      // Don't retry if the failed request was login, refresh-token, or forgot-password
+    if (status === 401) {
+      const errData = error.response?.data;
+      if (errData?.code === "SESSION_REVOKED" || errData?.reason === "ROLE_CHANGED") {
+        useAuthStore.getState().clearAuth();
+        if (typeof window !== "undefined" && window.location.pathname !== "/access-changed") {
+          try {
+            sessionStorage.setItem(
+              "mova_access_changed_state",
+              JSON.stringify({
+                previousRole: errData.previousRole || null,
+                newRole: errData.newRole || null,
+                reason: errData.msg || "Hak akses peran telah diubah oleh Superadmin.",
+              })
+            );
+          } catch (e) {}
+          window.location.href = "/access-changed";
+        }
+        return Promise.reject(error);
+      }
+
+      if (!originalRequest._retry) {
+        // Don't retry if the failed request was login, refresh-token, or forgot-password
       const isAuthRoute =
         originalRequest.url?.includes("/auth/login") ||
         originalRequest.url?.includes("/auth/refresh-token") ||

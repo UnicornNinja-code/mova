@@ -50,11 +50,26 @@ export function useRealtimeSync() {
       queryClient.invalidateQueries({ queryKey: dssKeys.all });
     };
 
-    const handleCompetitorUpdated = () => {
-      queryClient.invalidateQueries({ queryKey: competitorKeys.all });
-      queryClient.invalidateQueries({ queryKey: dssKeys.all });
+    const handleAccessChanged = (data) => {
+      console.warn("🔒 [REAL-TIME] Access/Role changed on server:", data);
+      const clearAuth = useAuthStore.getState().clearAuth;
+      clearAuth();
+      try {
+        sessionStorage.setItem(
+          "mova_access_changed_state",
+          JSON.stringify({
+            previousRole: data?.previousRole || null,
+            newRole: data?.newRole || null,
+            reason: data?.reason || "Perubahan hak akses peran oleh Superadmin.",
+          })
+        );
+      } catch (e) {}
+      if (typeof window !== "undefined" && window.location.pathname !== "/access-changed") {
+        window.location.href = "/access-changed";
+      }
     };
 
+    socket.on("access:changed", handleAccessChanged);
     socket.on("SALE_RECORDED", handleSaleRecorded);
     socket.on("ARMADA_HELD", handleArmadaStatusChanged);
     socket.on("ARMADA_CLAIMED", handleArmadaStatusChanged);
@@ -67,6 +82,7 @@ export function useRealtimeSync() {
     socket.on("COMPETITOR_UPDATED", handleCompetitorUpdated);
 
     return () => {
+      socket.off("access:changed", handleAccessChanged);
       socket.off("SALE_RECORDED", handleSaleRecorded);
       socket.off("ARMADA_HELD", handleArmadaStatusChanged);
       socket.off("ARMADA_CLAIMED", handleArmadaStatusChanged);

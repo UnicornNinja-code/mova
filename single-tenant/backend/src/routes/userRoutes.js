@@ -9,6 +9,9 @@ import {
     getProfile,
     updateProfile,
     changePassword,
+    resendActivation,
+    revokeUserSessions,
+    changeUserRole,
 } from "../controllers/userController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 import { checkRole } from "../middlewares/roleMiddleware.js";
@@ -32,13 +35,23 @@ router.post("/", checkRole(["SUPERADMIN", "MANAGEMENT"]), createUser);
 // 4. User Details (SUPERADMIN, MANAGEMENT, and SUPERVISOR-scoped)
 router.get("/:id", checkRole(["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"]), getUserById);
 
-// 5. Update User Profile / Role (IDOR Protection & Hierarchy Guard in Service)
+// 5. Update User Profile (IDOR Protection & Hierarchy Guard in Service)
 router.put("/:id", updateUser);
+
+// 6. Explicit Role Transition Flow (SUPERADMIN & MANAGEMENT with Hierarchy Guard & Session Revocation)
+router.post("/:id/change-role", checkRole(["SUPERADMIN", "MANAGEMENT"]), changeUserRole);
+router.put("/:id/role", checkRole(["SUPERADMIN", "MANAGEMENT"]), changeUserRole);
 
 // 6. Toggle User Active Status (SUPERADMIN & MANAGEMENT with Hierarchy Guard)
 router.patch("/:id/status", checkRole(["SUPERADMIN", "MANAGEMENT"]), setUserStatus);
 
-// 7. Delete User (SUPERADMIN & MANAGEMENT with Hierarchy Guard)
+// 7. Resend Account Activation Token (SUPERADMIN & MANAGEMENT)
+router.post("/:id/resend-activation", checkRole(["SUPERADMIN", "MANAGEMENT"]), resendActivation);
+
+// 8. Revoke User Active Sessions (SUPERADMIN & MANAGEMENT)
+router.post("/:id/revoke-sessions", checkRole(["SUPERADMIN", "MANAGEMENT"]), revokeUserSessions);
+
+// 9. Delete User (SUPERADMIN & MANAGEMENT with Hierarchy Guard)
 router.delete("/:id", checkRole(["SUPERADMIN", "MANAGEMENT"]), deleteUser);
 
 export default router;

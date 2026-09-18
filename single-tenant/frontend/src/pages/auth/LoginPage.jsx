@@ -11,7 +11,7 @@ import {
   Input,
   Alert,
 } from "@/components/primitives";
-import { FormField, FormLabel, FormErrorText } from "@/components/composites";
+import { FormField, FormLabel, FormErrorText, TurnstileWidget } from "@/components/composites";
 import { Eye, EyeOff } from "lucide-react";
 
 import { formatApiError } from "@/lib/errorHandler";
@@ -30,6 +30,7 @@ export function LoginPage() {
   const [error, setError] = useState(null);
   const [successNotice, setSuccessNotice] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   const {
     register,
@@ -59,6 +60,7 @@ export function LoginPage() {
       const response = await authService.login({
         username: data.identifier,
         password: data.password,
+        turnstileToken,
       });
 
       setAuth(response.token, response.user);
@@ -137,6 +139,12 @@ export function LoginPage() {
           />
           {errors.password && <FormErrorText>{errors.password.message}</FormErrorText>}
         </FormField>
+
+        <TurnstileWidget
+          size="invisible"
+          onVerify={(token) => setTurnstileToken(token)}
+          onError={() => setTurnstileToken("")}
+        />
 
         <Button
           type="submit"

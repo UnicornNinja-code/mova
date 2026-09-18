@@ -37,6 +37,23 @@ export const authenticateToken = async (req, res, next) => {
             });
         }
 
+        // OWASP/NIST Session Invalidation on Privilege/Role State Change
+        const tokenAuthVersion = decoded.auth_version;
+        const currentAuthVersion = user.auth_version || 1;
+        const isRoleMismatched = decoded.role && decoded.role !== user.role;
+        const isAuthVersionOutdated = tokenAuthVersion !== undefined && tokenAuthVersion < currentAuthVersion;
+
+        if (isRoleMismatched || isAuthVersionOutdated) {
+            return res.status(401).json({
+                success: false,
+                code: "SESSION_REVOKED",
+                reason: "ROLE_CHANGED",
+                previousRole: decoded.role || null,
+                newRole: user.role,
+                msg: "Sesi Anda telah diakhiri karena mutasi hak akses peran. Silakan login kembali.",
+            });
+        }
+
         req.user = user;
         next();
     } catch (error) {

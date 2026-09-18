@@ -36,10 +36,23 @@ const activationSchema = z
     path: ["confirmPassword"],
   });
 
+export function extractRawToken(inputStr) {
+  if (!inputStr) return "";
+  const trimmed = String(inputStr).trim();
+  if (trimmed.includes("token=")) {
+    const match = trimmed.match(/token=([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+  return trimmed;
+}
+
 export function ActivatePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialToken = searchParams.get("token") || "";
+  const rawInitial = searchParams.get("token") || "";
+  const initialToken = extractRawToken(rawInitial);
 
   const [inputToken, setInputToken] = useState(initialToken);
   const [verifiedToken, setVerifiedToken] = useState(null);
@@ -48,6 +61,7 @@ export function ActivatePage() {
   const [verifyError, setVerifyError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [showToken, setShowToken] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -74,7 +88,8 @@ export function ActivatePage() {
   const matchStatus = checkPasswordMatch(enteredPassword, enteredConfirmPassword);
 
   const performVerification = async (tokenToVerify) => {
-    if (!tokenToVerify || !tokenToVerify.trim()) {
+    const cleanToken = extractRawToken(tokenToVerify);
+    if (!cleanToken) {
       setVerifyError({
         title: "Token Belum Diisi",
         message: "Silakan masukkan token aktivasi akun staf yang Anda terima.",
@@ -86,12 +101,15 @@ export function ActivatePage() {
     setVerifyError(null);
 
     try {
-      const result = await authService.verifyToken(tokenToVerify.trim());
+      const result = await authService.verifyToken(cleanToken);
       if (result?.valid) {
-        setVerifiedToken(tokenToVerify.trim());
+        setVerifiedToken(cleanToken);
         setTokenData(result);
         if (result.name) {
           setValue("name", result.name);
+        }
+        if (result.phone) {
+          setValue("phone", result.phone);
         }
       } else {
         setVerifyError(
@@ -120,6 +138,7 @@ export function ActivatePage() {
     setVerifiedToken(null);
     setTokenData(null);
     setVerifyError(null);
+    setInputToken("");
     setSearchParams({});
   };
 
@@ -206,9 +225,20 @@ export function ActivatePage() {
               <FormLabel htmlFor="activation-token" required>Token Aktivasi Staf</FormLabel>
               <Input
                 id="activation-token"
+                type={showToken ? "text" : "password"}
                 value={inputToken}
-                onChange={(e) => setInputToken(e.target.value)}
-                placeholder="Tempel atau ketik kode token aktivasi"
+                onChange={(e) => setInputToken(extractRawToken(e.target.value))}
+                trailingElement={
+                  <button
+                    type="button"
+                    onClick={() => setShowToken(!showToken)}
+                    aria-label={showToken ? "Sembunyikan token" : "Tampilkan token"}
+                    className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                  >
+                    {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                }
+                placeholder="Tempel tautan undangan atau kode token aktivasi"
                 autoComplete="off"
                 required
               />
@@ -258,11 +288,17 @@ export function ActivatePage() {
 
           {/* Account Metadata Bar */}
           {tokenData?.email && (
-            <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-raised)] border border-[var(--border-subtle)] flex items-center justify-between text-xs">
+            <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-raised)] border border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-2 text-xs">
               <div>
                 <span className="text-[10px] text-[var(--text-muted)] uppercase font-mono block">Email</span>
                 <span className="font-medium text-[var(--text-primary)] font-mono">{tokenData.email}</span>
               </div>
+              {tokenData.phone && (
+                <div>
+                  <span className="text-[10px] text-[var(--text-muted)] uppercase font-mono block">No. Telepon</span>
+                  <span className="font-medium text-[var(--text-secondary)] font-mono">{tokenData.phone}</span>
+                </div>
+              )}
               {tokenData.role && (
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20">
                   {tokenData.role}

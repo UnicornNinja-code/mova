@@ -91,6 +91,9 @@ export class SocketManager {
 
       console.log(`🔌 [SOCKET.IO CONNECTED] Socket ID: ${socket.id} | User: ${user.name} (${user.role})`);
 
+      // Auto Join Private User Room
+      socket.join(`user_${user.id}`);
+
       // Auto Join Rooms based on Role
       if (user.role === "SUPERADMIN" || user.role === "MANAGEMENT") {
         socket.join("management_room");
@@ -117,6 +120,15 @@ export class SocketManager {
 
     console.log("⚡ Socket.io Real-Time Server initialized successfully!");
     return this.io;
+  }
+
+  /**
+   * Send event to specific user (across all their active socket connections)
+   */
+  sendToUser(userId, event, data) {
+    if (this.io) {
+      this.io.to(`user_${userId}`).emit(event, data);
+    }
   }
 
   /**

@@ -7,6 +7,9 @@ import {
   setUserStatusService,
   deleteUserService,
   changePasswordService,
+  resendActivationService,
+  revokeUserSessionsService,
+  changeUserRoleService,
 } from "../services/userService.js";
 import { sendSuccess, sendPaginated, sendError } from "../utils/apiResponse.js";
 
@@ -138,6 +141,40 @@ export const deleteUser = async (req, res) => {
   }
 };
 
+export const resendActivation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await resendActivationService(id, req.user);
+    const safeUser = sanitizeUser(result.user);
+    return sendSuccess(
+      res,
+      {
+        user: safeUser,
+        invitation_token: result.invitation_token,
+        invitation_link: result.invitation_link,
+        expires_at: result.expires_at,
+      },
+      result.message || "Tautan aktivasi baru berhasil dibuat.",
+      200
+    );
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
+export const revokeUserSessions = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await revokeUserSessionsService(id, req.user);
+    const safeUser = sanitizeUser(result.user);
+    return sendSuccess(res, safeUser, result.message || "Seluruh sesi aktif pengguna berhasil dicabut.", 200, {
+      user: safeUser,
+    });
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
 export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -147,3 +184,37 @@ export const changePassword = async (req, res) => {
     return handleControllerError(res, error);
   }
 };
+
+export const changeUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newRole, role, reason } = req.body;
+    const targetRole = newRole || role;
+
+    const result = await changeUserRoleService({
+      targetUserId: id,
+      newRole: targetRole,
+      reason,
+      currentUser: req.user,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+
+    const safeUser = sanitizeUser(result.user);
+    return sendSuccess(
+      res,
+      {
+        user: safeUser,
+        previous_role: result.previous_role,
+        new_role: result.new_role,
+      },
+      result.message,
+      200,
+      { user: safeUser }
+    );
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
+

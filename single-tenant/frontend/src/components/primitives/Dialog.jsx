@@ -55,6 +55,30 @@ export function DialogContent({ title, description, children, maxWidth = "md", c
   );
 }
 
+export function DialogHeader({ children, className }) {
+  return (
+    <div className={cn("flex flex-col space-y-1.5 text-left", className)}>
+      {children}
+    </div>
+  );
+}
+
+export function DialogTitle({ children, className, ...props }) {
+  return (
+    <DialogPrimitive.Title className={cn("text-base font-semibold text-[var(--text-primary)] leading-none", className)} {...props}>
+      {children}
+    </DialogPrimitive.Title>
+  );
+}
+
+export function DialogDescription({ children, className, ...props }) {
+  return (
+    <DialogPrimitive.Description className={cn("text-xs text-[var(--text-secondary)]", className)} {...props}>
+      {children}
+    </DialogPrimitive.Description>
+  );
+}
+
 export function DialogFooter({ children, className }) {
   return (
     <div className={cn("flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-subtle)]", className)}>
@@ -62,3 +86,4 @@ export function DialogFooter({ children, className }) {
     </div>
   );
 }
+
