@@ -50,6 +50,10 @@ export function useRealtimeSync() {
       queryClient.invalidateQueries({ queryKey: dssKeys.all });
     };
 
+    const handleCompetitorUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: competitorKeys.all });
+    };
+
     const handleAccessChanged = (data) => {
       console.warn("🔒 [REAL-TIME] Access/Role changed on server:", data);
       const clearAuth = useAuthStore.getState().clearAuth;

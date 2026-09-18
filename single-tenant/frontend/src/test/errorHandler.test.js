@@ -62,7 +62,7 @@ describe("🛡️ formatApiError — Polite & Reassuring Error Translator", () =
     };
 
     const formatted = formatApiError(server500);
-    expect(formatted.title).toBe("Layanan Sedang Mengalami Kendala");
+    expect(formatted.title).toBe("Layanan Sedang Mengalami Penyesuaian");
     expect(formatted.message).toContain("Sistem pusat MOVA sedang dalam penanganan teknis");
   });
 

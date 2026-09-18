@@ -4,6 +4,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "",
   timeout: 15000,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
@@ -99,10 +100,15 @@ api.interceptors.response.use(
             { withCredentials: true }
           );
 
-          const newToken = refreshResponse.data?.data?.token || refreshResponse.data?.token;
+          const resData = refreshResponse.data?.data || refreshResponse.data;
+          const newToken = resData?.token;
+          const returnedUser = resData?.user;
 
           if (newToken) {
             useAuthStore.getState().updateToken(newToken);
+            if (returnedUser) {
+              useAuthStore.getState().updateUser(returnedUser);
+            }
             api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             processQueue(null, newToken);
@@ -115,7 +121,7 @@ api.interceptors.response.use(
           useAuthStore.getState().clearAuth();
 
           if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-            window.location.href = "/login";
+            window.location.href = "/login?reason=session_expired";
           }
           return Promise.reject(refreshErr);
         } finally {

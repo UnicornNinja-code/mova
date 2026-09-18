@@ -2,6 +2,7 @@
 import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
+import { PublicRoute } from "./PublicRoute";
 import { Spinner } from "@/components/primitives";
 
 // Lazy-loaded pages
@@ -44,33 +45,41 @@ export function AppRoutes() {
       <Route
         path="/login"
         element={
-          <PageSuspense>
-            <LoginPage />
-          </PageSuspense>
+          <PublicRoute>
+            <PageSuspense>
+              <LoginPage />
+            </PageSuspense>
+          </PublicRoute>
         }
       />
       <Route
         path="/activate"
         element={
-          <PageSuspense>
-            <ActivatePage />
-          </PageSuspense>
+          <PublicRoute>
+            <PageSuspense>
+              <ActivatePage />
+            </PageSuspense>
+          </PublicRoute>
         }
       />
       <Route
         path="/forgot-password"
         element={
-          <PageSuspense>
-            <ForgotPasswordPage />
-          </PageSuspense>
+          <PublicRoute>
+            <PageSuspense>
+              <ForgotPasswordPage />
+            </PageSuspense>
+          </PublicRoute>
         }
       />
       <Route
         path="/reset-password"
         element={
-          <PageSuspense>
-            <ResetPasswordPage />
-          </PageSuspense>
+          <PublicRoute>
+            <PageSuspense>
+              <ResetPasswordPage />
+            </PageSuspense>
+          </PublicRoute>
         }
       />
       <Route

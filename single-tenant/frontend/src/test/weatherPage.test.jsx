@@ -22,19 +22,19 @@ describe("Operational Weather Page & Spatial Risk Matrix", () => {
     render(<WeatherPage />, { wrapper: createWrapper() });
 
     expect(
-      screen.getByText("Prediksi Cuaca & Matriks Risiko Spasial")
+      screen.getByText(/Pusat Cuaca & Matriks Risiko Armada/i)
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(/Central Hub Weather Overview/i)
+      screen.getByText(/Prakiraan Hari Ini/i)
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(/Hourly Operational Timeline/i)
+      screen.getByText(/Prakiraan Cuaca Per Jam/i)
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(/4-Slot C4 Weather Risk Penalty/i)
+      screen.getByText(/Tingkat Risiko & Biaya Cuaca/i)
     ).toBeInTheDocument();
   });
 
@@ -55,6 +55,6 @@ describe("Operational Weather Page & Spatial Risk Matrix", () => {
     render(<WeatherPage />, { wrapper: createWrapper() });
 
     expect(screen.getByText("Sync Open-Meteo")).toBeInTheDocument();
-    expect(screen.getByText("Semua Zona Operasional")).toBeInTheDocument();
+    expect(screen.getByText("Semua Zona (Central Hub Sidoarjo)")).toBeInTheDocument();
   });
 });

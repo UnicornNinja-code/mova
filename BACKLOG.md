@@ -7,7 +7,7 @@ daftar backlog aplikasi mova
 
 - perbaikan behavior perubahan jabatan perubahan role pada user yang sedang online sebaiknya diperlakukan sebagai security state change, bukan sekadar perubahan data.✅
 
-- bug refresh browser yang harus mengahruskan login dari awal 
+- bug refresh browser yang harus mengahruskan login dari awal ✅ 
 
 - penambahan FAQ pada halaaman system ⚠️
 - pembuatan halaman cuaca ⚠️
