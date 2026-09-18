@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AuthLayout } from "@/layouts/AuthLayout";
+import { AuthLayout } from "@/layouts/AuthLayout/AuthLayout";
 import { Button } from "@/components/primitives";
 import { ShieldAlert, ArrowRight, LogIn, AlertCircle, Lock } from "lucide-react";
 import { formatRoleName, getRoleConfig } from "@/lib/formatters";
