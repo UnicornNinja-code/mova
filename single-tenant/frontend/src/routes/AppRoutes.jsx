@@ -19,6 +19,7 @@ const UsersPage = lazy(() => import("@/pages/admin/UsersPage").then((m) => ({ de
 const CreateUserPage = lazy(() => import("@/pages/admin/CreateUserPage").then((m) => ({ default: m.CreateUserPage })));
 const UserDetailPage = lazy(() => import("@/pages/admin/UserDetailPage").then((m) => ({ default: m.UserDetailPage })));
 const RolesPage = lazy(() => import("@/pages/admin/RolesPage").then((m) => ({ default: m.RolesPage })));
+const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage").then((m) => ({ default: m.ProfilePage })));
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })));
 
 function PageSuspense({ children }) {
@@ -96,6 +97,18 @@ export function AppRoutes() {
       <Route
         path="/"
         element={<Navigate to="/overview" replace />}
+      />
+
+      {/* User Self Profile Route (All Authenticated Roles) */}
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <PageSuspense>
+              <ProfilePage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
       />
 
       <Route

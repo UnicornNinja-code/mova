@@ -351,89 +351,85 @@ export function UsersPage() {
             className="flex items-center justify-end"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative group">
-              <button
-                type="button"
-                className="p-1.5 rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors cursor-pointer"
-                title="Aksi Pengguna"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </button>
-
-              <div className="hidden group-hover:block absolute right-0 top-full z-50 min-w-[160px] py-1 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-sm)] shadow-lg animate-in fade-in-50 text-left">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => navigate(`/admin/users/${row.id}`)}
-                  className="w-full px-3 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--surface-raised)] flex items-center gap-2 cursor-pointer"
+                  className="p-1.5 rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors cursor-pointer outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
+                  title="Aksi Pengguna"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <ExternalLink className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                  View profile
+                  <MoreVertical className="w-4 h-4" />
                 </button>
+              </DropdownMenuTrigger>
 
-                <button
-                  type="button"
-                  onClick={() => navigate(`/admin/users/${row.id}`)}
-                  className="w-full px-3 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--surface-raised)] flex items-center gap-2 cursor-pointer"
+              <DropdownMenuContent align="end" side="bottom" sideOffset={4} className="w-48 z-50">
+                <DropdownMenuItem
+                  icon={ExternalLink}
+                  onSelect={() => navigate(`/admin/users/${row.id}`)}
                 >
-                  <Users className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                  Edit user
-                </button>
+                  Lihat Profil
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  icon={Users}
+                  onSelect={() => navigate(`/admin/users/${row.id}`)}
+                >
+                  Ubah Pengguna
+                </DropdownMenuItem>
 
                 {!isSelf && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenRoleChange(row)}
-                    className="w-full px-3 py-1.5 text-xs text-[var(--text-primary)] hover:bg-[var(--surface-raised)] flex items-center gap-2 cursor-pointer"
+                  <DropdownMenuItem
+                    icon={Shield}
+                    onSelect={() => handleOpenRoleChange(row)}
                   >
-                    <Shield className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                    Change role
-                  </button>
+                    Ganti Jabatan
+                  </DropdownMenuItem>
                 )}
 
                 {isPending && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenConfirm("resend_activation", row)}
-                    className="w-full px-3 py-1.5 text-xs text-[var(--accent-primary)] hover:bg-[var(--surface-raised)] flex items-center gap-2 cursor-pointer"
+                  <DropdownMenuItem
+                    icon={RefreshCw}
+                    className="text-[var(--accent-primary)]"
+                    onSelect={() => handleOpenConfirm("resend_activation", row)}
                   >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    Resend activation
-                  </button>
+                    Kirim Ulang Aktivasi
+                  </DropdownMenuItem>
                 )}
 
                 {!isSelf && !isPending && !isSuspended && (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenConfirm("revoke_sessions", row)}
-                      className="w-full px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] flex items-center gap-2 cursor-pointer"
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      icon={RotateCcw}
+                      onSelect={() => handleOpenConfirm("revoke_sessions", row)}
                     >
-                      <RotateCcw className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                      Revoke sessions
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenConfirm("suspend", row)}
-                      className="w-full px-3 py-1.5 text-xs text-[var(--status-danger)] hover:bg-[var(--surface-raised)] flex items-center gap-2 cursor-pointer"
+                      Cabut Sesi Aktif
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      icon={Ban}
+                      destructive
+                      onSelect={() => handleOpenConfirm("suspend", row)}
                     >
-                      <Ban className="w-3.5 h-3.5" />
-                      Suspend account
-                    </button>
+                      Nonaktifkan Akun
+                    </DropdownMenuItem>
                   </>
                 )}
 
                 {!isSelf && isSuspended && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenConfirm("reactivate", row)}
-                    className="w-full px-3 py-1.5 text-xs text-[var(--status-success)] hover:bg-[var(--surface-raised)] flex items-center gap-2 cursor-pointer"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Reactivate account
-                  </button>
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      icon={CheckCircle2}
+                      className="text-[var(--status-success)]"
+                      onSelect={() => handleOpenConfirm("reactivate", row)}
+                    >
+                      Aktifkan Kembali
+                    </DropdownMenuItem>
+                  </>
                 )}
-              </div>
-            </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         );
       },
