@@ -18,7 +18,8 @@ const RiderHomePage = lazy(() => import("@/pages/rider/RiderHomePage").then((m) 
 const UsersPage = lazy(() => import("@/pages/admin/UsersPage").then((m) => ({ default: m.UsersPage })));
 const CreateUserPage = lazy(() => import("@/pages/admin/CreateUserPage").then((m) => ({ default: m.CreateUserPage })));
 const UserDetailPage = lazy(() => import("@/pages/admin/UserDetailPage").then((m) => ({ default: m.UserDetailPage })));
-const RolesPage = lazy(() => import("@/pages/admin/RolesPage").then((m) => ({ default: m.RolesPage })));
+const RolesPage = lazy(() => import("@/pages/help/FaqPage").then((m) => ({ default: m.FaqPage })));
+const FaqPage = lazy(() => import("@/pages/help/FaqPage").then((m) => ({ default: m.FaqPage })));
 const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage").then((m) => ({ default: m.ProfilePage })));
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })));
 
@@ -106,6 +107,18 @@ export function AppRoutes() {
           <ProtectedRoute>
             <PageSuspense>
               <ProfilePage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Technical FAQ & Operational Guide Route (All Authenticated Roles) */}
+      <Route
+        path="/faq"
+        element={
+          <ProtectedRoute>
+            <PageSuspense>
+              <FaqPage />
             </PageSuspense>
           </ProtectedRoute>
         }

@@ -15,6 +15,7 @@ import {
   Shield,
   Sliders,
   History,
+  HelpCircle,
 } from "lucide-react";
 
 export const NAVIGATION_PILLARS = [
@@ -64,9 +65,16 @@ export const NAVIGATION_PILLARS = [
     roles: ["SUPERADMIN"],
     items: [
       { label: "Users", path: "/admin/users", icon: Users, roles: ["SUPERADMIN"] },
-      { label: "Roles & Access", path: "/admin/roles", icon: Shield, roles: ["SUPERADMIN"] },
       { label: "Audit Log", path: "/admin/audit-logs", icon: History, roles: ["SUPERADMIN"] },
       { label: "Pengaturan Sistem", path: "/admin/settings", icon: Sliders, roles: ["SUPERADMIN"] },
+    ],
+  },
+  {
+    id: "help",
+    title: "BANTUAN & FAQ",
+    roles: ["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"],
+    items: [
+      { label: "FAQ & Panduan", path: "/faq", icon: HelpCircle, roles: ["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"] },
     ],
   },
 ];

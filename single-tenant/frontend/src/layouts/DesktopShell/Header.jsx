@@ -48,6 +48,7 @@ export function Header({ onMobileMenuToggle }) {
     if (segment === "create") return "CREATE USER";
     if (segment === "roles") return "ROLES & ACCESS";
     if (segment === "profile") return "PROFIL SAYA";
+    if (segment === "faq") return "FAQ & PANDUAN";
     if (segment === "mapops") return "MAP OPERATIONS";
     if (segment === "weather") return "PREDIKSI CUACA";
     if (segment === "overview") return "OVERVIEW";
