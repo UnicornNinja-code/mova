@@ -67,59 +67,60 @@ api.interceptors.response.use(
 
       if (!originalRequest._retry) {
         // Don't retry if the failed request was login, refresh-token, or forgot-password
-      const isAuthRoute =
-        originalRequest.url?.includes("/auth/login") ||
-        originalRequest.url?.includes("/auth/refresh-token") ||
-        originalRequest.url?.includes("/auth/forgot-password");
+        const isAuthRoute =
+          originalRequest.url?.includes("/auth/login") ||
+          originalRequest.url?.includes("/auth/refresh-token") ||
+          originalRequest.url?.includes("/auth/forgot-password");
 
-      if (isAuthRoute) {
-        return Promise.reject(error);
-      }
+        if (isAuthRoute) {
+          return Promise.reject(error);
+        }
 
-      if (isRefreshing) {
-        // Queue pending requests while refresh is in progress
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
+        if (isRefreshing) {
+          // Queue pending requests while refresh is in progress
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
           })
-          .catch((err) => Promise.reject(err));
-      }
-
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        // Attempt silent token refresh via backend API
-        const refreshResponse = await axios.post(
-          `${import.meta.env.VITE_API_URL || ""}/api/auth/refresh-token`,
-          {},
-          { withCredentials: true }
-        );
-
-        const newToken = refreshResponse.data?.data?.token || refreshResponse.data?.token;
-
-        if (newToken) {
-          useAuthStore.getState().updateToken(newToken);
-          api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          processQueue(null, newToken);
-          return api(originalRequest);
-        } else {
-          throw new Error("No token returned from refresh endpoint");
+            .then((token) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return api(originalRequest);
+            })
+            .catch((err) => Promise.reject(err));
         }
-      } catch (refreshErr) {
-        processQueue(refreshErr, null);
-        useAuthStore.getState().clearAuth();
 
-        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-          window.location.href = "/login";
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          // Attempt silent token refresh via backend API
+          const refreshResponse = await axios.post(
+            `${import.meta.env.VITE_API_URL || ""}/api/auth/refresh-token`,
+            {},
+            { withCredentials: true }
+          );
+
+          const newToken = refreshResponse.data?.data?.token || refreshResponse.data?.token;
+
+          if (newToken) {
+            useAuthStore.getState().updateToken(newToken);
+            api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            processQueue(null, newToken);
+            return api(originalRequest);
+          } else {
+            throw new Error("No token returned from refresh endpoint");
+          }
+        } catch (refreshErr) {
+          processQueue(refreshErr, null);
+          useAuthStore.getState().clearAuth();
+
+          if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+            window.location.href = "/login";
+          }
+          return Promise.reject(refreshErr);
+        } finally {
+          isRefreshing = false;
         }
-        return Promise.reject(refreshErr);
-      } finally {
-        isRefreshing = false;
       }
     }
 
