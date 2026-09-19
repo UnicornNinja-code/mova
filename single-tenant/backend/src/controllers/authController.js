@@ -121,6 +121,7 @@ export const refreshToken = async (req, res) => {
       msg: "Token refreshed successfully",
       token: result.token,
       refreshToken: result.refreshToken,
+      user: result.user,
     });
   } catch (error) {
     return handleControllerError(res, error);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,12 +23,14 @@ const loginSchema = z.object({
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const setAuth = useAuthStore((state) => state.setAuth);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successNotice, setSuccessNotice] = useState(null);
+  const [warningNotice, setWarningNotice] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
 
@@ -49,6 +51,10 @@ export function LoginPage() {
       setSuccessNotice("Akun staf Anda telah berhasil diaktifkan. Silakan login dengan kata sandi baru Anda.");
     } else if (searchParams.get("reset") === "true") {
       setSuccessNotice("Kata sandi berhasil diperbarui. Silakan masuk dengan kredensial baru Anda.");
+    } else if (searchParams.get("reason") === "session_expired") {
+      setWarningNotice("Sesi login Anda telah berakhir. Silakan masuk kembali untuk melanjutkan.");
+    } else if (searchParams.get("reason") === "idle_timeout") {
+      setWarningNotice("Sesi Anda telah berakhir karena tidak ada aktivitas. Silakan masuk kembali.");
     }
   }, [searchParams]);
 
@@ -65,8 +71,11 @@ export function LoginPage() {
 
       setAuth(response.token, response.user);
 
+      const fromPath = location.state?.from?.pathname;
       if (response.user?.first_login) {
         navigate("/first-login");
+      } else if (fromPath && fromPath !== "/login" && fromPath !== "/first-login") {
+        navigate(fromPath);
       } else if (response.user?.role === "RIDER") {
         navigate("/rider");
       } else {
@@ -98,6 +107,12 @@ export function LoginPage() {
       {successNotice && (
         <Alert variant="success" className="mb-5 text-xs">
           {successNotice}
+        </Alert>
+      )}
+
+      {warningNotice && (
+        <Alert variant="warning" className="mb-5 text-xs">
+          {warningNotice}
         </Alert>
       )}
 

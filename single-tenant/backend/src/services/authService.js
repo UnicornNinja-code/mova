@@ -318,7 +318,11 @@ export const refreshTokenService = async (token) => {
     expiresAt: newExpiresAt,
   });
 
-  return { token: newAccessToken, refreshToken: newRefresh };
+  return {
+    token: newAccessToken,
+    refreshToken: newRefresh,
+    user: formatSanitizedUser(user),
+  };
 };
 
 export const logoutService = async (token) => {

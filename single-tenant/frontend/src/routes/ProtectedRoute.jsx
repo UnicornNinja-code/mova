@@ -3,10 +3,19 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { DesktopShell } from "@/layouts/DesktopShell/DesktopShell";
 import { RiderShell } from "@/layouts/RiderShell/RiderShell";
+import { Spinner } from "@/components/primitives";
 
 export function ProtectedRoute({ children, allowedRoles }) {
   const location = useLocation();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, isInitialized, user } = useAuthStore();
+
+  if (!isInitialized) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-[var(--background)]">
+        <Spinner size="lg" label="Memverifikasi Sesi..." />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
