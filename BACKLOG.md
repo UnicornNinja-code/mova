@@ -7,13 +7,16 @@ daftar backlog aplikasi mova
 
 - perbaikan behavior perubahan jabatan perubahan role pada user yang sedang online sebaiknya diperlakukan sebagai security state change, bukan sekadar perubahan data.✅
 
+- pembuatan halaman cuaca ⚠️
+- audit penarikan data cuaca hingga di tampilkan di frontend
+
+- perbaikan ukuran SVG pada icon METEOCONS karena animasi terpotong 
+- perbaikan halaman cuaca pada panel Prakiraan cuaca jam operasional 
+- perbaikan halaman cuaca mengilangkan aspek too much seperti penggunaan ikon dan kata kata yang bersifat berlebihan 
 - bug refresh browser yang harus mengahruskan login dari awal 
 
 - penambahan FAQ pada halaaman system ⚠️
-- pembuatan halaman cuaca ⚠️
-- perbaikan responsive pada halaman cuaca 
-- audit api endpoint cuaca 
-- perbaikan logic cuaca 
+- perbaikan hubungi superadmin di halaman FAQ
 
 - pembuatan halaman master poi 
 
