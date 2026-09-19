@@ -1,6 +1,8 @@
 /*
  * POIWeatherService.js
  * Singleton Service for Kriteria C4 (Kondisi Cuaca - Cost) & Weather Information.
+ * Implements Multi-tier Caching (Redis -> In-Memory -> PostgreSQL), Macro Hub Aggregation,
+ * and H+1 Predictive Forecast Pipeline.
  */
 
 import { openMeteoApiClient } from "../../utils/OpenMeteoApiClient.js";
@@ -89,7 +91,6 @@ export class POIWeatherService {
     }
   }
 
-
   /**
    * Fetch hourly weather forecast for a specific zone with multi-tier caching (Redis -> Memory -> DB)
    */
@@ -138,9 +139,36 @@ export class POIWeatherService {
   }
 
   /**
-   * Calculate C4 Score & UI Supporting Weather Info for a Zone
+   * Calculate C4 Score & UI Supporting Weather Info for a Zone (Supports 'all' and H+1)
    */
-  async calculateZoneC4Score(zoneId, timeInput = new Date()) {
+  async calculateZoneC4Score(zoneId, timeInput = new Date(), targetDate = "today") {
+    // Handle aggregate/all requests gracefully without 404
+    if (!zoneId || zoneId === "all" || zoneId === "zone-all" || zoneId === "zone-default" || zoneId === "hub") {
+      const hub = await this.getHubWeatherOverview({ cityName: "Sidoarjo", timeInput, targetDate });
+      return {
+        zone_id: "all",
+        zone_name: "Central Hub (Sidoarjo Area)",
+        skor_c4: Number((hub.hub_overview.max_rain_probability_percent / 100).toFixed(2)),
+        max_precipitation_probability: hub.hub_overview.max_rain_probability_percent,
+        avg_precipitation_probability: hub.hub_overview.max_rain_probability_percent,
+        data_quality: "VALID",
+        source: "OPEN_METEO_HUB_AGGREGATE",
+        warning: null,
+        supporting_info: {
+          rain: hub.hub_overview.rain_volume_mm ?? 0,
+          weather_code: hub.hub_overview.weather_code ?? 0,
+          wind_speed: hub.hub_overview.wind_speed_kmh ?? 0,
+          humidity: hub.hub_overview.humidity_percent ?? 0,
+          dew_point: hub.hub_overview.dew_point_c ?? 0,
+          temperature: hub.hub_overview.avg_temperature_c ?? 0,
+        },
+        active_time_slot: hub.hub_overview.active_time_slot,
+        is_off_hours: hub.hub_overview.active_time_slot === "off_hours",
+        operational_hours_window: "06:00 - 21:00",
+        slots: hub.hub_c4_slots,
+      };
+    }
+
     const zone = await ZoneModel.findById(zoneId);
     if (!zone) {
       const error = new Error(`Zona dengan ID '${zoneId}' tidak ditemukan.`);
@@ -150,11 +178,54 @@ export class POIWeatherService {
 
     const hourlyData = await this.getHourlyForecastForZone(zoneId);
     const evaluation = this.evaluator.evaluateC4Score(hourlyData, timeInput);
+    const timeline = this.evaluator.extractHourlyTimeline({ hourlyData, targetDate, targetSlot: "all" });
+
+    // Build 4 shift slots advisory for this specific zone
+    const slots = (timeline.available_slots && Object.keys(timeline.available_slots).length > 0)
+      ? [
+          {
+            slot: "MORNING",
+            time_range: "06:00 - 10:00 WIB",
+            c4_score: Number(((timeline.available_slots.pagi?.max_rain_probability || 0) / 100).toFixed(2)),
+            status: (timeline.available_slots.pagi?.max_rain_probability || 0) > 60 ? "BAHAYA HUJAN" : (timeline.available_slots.pagi?.max_rain_probability || 0) > 30 ? "WASPADA" : "AMAN",
+            advisory: (timeline.available_slots.pagi?.max_rain_probability || 0) > 60
+              ? "Peluang hujan tinggi: prioritaskan shelter POI beratap dan siapkan jas hujan rider."
+              : "Sangat baik untuk plotting seluruh gerobak di titik terbuka.",
+          },
+          {
+            slot: "AFTERNOON",
+            time_range: "11:00 - 14:00 WIB",
+            c4_score: Number(((timeline.available_slots.siang?.max_rain_probability || 0) / 100).toFixed(2)),
+            status: (timeline.available_slots.siang?.max_rain_probability || 0) > 60 ? "BAHAYA HUJAN" : (timeline.available_slots.siang?.max_rain_probability || 0) > 30 ? "WASPADA" : "AMAN",
+            advisory: (timeline.available_slots.siang?.max_rain_probability || 0) > 60
+              ? "Waspada hujan petir siang hari, koordinasikan shelter alternatif."
+              : "Panas terik dan potensi mendung lokal. Pastikan payung gerobak terpasang kuat.",
+          },
+          {
+            slot: "EVENING",
+            time_range: "15:00 - 17:00 WIB",
+            c4_score: Number(((timeline.available_slots.sore?.max_rain_probability || 0) / 100).toFixed(2)),
+            status: (timeline.available_slots.sore?.max_rain_probability || 0) > 60 ? "BAHAYA HUJAN" : (timeline.available_slots.sore?.max_rain_probability || 0) > 30 ? "WASPADA" : "AMAN",
+            advisory: (timeline.available_slots.sore?.max_rain_probability || 0) > 60
+              ? "Peluang hujan lebat sore hari: prioritaskan titik teduh."
+              : "Kondisi kondusif untuk jam pulang kantor / sore santai.",
+          },
+          {
+            slot: "NIGHT",
+            time_range: "18:00 - 21:00 WIB",
+            c4_score: Number(((timeline.available_slots.malam?.max_rain_probability || 0) / 100).toFixed(2)),
+            status: (timeline.available_slots.malam?.max_rain_probability || 0) > 60 ? "BAHAYA HUJAN" : (timeline.available_slots.malam?.max_rain_probability || 0) > 30 ? "WASPADA" : "AMAN",
+            advisory: (timeline.available_slots.malam?.max_rain_probability || 0) > 60
+              ? "Hujan malam: siapkan penutup armada dan titik kumpul aman."
+              : "Kondisi cuaca berangsur kondusif untuk shift santai malam.",
+          },
+        ]
+      : [];
 
     return {
       zone_id: zone.id,
       zone_name: zone.name,
-      skor_c4: evaluation.skor_c4, // Max precipitation probability % during operational hours (Cost criteria)
+      skor_c4: evaluation.skor_c4,
       max_precipitation_probability: evaluation.max_precipitation_probability,
       avg_precipitation_probability: evaluation.avg_precipitation_probability,
       data_quality: evaluation.data_quality || (hourlyData ? "FRESH" : "DEGRADED"),
@@ -164,6 +235,7 @@ export class POIWeatherService {
       active_time_slot: evaluation.active_slot,
       is_off_hours: evaluation.is_off_hours,
       operational_hours_window: "06:00 - 21:00",
+      slots,
     };
   }
 
@@ -182,9 +254,27 @@ export class POIWeatherService {
   }
 
   /**
-   * Calculate HUB Level & Zone-List Weather Overview for a City (e.g. SIDOARJO)
+   * Calculate HUB Level & Zone-List Weather Overview with Macro Aggregation (Today or Tomorrow H+1)
    */
-  async getHubWeatherOverview(cityName = "ALL", timeInput = new Date()) {
+  async getHubWeatherOverview(arg1 = "ALL", arg2 = new Date(), arg3 = "today", arg4 = "all") {
+    // Support both single options object and positional arguments
+    let cityName = "ALL";
+    let timeInput = new Date();
+    let targetDate = "today";
+    let targetSlot = "all";
+
+    if (typeof arg1 === "object" && arg1 !== null && !(arg1 instanceof Date)) {
+      cityName = arg1.cityName || "ALL";
+      timeInput = arg1.timeInput || new Date();
+      targetDate = arg1.targetDate || "today";
+      targetSlot = arg1.targetSlot || "all";
+    } else {
+      cityName = arg1 || "ALL";
+      timeInput = arg2 || new Date();
+      targetDate = arg3 || "today";
+      targetSlot = arg4 || "all";
+    }
+
     const centroids = await this.repo.getAllZoneCentroids();
     let filteredCentroids = centroids;
 
@@ -201,68 +291,228 @@ export class POIWeatherService {
       return {
         status: "success",
         hub_city_name: cityName.toUpperCase(),
+        target_date: targetDate,
+        is_tomorrow: targetDate === "tomorrow",
         total_zones: 0,
         hub_overview: {
           avg_temperature_c: 0,
+          feels_like_c: 0,
           max_rain_probability_percent: 0,
+          rain_volume_mm: 0,
+          humidity_percent: 0,
+          wind_speed_kmh: 0,
+          dew_point_c: 0,
           weather_condition: "Unknown",
           weather_code: 0,
           active_time_slot: "off_hours",
           operational_hours: "06:00 - 21:00",
+          c4_score: 0.5,
         },
+        hub_timeline: [],
+        hub_c4_slots: [],
         zones_weather_list: [],
       };
     }
 
     const zonesWeatherList = [];
-    let sumTemp = 0;
-    let maxRainProb = 0;
-    let mainWeatherCode = 0;
-    let activeSlot = "off_hours";
+    const zoneTimelines = [];
+    let resolvedDateStr = "";
 
+    // Fetch and evaluate timeline for each zone
     for (const loc of filteredCentroids) {
       const hourlyData = await this.getHourlyForecastForZone(loc.zone_id);
-      const evaluation = this.evaluator.evaluateC4Score(hourlyData, timeInput);
-      const supporting = evaluation.supporting_info || {};
+      const timelineResult = this.evaluator.extractHourlyTimeline({
+        hourlyData,
+        targetDate,
+        targetSlot,
+      });
 
-      activeSlot = evaluation.active_slot || "off_hours";
-      const rainProb = evaluation.max_precipitation_probability || 0;
-      if (rainProb >= maxRainProb) {
-        maxRainProb = rainProb;
-        mainWeatherCode = supporting.weather_code || 0;
-      }
+      resolvedDateStr = timelineResult.target_date || resolvedDateStr;
+      zoneTimelines.push({
+        zone_id: loc.zone_id,
+        zone_name: loc.name,
+        timeline: timelineResult.hourly_timeline || [],
+        available_slots: timelineResult.available_slots || {},
+      });
 
-      const temp = supporting.temperature || 0;
-      sumTemp += temp;
+      const summary = timelineResult.slot_summary || {};
+      const firstHour = timelineResult.hourly_timeline?.[0] || {};
+      const maxRain = summary.max_rain_probability ?? firstHour.rain_probability_percent ?? 0;
+      const temp = summary.avg_temperature_c ?? firstHour.temperature_c ?? 28.5;
+      const weatherCode = firstHour.weather_code ?? 1;
 
       zonesWeatherList.push({
         zone_id: loc.zone_id,
         zone_name: loc.name,
         latitude: loc.latitude,
         longitude: loc.longitude,
-        skor_c4_cost: evaluation.skor_c4,
-        rain_probability_percent: rainProb,
+        skor_c4_cost: Number(((maxRain / 100)).toFixed(2)),
+        rain_probability_percent: maxRain,
+        rain_volume_mm: firstHour.rain_volume_mm ?? 0,
         temperature_c: temp,
-        weather_code: supporting.weather_code || 0,
-        weather_condition: this.getWmoWeatherLabel(supporting.weather_code),
-        risk_level: rainProb > 60 ? "HIGH" : rainProb > 30 ? "MEDIUM" : "LOW",
+        weather_code: weatherCode,
+        weather_condition: this.getWmoWeatherLabel(weatherCode),
+        risk_level: maxRain > 60 ? "HIGH" : maxRain > 30 ? "MEDIUM" : "LOW",
       });
     }
 
-    const avgTemp = Math.round((sumTemp / filteredCentroids.length) * 10) / 10;
+    // ─────────────────────────────────────────────────────────────
+    // MACRO HUB TIMELINE AGGREGATION (06:00 - 21:00 WIB)
+    // ─────────────────────────────────────────────────────────────
+    const operationalHours = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+    const hubTimeline = operationalHours.map((hour) => {
+      const hourStr = `${String(hour).padStart(2, "0")}:00`;
+      const hourSamples = [];
+
+      for (const zt of zoneTimelines) {
+        const found = zt.timeline.find((item) => item.hour === hour);
+        if (found) {
+          hourSamples.push(found);
+        }
+      }
+
+      if (hourSamples.length === 0) {
+        return {
+          time: hourStr,
+          hour,
+          temperature_c: 29.0,
+          apparent_temperature: 31.0,
+          rain_probability_percent: 15,
+          rain_volume_mm: 0,
+          weather_code: 1,
+          weather_label: "Cerah Berawan",
+          icon: "partly-cloudy-day",
+          severity: "LOW",
+          wind_speed_kmh: 12.0,
+          humidity_percent: 70,
+          dew_point_c: 23.0,
+        };
+      }
+
+      const count = hourSamples.length;
+      const avgTemp = Math.round((hourSamples.reduce((sum, s) => sum + s.temperature_c, 0) / count) * 10) / 10;
+      const avgFeels = Math.round((hourSamples.reduce((sum, s) => sum + (s.apparent_temperature || s.temperature_c), 0) / count) * 10) / 10;
+      const maxRainProb = Math.max(...hourSamples.map((s) => s.rain_probability_percent || 0));
+      const maxRainMm = Math.max(...hourSamples.map((s) => s.rain_volume_mm || 0));
+      const avgWind = Math.round((hourSamples.reduce((sum, s) => sum + s.wind_speed_kmh, 0) / count) * 10) / 10;
+      const avgHum = Math.round(hourSamples.reduce((sum, s) => sum + s.humidity_percent, 0) / count);
+      const avgDew = Math.round((hourSamples.reduce((sum, s) => sum + s.dew_point_c, 0) / count) * 10) / 10;
+
+      // Select most severe or dominant weather code
+      const rainHeavySample = hourSamples.find((s) => s.weather_code >= 61);
+      const dominantSample = rainHeavySample || hourSamples[0];
+
+      return {
+        time: hourStr,
+        hour,
+        temperature_c: avgTemp,
+        apparent_temperature: avgFeels,
+        rain_probability_percent: maxRainProb,
+        rain_volume_mm: maxRainMm,
+        weather_code: dominantSample.weather_code,
+        weather_label: dominantSample.weather_label,
+        icon: dominantSample.icon,
+        severity: maxRainProb > 60 ? "HIGH" : maxRainProb > 30 ? "MEDIUM" : "LOW",
+        wind_speed_kmh: avgWind,
+        humidity_percent: avgHum,
+        dew_point_c: avgDew,
+      };
+    });
+
+    // ─────────────────────────────────────────────────────────────
+    // 4-SLOT C4 WEATHER RISK EVALUATION ACROSS HUB
+    // ─────────────────────────────────────────────────────────────
+    const getSlotTimeline = (startH, endH) => hubTimeline.filter((h) => h.hour >= startH && h.hour <= endH);
+    
+    const morningList = getSlotTimeline(6, 10);
+    const afternoonList = getSlotTimeline(11, 14);
+    const eveningList = getSlotTimeline(15, 17);
+    const nightList = getSlotTimeline(18, 21);
+
+    const calcSlotSummary = (list, slotName, timeRange, advisoryTextHigh, advisoryTextNormal) => {
+      const maxRain = list.length > 0 ? Math.max(...list.map((h) => h.rain_probability_percent)) : 10;
+      const c4Score = Number(((maxRain / 100)).toFixed(2));
+      const status = maxRain > 60 ? "BAHAYA HUJAN" : maxRain > 30 ? "WASPADA" : "AMAN";
+      return {
+        slot: slotName,
+        time_range: timeRange,
+        c4_score: c4Score,
+        max_rain_probability: maxRain,
+        status,
+        advisory: maxRain > 60 ? advisoryTextHigh : advisoryTextNormal,
+      };
+    };
+
+    const hubC4Slots = [
+      calcSlotSummary(
+        morningList,
+        "MORNING",
+        "06:00 - 10:00 WIB",
+        "Peluang hujan tinggi: prioritaskan shelter POI beratap dan siapkan jas hujan rider.",
+        "Sangat baik untuk plotting seluruh gerobak di titik terbuka."
+      ),
+      calcSlotSummary(
+        afternoonList,
+        "AFTERNOON",
+        "11:00 - 14:00 WIB",
+        "Waspada potensi hujan deras siang hari, pantau shelter terdekat.",
+        "Panas terik dan potensi mendung lokal. Pastikan payung gerobak terpasang kuat."
+      ),
+      calcSlotSummary(
+        eveningList,
+        "EVENING",
+        "15:00 - 17:00 WIB",
+        "Peluang hujan lebat tinggi: prioritaskan shelter POI beratap dan siapkan jas hujan rider.",
+        "Kondisi cuaca berangsur kondusif untuk jam pulang kantor / sore santai."
+      ),
+      calcSlotSummary(
+        nightList,
+        "NIGHT",
+        "18:00 - 21:00 WIB",
+        "Hujan malam: siapkan penutup armada dan prioritaskan rute dekat shelter.",
+        "Kondisi cuaca berangsur kondusif untuk shift santai malam."
+      ),
+    ];
+
+    // ─────────────────────────────────────────────────────────────
+    // GLOBAL HUB OVERVIEW MACRO SUMMARY
+    // ─────────────────────────────────────────────────────────────
+    const allHubTemps = hubTimeline.map((h) => h.temperature_c);
+    const avgHubTemp = allHubTemps.length > 0 ? Math.round((allHubTemps.reduce((a, b) => a + b, 0) / allHubTemps.length) * 10) / 10 : 29.0;
+    const maxHubRain = Math.max(...hubTimeline.map((h) => h.rain_probability_percent), 0);
+    const maxHubRainMm = Math.max(...hubTimeline.map((h) => h.rain_volume_mm), 0);
+    const avgHubHumidity = Math.round(hubTimeline.reduce((a, b) => a + b.humidity_percent, 0) / (hubTimeline.length || 1));
+    const avgHubWind = Math.round((hubTimeline.reduce((a, b) => a + b.wind_speed_kmh, 0) / (hubTimeline.length || 1)) * 10) / 10;
+    const avgHubDew = Math.round((hubTimeline.reduce((a, b) => a + b.dew_point_c, 0) / (hubTimeline.length || 1)) * 10) / 10;
+    const avgHubFeels = Math.round((hubTimeline.reduce((a, b) => a + b.apparent_temperature, 0) / (hubTimeline.length || 1)) * 10) / 10;
+
+    // Dominant weather code in timeline
+    const worstTimelineItem = hubTimeline.find((h) => h.rain_probability_percent === maxHubRain) || hubTimeline[0] || {};
+    const mainWeatherCode = worstTimelineItem.weather_code || 1;
+    const mainWeatherCondition = worstTimelineItem.weather_label || this.getWmoWeatherLabel(mainWeatherCode);
 
     return {
       status: "success",
       hub_city_name: cityName.toUpperCase(),
+      target_date: resolvedDateStr,
+      is_tomorrow: targetDate === "tomorrow",
       total_zones: filteredCentroids.length,
       hub_overview: {
-        avg_temperature_c: avgTemp,
-        max_rain_probability_percent: maxRainProb,
-        weather_condition: this.getWmoWeatherLabel(mainWeatherCode),
+        avg_temperature_c: avgHubTemp,
+        feels_like_c: avgHubFeels,
+        max_rain_probability_percent: maxHubRain,
+        rain_volume_mm: maxHubRainMm,
+        humidity_percent: avgHubHumidity,
+        wind_speed_kmh: avgHubWind,
+        dew_point_c: avgHubDew,
+        weather_condition: mainWeatherCondition,
         weather_code: mainWeatherCode,
-        active_time_slot: activeSlot,
+        active_time_slot: targetSlot === "all" ? "Seluruh Jam Operasional" : targetSlot,
         operational_hours: "06:00 - 21:00",
+        c4_score: Number(((maxHubRain / 100)).toFixed(2)),
       },
+      hub_timeline: hubTimeline,
+      hub_c4_slots: hubC4Slots,
       zones_weather_list: zonesWeatherList,
     };
   }
@@ -271,6 +521,39 @@ export class POIWeatherService {
    * Fetch Hourly Weather Timeline for a Zone (paired with time slots for Today / Tomorrow)
    */
   async getZoneWeatherTimeline({ zoneId, targetDate = "today", targetSlot = "all" }) {
+    // Handle aggregate/all requests gracefully without 404
+    if (!zoneId || zoneId === "all" || zoneId === "zone-all" || zoneId === "hub") {
+      const hub = await this.getHubWeatherOverview({ cityName: "Sidoarjo", targetDate, targetSlot });
+      return {
+        status: "success",
+        zone_id: "all",
+        zone_name: "Central Hub (Sidoarjo Area)",
+        target_date: hub.target_date,
+        selected_slot: targetSlot,
+        slot_summary: {
+          label: targetSlot === "all" ? "Seluruh Jam Operasional (06:00 - 21:00)" : targetSlot,
+          avg_temperature_c: hub.hub_overview.avg_temperature_c,
+          max_rain_probability: hub.hub_overview.max_rain_probability_percent,
+          dominant_condition: hub.hub_overview.weather_condition,
+          skor_c4_dss: hub.hub_overview.max_rain_probability_percent,
+          risk_level: hub.hub_overview.max_rain_probability_percent > 60 ? "HIGH" : hub.hub_overview.max_rain_probability_percent > 30 ? "MEDIUM" : "LOW",
+        },
+        hourly_timeline: hub.hub_timeline,
+        available_slots: hub.hub_c4_slots.reduce((acc, slotItem) => {
+          const key = slotItem.slot.toLowerCase() === "morning" ? "pagi" : slotItem.slot.toLowerCase() === "afternoon" ? "siang" : slotItem.slot.toLowerCase() === "evening" ? "sore" : "malam";
+          acc[key] = {
+            slot_key: key,
+            label: `${slotItem.slot} (${slotItem.time_range})`,
+            max_rain_probability: slotItem.max_rain_probability,
+            c4_score: slotItem.c4_score,
+            status: slotItem.status,
+            advisory: slotItem.advisory,
+          };
+          return acc;
+        }, {}),
+      };
+    }
+
     const zone = await ZoneModel.findById(zoneId);
     if (!zone) {
       const error = new Error(`Zona dengan ID '${zoneId}' tidak ditemukan.`);
@@ -295,4 +578,3 @@ export class POIWeatherService {
 }
 
 export const poiWeatherService = POIWeatherService.getInstance();
-

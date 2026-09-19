@@ -224,19 +224,27 @@ export class WeatherOperationalEvaluator {
       };
     }
 
-    // Resolve target date string YYYY-MM-DD
+    // Resolve target date string YYYY-MM-DD in Asia/Jakarta (WIB) timezone
+    const getJakartaDateStr = (dateObj) => {
+      try {
+        return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(dateObj);
+      } catch {
+        const offset = dateObj.getTimezoneOffset() * 60000;
+        return new Date(dateObj.getTime() - offset).toISOString().split("T")[0];
+      }
+    };
+
     let targetDateStr = "";
     const now = new Date();
     if (targetDate === "today" || !targetDate) {
-      targetDateStr = now.toISOString().split("T")[0];
+      targetDateStr = getJakartaDateStr(now);
     } else if (targetDate === "tomorrow") {
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      targetDateStr = tomorrow.toISOString().split("T")[0];
+      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      targetDateStr = getJakartaDateStr(tomorrow);
     } else if (typeof targetDate === "string" && targetDate.includes("-")) {
       targetDateStr = targetDate.split("T")[0];
     } else {
-      targetDateStr = now.toISOString().split("T")[0];
+      targetDateStr = getJakartaDateStr(now);
     }
 
     const slotDefinitions = {

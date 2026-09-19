@@ -409,9 +409,9 @@ export const getZoneC3ScoreService = async (zoneId, timeInput) => {
 
 // C4 Weather Condition Exports
 import { poiWeatherService } from "./poi/POIWeatherService.js";
-export const getZoneC4ScoreService = (zoneId, timeInput) => poiWeatherService.calculateZoneC4Score(zoneId, timeInput);
+export const getZoneC4ScoreService = (zoneId, timeInput, targetDate) => poiWeatherService.calculateZoneC4Score(zoneId, timeInput, targetDate);
 export const getZoneWeatherTimelineService = (params) => poiWeatherService.getZoneWeatherTimeline(params);
-export const getHubWeatherOverviewService = (cityName, timeInput) => poiWeatherService.getHubWeatherOverview(cityName, timeInput);
+export const getHubWeatherOverviewService = (cityName, timeInput, targetDate, targetSlot) => poiWeatherService.getHubWeatherOverview(cityName, timeInput, targetDate, targetSlot);
 export const syncAllZonesWeatherService = () => poiWeatherService.syncAllZonesWeather();
 
 // C5 Distance Cost Exports

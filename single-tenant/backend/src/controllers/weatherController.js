@@ -14,8 +14,8 @@ const handleControllerError = (res, error, defaultStatus = 500) => {
 export const getZoneC4Score = async (req, res) => {
   try {
     const { zone_id } = req.params;
-    const { time } = req.query;
-    const result = await getZoneC4ScoreService(zone_id, time);
+    const { time, date } = req.query;
+    const result = await getZoneC4ScoreService(zone_id, time, date);
     return sendSuccess(res, result, "Skor cuaca C4 berhasil dimuat.", 200, result);
   } catch (error) {
     return handleControllerError(res, error);
@@ -25,8 +25,8 @@ export const getZoneC4Score = async (req, res) => {
 export const getZoneWeatherInfo = async (req, res) => {
   try {
     const { zone_id } = req.params;
-    const { time } = req.query;
-    const result = await getZoneC4ScoreService(zone_id, time);
+    const { time, date } = req.query;
+    const result = await getZoneC4ScoreService(zone_id, time, date);
 
     const payload = {
       zone_id: result.zone_id,
@@ -42,6 +42,7 @@ export const getZoneWeatherInfo = async (req, res) => {
       },
       time_slot: result.active_time_slot,
       operational_hours: result.operational_hours_window,
+      slots: result.slots || [],
     };
 
     return sendSuccess(res, payload, "Informasi cuaca zona berhasil dimuat.", 200, payload);
@@ -68,8 +69,9 @@ export const getZoneWeatherTimeline = async (req, res) => {
 export const getHubWeatherInfo = async (req, res) => {
   try {
     const { city_name } = req.params;
-    const { time } = req.query;
-    const result = await getHubWeatherOverviewService(city_name, time);
+    const { time, date, slot } = req.query;
+    const cityName = city_name || req.query.city || "Sidoarjo";
+    const result = await getHubWeatherOverviewService(cityName, time, date || "today", slot || "all");
     return sendSuccess(res, result, "Informasi cuaca kota hub berhasil dimuat.", 200, result);
   } catch (error) {
     return handleControllerError(res, error);
