@@ -37,9 +37,9 @@ export const env = {
     POOL_MIN: Number(process.env.DB_POOL_MIN || 4),
   },
   REDIS: {
-    HOST: process.env.REDIS_HOST || "localhost",
+    HOST: process.env.REDIS_HOST || "127.0.0.1",
     PORT: Number(process.env.REDIS_PORT || DEFAULT_REDIS_PORT),
-    PASSWORD: process.env.REDIS_PASSWORD || "secret",
+    PASSWORD: process.env.REDIS_PASSWORD?.trim() || undefined,
   },
   JWT_SECRET: process.env.JWT_SECRET || (isProduction ? undefined : DEV_FALLBACK_JWT_SECRET),
   FRONTEND_URL: process.env.FRONTEND_URL || (isProduction ? undefined : DEV_FALLBACK_FRONTEND_URL),
