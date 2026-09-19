@@ -14,9 +14,9 @@ const RESET_TOKEN_BYTES = 32;
 const MIN_PASSWORD_LENGTH = 8;
 const ALLOWED_PUBLIC_ROLES = ["RIDER"];
 
-const JWT_SECRET = env.JWT_SECRET;
-const JWT_EXPIRES = process.env.JWT_EXPIRES || "1d";
-const REFRESH_TOKEN_DAYS = parseInt(process.env.REFRESH_TOKEN_DAYS || "30", 10);
+const JWT_SECRET = env.JWT.SECRET;
+const JWT_EXPIRES = env.JWT.EXPIRES;
+const REFRESH_TOKEN_DAYS = env.JWT.REFRESH_TOKEN_DAYS;
 
 const createHttpError = (message, statusCode = 400) => {
   const error = new Error(message);

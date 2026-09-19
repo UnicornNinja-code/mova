@@ -8,15 +8,16 @@ import {
   refreshTokenService,
   logoutService,
 } from "../services/authService.js";
+import { env } from "../config/env.js";
 
 const REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
-const REFRESH_TOKEN_DAYS = parseInt(process.env.REFRESH_TOKEN_DAYS || "30", 10);
+const REFRESH_TOKEN_DAYS = env.JWT.REFRESH_TOKEN_DAYS;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 const getRefreshCookieOptions = () => ({
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "Strict" : "Lax",
+  secure: env.isProduction,
+  sameSite: env.isProduction ? "Strict" : "Lax",
   maxAge: REFRESH_TOKEN_DAYS * ONE_DAY_MS,
   path: "/",
 });
@@ -135,8 +136,8 @@ export const logout = async (req, res) => {
 
     res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "Strict" : "Lax",
+      secure: env.isProduction,
+      sameSite: env.isProduction ? "Strict" : "Lax",
       path: "/",
     });
 

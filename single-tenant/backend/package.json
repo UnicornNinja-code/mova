@@ -26,7 +26,7 @@
     "test:smoke": "node src/scripts/test-runner.js smoke",
     "fetch:weather": "node src/scripts/fetch-weather.js",
     "sync:toll-roads": "node src/scripts/sync-toll-roads.js",
-    "test:op-rules": "node src/scripts/test-operational-rules.js",
+    "test:stack": "node src/scripts/test-stack-connections.js",
     "test:all": "npm run test:integration && npm run test:reports"
   },
   "dependencies": {
