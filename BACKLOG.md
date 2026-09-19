@@ -21,7 +21,11 @@ daftar backlog aplikasi mova
   - Sinkronisasi penuh toggle 'Hari Ini' vs 'Besok' (H+1) pada Hero Card, Timeline 06:00-21:00, 4-Slot Kriteria C4, dan Tabel Multi-Zona ✅
   - Konsumsi data terpadu dari Hub endpoint tanpa pemanggilan dummy `zone-all` / `zone-default` ✅
   - Perbaikan SVG Meteocons: pelebaran viewBox agar animasi ikon tidak terpotong ✅
-  - Perbaikan animasi Meteocons: menghilangkan efek fade yang mengganggu ✅
+- audit dan penyelarasan config backend & multi-stack connection (CWD-independent env resolver): ✅
+  - Multi-level dynamic .env path resolver di env.js ✅
+  - Standarisasi konfigurasi terpusat (env.DB, env.REDIS, env.JWT, env.SMTP) ✅
+  - Script uji diagnostik multi-stack (test-stack-connections.js / npm run test:stack) ✅
+
 
 
 
