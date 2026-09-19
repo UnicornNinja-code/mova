@@ -55,9 +55,9 @@ export const roadKeys = {
 
 export const weatherKeys = {
   all: ["weather"],
-  hub: (hubName) => [...weatherKeys.all, "hub", hubName],
+  hub: (hubName, params = {}) => [...weatherKeys.all, "hub", hubName, params],
   zoneTimeline: (zoneId, params = {}) => [...weatherKeys.all, "zone-timeline", zoneId, params],
-  c4Scores: (zoneId) => [...weatherKeys.all, "c4-scores", zoneId],
+  c4Scores: (zoneId, params = {}) => [...weatherKeys.all, "c4-scores", zoneId, params],
 };
 
 export const fleetKeys = {

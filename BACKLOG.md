@@ -8,20 +8,20 @@ daftar backlog aplikasi mova
 - perbaikan behavior perubahan jabatan perubahan role pada user yang sedang online sebaiknya diperlakukan sebagai security state change, bukan sekadar perubahan data.✅
 
 - bug refresh browser yang harus mengahruskan login dari awal ✅
-- audit halaman cuaca 
-- audit alur data cuaca 
-- perbaikan halaman pusat cuaca & resiko matriks Armada 
-- perbaikan svg yang terlalu sempit sehingga menyebabkan annimasi terpotong 
-- perbaikan animasi meteocons dengan menghilangkan efek fade 
-- audit alur data cuaca & backend overhaul:
-  - Dukungan prakiraan cuaca H+1 (date=today/tomorrow) pada Hub Overview & Multi-Zona
-  - Agregasi makro timeline Hub (06:00-21:00 WIB) & kalkulasi 4 shift kriteria C4
-  - Penanganan request zone 'all'/'zone-all' tanpa memicu error 404
-- [FRONTEND BACKLOG] Perbaikan Halaman Pusat Cuaca & Risiko Matriks Armada (Menunggu backend selesai):
-  - Sinkronisasi penuh toggle 'Hari Ini' vs 'Besok' (H+1) pada Hero Card, Timeline 06:00-21:00, 4-Slot Kriteria C4, dan Tabel Multi-Zona
-  - Konsumsi data terpadu dari Hub endpoint tanpa pemanggilan dummy `zone-all` / `zone-default`
-  - Perbaikan SVG Meteocons: pelebaran viewBox agar animasi ikon tidak terpotong
-  - Perbaikan animasi Meteocons: menghilangkan efek fade yang mengganggu
+- audit halaman cuaca ✅
+- audit alur data cuaca ✅
+- perbaikan halaman pusat cuaca & resiko matriks Armada ✅
+- perbaikan svg yang terlalu sempit sehingga menyebabkan annimasi terpotong ✅
+- perbaikan animasi meteocons dengan menghilangkan efek fade ✅
+- audit alur data cuaca & backend overhaul: ✅
+  - Dukungan prakiraan cuaca H+1 (date=today/tomorrow) pada Hub Overview & Multi-Zona ✅
+  - Agregasi makro timeline Hub (06:00-21:00 WIB) & kalkulasi 4 shift kriteria C4 ✅
+  - Penanganan request zone 'all'/'zone-all' tanpa memicu error 404 ✅
+- [FRONTEND] Perbaikan Halaman Pusat Cuaca & Risiko Matriks Armada: ✅
+  - Sinkronisasi penuh toggle 'Hari Ini' vs 'Besok' (H+1) pada Hero Card, Timeline 06:00-21:00, 4-Slot Kriteria C4, dan Tabel Multi-Zona ✅
+  - Konsumsi data terpadu dari Hub endpoint tanpa pemanggilan dummy `zone-all` / `zone-default` ✅
+  - Perbaikan SVG Meteocons: pelebaran viewBox agar animasi ikon tidak terpotong ✅
+  - Perbaikan animasi Meteocons: menghilangkan efek fade yang mengganggu ✅
 
 
 

@@ -34,7 +34,7 @@ describe("Operational Weather Page & Spatial Risk Matrix", () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(/Tingkat Risiko & Biaya Cuaca/i)
+      screen.getByText(/Evaluasi Penalti Kriteria Cuaca/i)
     ).toBeInTheDocument();
   });
 

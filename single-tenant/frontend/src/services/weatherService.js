@@ -2,9 +2,9 @@ import { api } from "./api";
 
 export const weatherService = {
   // --- Weather & C4 Cost Criteria Group 8 ---
-  async getHubWeather(cityName = "sidoarjo") {
+  async getHubWeather(cityName = "sidoarjo", params = {}) {
     try {
-      const response = await api.get(`/api/weather/hub/${cityName}`);
+      const response = await api.get(`/api/weather/hub/${cityName}`, { params });
       return response.data?.data || response.data;
     } catch {
       // Graceful fallback with realistic operational weather data for Sidoarjo/Surabaya Hub
@@ -41,16 +41,16 @@ export const weatherService = {
     }
   },
 
-  async getWeatherC4Scores(zoneId) {
+  async getWeatherC4Scores(zoneId, params = {}) {
     try {
-      const response = await api.get(`/api/weather/zone/${zoneId}/c4`);
+      const response = await api.get(`/api/weather/zone/${zoneId}/c4`, { params });
       return response.data?.data || response.data;
     } catch {
       return {
         zone_id: zoneId,
         slots: [
           { slot: "MORNING", time_range: "06:00 - 11:00", c4_score: 0.12, status: "AMAN", advisory: "Sangat baik untuk plotting seluruh armada jalanan" },
-          { slot: "AFTERNOON", time_range: "11:00 - 15:00", c4_score: 0.45, status: "WAS PADA", advisory: "Waspada hujan lokal di koridor terbuka" },
+          { slot: "AFTERNOON", time_range: "11:00 - 15:00", c4_score: 0.45, status: "WASPADA", advisory: "Waspada hujan lokal di koridor terbuka" },
           { slot: "EVENING", time_range: "15:00 - 18:00", c4_score: 0.78, status: "BAHAYA HUJAN", advisory: "Peringatan hujan lebat: siapkan shelter & geser ke area beratap" },
           { slot: "NIGHT", time_range: "18:00 - 21:00", c4_score: 0.20, status: "AMAN", advisory: "Kondisi cuaca berangsur normal dan kondusif" },
         ],

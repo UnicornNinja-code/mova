@@ -40,14 +40,12 @@ export function WeatherPage() {
   const [sortBy, setSortBy] = useState("rain_probability_percent");
   const [sortOrder, setSortOrder] = useState("desc");
 
-  // Query Hooks
-  const { data: hubWeather, isLoading: isHubLoading, refetch: refetchHub } = useHubWeather("sidoarjo");
-  const { data: rawTimelineData, isLoading: isTimelineLoading } = useZoneWeatherTimeline(
-    selectedZoneId === "all" ? "zone-all" : selectedZoneId,
-    { date: selectedDate }
-  );
-  const { data: c4Data, isLoading: isC4Loading } = useWeatherC4Scores(
-    selectedZoneId === "all" ? "zone-default" : selectedZoneId
+  // Query Hooks - Primary single source of truth for Hub & multi-zone overview
+  const { data: hubWeather, isLoading: isHubLoading, refetch: refetchHub } = useHubWeather("sidoarjo", { date: selectedDate });
+  const { data: zoneTimelineData, isLoading: isTimelineLoading } = useZoneWeatherTimeline(
+    selectedZoneId,
+    { date: selectedDate },
+    { enabled: selectedZoneId !== "all" }
   );
   const { data: zonesData = [] } = useZonesList();
   const syncMutation = useWeatherSyncMutation();
@@ -65,14 +63,21 @@ export function WeatherPage() {
     );
   };
 
-  // Normalizing Timeline Items
+  // Normalizing Timeline Items (Hub Macro Timeline when 'all', Zone-specific otherwise)
   const timelineList = useMemo(() => {
-    if (Array.isArray(rawTimelineData)) return rawTimelineData;
-    if (rawTimelineData?.hourly_timeline && Array.isArray(rawTimelineData.hourly_timeline)) {
-      return rawTimelineData.hourly_timeline;
+    if (selectedZoneId === "all") {
+      if (hubWeather?.hub_timeline && Array.isArray(hubWeather.hub_timeline)) {
+        return hubWeather.hub_timeline;
+      }
+      return [];
+    }
+
+    if (Array.isArray(zoneTimelineData)) return zoneTimelineData;
+    if (zoneTimelineData?.hourly_timeline && Array.isArray(zoneTimelineData.hourly_timeline)) {
+      return zoneTimelineData.hourly_timeline;
     }
     return [];
-  }, [rawTimelineData]);
+  }, [selectedZoneId, hubWeather, zoneTimelineData]);
 
   // Determine Active Zone Name
   const activeZoneName = useMemo(() => {
@@ -81,46 +86,103 @@ export function WeatherPage() {
     return found ? found.name : "Zona Operasional Terpilih";
   }, [selectedZoneId, zones]);
 
-  // Derived Hero Parameters
+  // Derived Hero Parameters - Synchronized with selectedDate and selectedZone
   const heroMetrics = useMemo(() => {
-    // Priority: Hub Overview -> Top of timeline -> Fallback
-    const hubOverview = hubWeather?.hub_overview;
-    const firstTimeline = timelineList[0] || {};
+    if (selectedZoneId === "all") {
+      const hubOverview = hubWeather?.hub_overview;
+      const firstTimeline = timelineList[0] || {};
 
-    const temp = hubOverview?.avg_temperature_c ?? hubWeather?.temperature ?? firstTimeline.temperature_c ?? firstTimeline.temp ?? 29.4;
-    const feelsLike = firstTimeline.apparent_temperature ?? (Math.round((temp + 1.8) * 10) / 10);
-    const rainProb = hubOverview?.max_rain_probability_percent ?? hubWeather?.precipitation_probability ?? firstTimeline.rain_probability_percent ?? firstTimeline.rain_prob ?? 15;
-    const rainVolume = firstTimeline.rain_volume_mm ?? (rainProb > 50 ? 2.4 : 0.0);
-    const humidity = hubWeather?.relative_humidity ?? firstTimeline.humidity_percent ?? 72;
-    const windSpeed = hubWeather?.wind_speed ?? firstTimeline.wind_speed_kmh ?? 14.2;
-    const dewPoint = firstTimeline.dew_point_c ?? 24.2;
-    const weatherCode = hubOverview?.weather_code ?? hubWeather?.weather_code ?? firstTimeline.weather_code ?? 2;
-    const conditionLabel = hubOverview?.weather_condition ?? hubWeather?.condition_label ?? firstTimeline.weather_label ?? firstTimeline.condition ?? "Cerah Berawan";
+      const temp = hubOverview?.avg_temperature_c ?? firstTimeline.temperature_c ?? 29.4;
+      const feelsLike = hubOverview?.feels_like_c ?? firstTimeline.apparent_temperature ?? (Math.round((temp + 1.8) * 10) / 10);
+      const rainProb = hubOverview?.max_rain_probability_percent ?? firstTimeline.rain_probability_percent ?? 15;
+      const rainVolume = hubOverview?.rain_volume_mm ?? firstTimeline.rain_volume_mm ?? 0.0;
+      const humidity = hubOverview?.humidity_percent ?? firstTimeline.humidity_percent ?? 72;
+      const windSpeed = hubOverview?.wind_speed_kmh ?? firstTimeline.wind_speed_kmh ?? 14.2;
+      const dewPoint = hubOverview?.dew_point_c ?? firstTimeline.dew_point_c ?? 24.2;
+      const weatherCode = hubOverview?.weather_code ?? firstTimeline.weather_code ?? 2;
+      const conditionLabel = hubOverview?.weather_condition ?? firstTimeline.weather_label ?? "Cerah Berawan";
 
-    // High & Low estimate
-    const allTemps = timelineList.map((t) => t.temperature_c ?? t.temp ?? 28).filter(Boolean);
-    const maxTemp = allTemps.length > 0 ? Math.max(...allTemps) : Math.round(temp + 3);
-    const minTemp = allTemps.length > 0 ? Math.min(...allTemps) : Math.round(temp - 4);
+      const allTemps = timelineList.map((t) => t.temperature_c ?? t.temp ?? 28).filter(Boolean);
+      const maxTemp = allTemps.length > 0 ? Math.max(...allTemps) : Math.round(temp + 3);
+      const minTemp = allTemps.length > 0 ? Math.min(...allTemps) : Math.round(temp - 4);
+      const riskLevel = rainProb > 60 ? "HIGH" : rainProb > 30 ? "MEDIUM" : "LOW";
+      const c4Score = hubOverview?.c4_score ?? (Math.round((rainProb / 100) * 100) / 100);
 
-    const riskLevel = rainProb > 60 ? "HIGH" : rainProb > 30 ? "MEDIUM" : "LOW";
-    const c4Score = Math.round((rainProb / 100) * 100) / 100;
+      return {
+        temp,
+        feelsLike,
+        maxTemp,
+        minTemp,
+        rainProb,
+        rainVolume,
+        humidity,
+        windSpeed,
+        dewPoint,
+        weatherCode,
+        conditionLabel,
+        riskLevel,
+        c4Score,
+      };
+    } else {
+      const zoneItem = hubWeather?.zones_weather_list?.find((z) => String(z.zone_id) === String(selectedZoneId));
+      const firstTimeline = timelineList[0] || {};
 
-    return {
-      temp,
-      feelsLike,
-      maxTemp,
-      minTemp,
-      rainProb,
-      rainVolume,
-      humidity,
-      windSpeed,
-      dewPoint,
-      weatherCode,
-      conditionLabel,
-      riskLevel,
-      c4Score,
-    };
-  }, [hubWeather, timelineList]);
+      const temp = zoneItem?.temperature_c ?? firstTimeline.temperature_c ?? 29.0;
+      const feelsLike = firstTimeline.apparent_temperature ?? (Math.round((temp + 1.5) * 10) / 10);
+      const rainProb = zoneItem?.rain_probability_percent ?? firstTimeline.rain_probability_percent ?? 10;
+      const rainVolume = zoneItem?.rain_volume_mm ?? firstTimeline.rain_volume_mm ?? 0.0;
+      const humidity = firstTimeline.humidity_percent ?? 70;
+      const windSpeed = firstTimeline.wind_speed_kmh ?? 12.0;
+      const dewPoint = firstTimeline.dew_point_c ?? 23.0;
+      const weatherCode = zoneItem?.weather_code ?? firstTimeline.weather_code ?? 1;
+      const conditionLabel = zoneItem?.weather_condition ?? firstTimeline.weather_label ?? "Cerah";
+
+      const allTemps = timelineList.map((t) => t.temperature_c ?? 28).filter(Boolean);
+      const maxTemp = allTemps.length > 0 ? Math.max(...allTemps) : Math.round(temp + 3);
+      const minTemp = allTemps.length > 0 ? Math.min(...allTemps) : Math.round(temp - 4);
+      const riskLevel = rainProb > 60 ? "HIGH" : rainProb > 30 ? "MEDIUM" : "LOW";
+      const c4Score = zoneItem?.skor_c4_cost ?? (Math.round((rainProb / 100) * 100) / 100);
+
+      return {
+        temp,
+        feelsLike,
+        maxTemp,
+        minTemp,
+        rainProb,
+        rainVolume,
+        humidity,
+        windSpeed,
+        dewPoint,
+        weatherCode,
+        conditionLabel,
+        riskLevel,
+        c4Score,
+      };
+    }
+  }, [selectedZoneId, hubWeather, timelineList]);
+
+  // Determine C4 Slots
+  const c4SlotsList = useMemo(() => {
+    if (selectedZoneId === "all") {
+      if (hubWeather?.hub_c4_slots && Array.isArray(hubWeather.hub_c4_slots) && hubWeather.hub_c4_slots.length > 0) {
+        return hubWeather.hub_c4_slots;
+      }
+    } else if (zoneTimelineData?.available_slots) {
+      const slotsObj = zoneTimelineData.available_slots;
+      return [
+        { slot: "MORNING", time_range: "06:00 - 10:00 WIB", c4_score: (slotsObj.pagi?.max_rain_probability || 0) / 100, status: (slotsObj.pagi?.max_rain_probability || 0) > 60 ? "BAHAYA HUJAN" : (slotsObj.pagi?.max_rain_probability || 0) > 30 ? "WASPADA" : "AMAN", advisory: slotsObj.pagi?.advisory || "Sangat baik untuk plotting seluruh gerobak di titik terbuka." },
+        { slot: "AFTERNOON", time_range: "11:00 - 14:00 WIB", c4_score: (slotsObj.siang?.max_rain_probability || 0) / 100, status: (slotsObj.siang?.max_rain_probability || 0) > 60 ? "BAHAYA HUJAN" : (slotsObj.siang?.max_rain_probability || 0) > 30 ? "WASPADA" : "AMAN", advisory: slotsObj.siang?.advisory || "Panas terik dan potensi mendung lokal. Pastikan payung gerobak terpasang kuat." },
+        { slot: "EVENING", time_range: "15:00 - 17:00 WIB", c4_score: (slotsObj.sore?.max_rain_probability || 0) / 100, status: (slotsObj.sore?.max_rain_probability || 0) > 60 ? "BAHAYA HUJAN" : (slotsObj.sore?.max_rain_probability || 0) > 30 ? "WASPADA" : "AMAN", advisory: slotsObj.sore?.advisory || "Peluang hujan lebat tinggi: prioritaskan shelter POI beratap dan siapkan jas hujan rider." },
+        { slot: "NIGHT", time_range: "18:00 - 21:00 WIB", c4_score: (slotsObj.malam?.max_rain_probability || 0) / 100, status: (slotsObj.malam?.max_rain_probability || 0) > 60 ? "BAHAYA HUJAN" : (slotsObj.malam?.max_rain_probability || 0) > 30 ? "WASPADA" : "AMAN", advisory: slotsObj.malam?.advisory || "Kondisi cuaca berangsur kondusif untuk shift santai malam." },
+      ];
+    }
+    return hubWeather?.hub_c4_slots || [
+      { slot: "MORNING", time_range: "06:00 - 10:00 WIB", c4_score: 0.12, status: "AMAN", advisory: "Sangat baik untuk plotting seluruh gerobak di titik terbuka." },
+      { slot: "AFTERNOON", time_range: "11:00 - 14:00 WIB", c4_score: 0.35, status: "WASPADA", advisory: "Panas terik dan potensi mendung lokal. Pastikan payung gerobak terpasang kuat." },
+      { slot: "EVENING", time_range: "15:00 - 17:00 WIB", c4_score: 0.72, status: "BAHAYA HUJAN", advisory: "Peluang hujan lebat tinggi: prioritaskan shelter POI beratap dan siapkan jas hujan rider." },
+      { slot: "NIGHT", time_range: "18:00 - 21:00 WIB", c4_score: 0.20, status: "AMAN", advisory: "Kondisi cuaca berangsur kondusif untuk shift santai malam." },
+    ];
+  }, [selectedZoneId, hubWeather, zoneTimelineData]);
 
   // Dynamic Background Gradient for Meteocons Hero Card
   const getDynamicGradientStyle = (code) => {
@@ -530,12 +592,7 @@ export function WeatherPage() {
         />
         <PanelContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {(c4Data?.slots || [
-              { slot: "MORNING", time_range: "06:00 - 10:00 WIB", c4_score: 0.12, status: "AMAN", advisory: "Sangat baik untuk plotting seluruh gerobak di titik terbuka." },
-              { slot: "AFTERNOON", time_range: "11:00 - 14:00 WIB", c4_score: 0.35, status: "WASPADA", advisory: "Panas terik dan potensi mendung lokal. Pastikan payung gerobak terpasang kuat." },
-              { slot: "EVENING", time_range: "15:00 - 17:00 WIB", c4_score: 0.72, status: "BAHAYA HUJAN", advisory: "Peluang hujan lebat tinggi: prioritaskan shelter POI beratap dan siapkan jas hujan rider." },
-              { slot: "NIGHT", time_range: "18:00 - 21:00 WIB", c4_score: 0.20, status: "AMAN", advisory: "Kondisi cuaca berangsur kondusif untuk shift santai malam." },
-            ]).map((slotItem, idx) => {
+            {c4SlotsList.map((slotItem, idx) => {
               const isHigh = slotItem.c4_score > 0.6 || slotItem.status === "BAHAYA HUJAN";
               const isMod = (slotItem.c4_score > 0.3 && !isHigh) || slotItem.status === "WASPADA";
 

@@ -1,22 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="-6 -6 76 76" fill="none">
   <defs>
-    <!-- Cloud Gradients -->
-    <linearGradient id="frontCloudGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <!-- Cloud Gradient -->
+    <linearGradient id="drizzleCloudGrad" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#FFFFFF" />
       <stop offset="65%" stop-color="#F1F5F9" />
       <stop offset="100%" stop-color="#CBD5E1" />
     </linearGradient>
 
-    <!-- Rain Droplet Gradient -->
-    <linearGradient id="rainGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <!-- Drizzle Drops Gradient -->
+    <linearGradient id="drizzleDropGrad" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#67E8F9" />
-      <stop offset="60%" stop-color="#38BDF8" />
       <stop offset="100%" stop-color="#0284C7" />
     </linearGradient>
 
     <!-- Filters -->
     <filter id="cloudShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#0F172A" flood-opacity="0.25" />
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0F172A" flood-opacity="0.22" />
     </filter>
 
     <style>
@@ -24,32 +23,29 @@
         0%, 100% { transform: translateY(0px); }
         50% { transform: translateY(-1.5px); }
       }
-      @keyframes am-drop-fall {
-        0% { transform: translateY(-4px); opacity: 0; }
-        25% { opacity: 0.95; }
-        75% { opacity: 0.95; }
-        100% { transform: translateY(8px); opacity: 0; }
+      @keyframes am-drizzle-glide {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(-1.5px, 3px); }
       }
-      .am-drizzle-cloud { animation: am-float-cloud 4s ease-in-out infinite; }
-      .am-drop-1 { animation: am-drop-fall 1.3s linear infinite; }
-      .am-drop-2 { animation: am-drop-fall 1.3s linear infinite 0.35s; }
-      .am-drop-3 { animation: am-drop-fall 1.3s linear infinite 0.7s; }
-      .am-drop-4 { animation: am-drop-fall 1.3s linear infinite 0.2s; }
-      .am-drop-5 { animation: am-drop-fall 1.3s linear infinite 0.55s; }
+      .am-dr-cloud { animation: am-float-cloud 4s ease-in-out infinite; }
+      .am-dr-1 { animation: am-drizzle-glide 2s ease-in-out infinite; }
+      .am-dr-2 { animation: am-drizzle-glide 2s ease-in-out infinite 0.4s; }
+      .am-dr-3 { animation: am-drizzle-glide 2s ease-in-out infinite 0.8s; }
     </style>
   </defs>
 
-  <g class="am-drizzle-cloud" filter="url(#cloudShadow)">
-    <path d="M16 38 C11 38 7 34 7 29 C7 24.5 10.5 20.8 15 20.2 C16.5 14 22.2 9.5 29 9.5 C36.5 9.5 42.8 15 44 22.2 C48 22.8 51 26.2 51 30.5 C51 35.2 47.2 39 42.5 39 L16 38 Z"
-          fill="url(#frontCloudGrad)" />
-    <ellipse cx="29" cy="16" rx="8" ry="4" fill="#FFFFFF" opacity="0.6" />
+  <g class="am-dr-cloud" filter="url(#cloudShadow)">
+    <path d="M16 38 C11.5 38 8 34.5 8 30 C8 25.8 11.2 22.2 15.5 21.6 C17 15.5 22.5 11.5 29 11.5 C36 11.5 42 16.5 43.2 23.2 C47 23.8 50 27 50 31 C50 35.5 46.5 38 42 38 L16 38 Z"
+          fill="url(#drizzleCloudGrad)" />
+    <ellipse cx="29" cy="17" rx="8" ry="4" fill="#FFFFFF" opacity="0.6" />
   </g>
 
-  <g fill="url(#rainGrad)">
-    <circle cx="18" cy="46" r="2" class="am-drop-1" />
-    <circle cx="28" cy="44" r="2" class="am-drop-2" />
-    <circle cx="38" cy="47" r="2" class="am-drop-3" />
-    <circle cx="23" cy="54" r="1.8" class="am-drop-4" />
-    <circle cx="33" cy="53" r="1.8" class="am-drop-5" />
+  <!-- Fine Drizzle Droplets -->
+  <g fill="url(#drizzleDropGrad)">
+    <circle class="am-dr-1" cx="20" cy="46" r="2.2" />
+    <circle class="am-dr-2" cx="32" cy="48" r="2.2" />
+    <circle class="am-dr-3" cx="44" cy="46" r="2.2" />
+    <circle class="am-dr-1" cx="26" cy="54" r="1.8" />
+    <circle class="am-dr-2" cx="38" cy="54" r="1.8" />
   </g>
 </svg>

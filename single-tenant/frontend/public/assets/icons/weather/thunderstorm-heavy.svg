@@ -1,33 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="-6 -6 76 76" fill="none">
   <defs>
     <!-- Dark Storm Cloud Gradients -->
-    <linearGradient id="stormCloudFront" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#64748B" />
-      <stop offset="60%" stop-color="#475569" />
-      <stop offset="100%" stop-color="#1E293B" />
-    </linearGradient>
-    <linearGradient id="stormCloudBack" x1="0%" y1="0%" x2="0%" y2="100%">
+    <linearGradient id="heavyStormCloud" x1="0%" y1="0%" x2="0%" y2="100%">
       <stop offset="0%" stop-color="#475569" />
+      <stop offset="60%" stop-color="#1E293B" />
       <stop offset="100%" stop-color="#0F172A" />
     </linearGradient>
 
-    <!-- Rain Droplet Gradient -->
-    <linearGradient id="rainGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#67E8F9" />
-      <stop offset="60%" stop-color="#38BDF8" />
+    <!-- Heavy Rain Droplet Gradient -->
+    <linearGradient id="heavyRainGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
       <stop offset="100%" stop-color="#0284C7" />
     </linearGradient>
 
     <!-- Lightning Gradient -->
-    <linearGradient id="lightningGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="heavyBoltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#FEF08A" />
-      <stop offset="50%" stop-color="#EAB308" />
-      <stop offset="100%" stop-color="#CA8A04" />
+      <stop offset="50%" stop-color="#FACC15" />
+      <stop offset="100%" stop-color="#EAB308" />
     </linearGradient>
 
     <!-- Filters -->
     <filter id="cloudShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#0F172A" flood-opacity="0.25" />
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0F172A" flood-opacity="0.3" />
     </filter>
     <filter id="boltGlow" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="2" result="blur" />
@@ -38,48 +33,40 @@
     </filter>
 
     <style>
-      @keyframes am-storm-cloud-back {
-        0%, 100% { transform: translateX(0px); }
-        50% { transform: translateX(-2.5px); }
+      @keyframes am-heavy-cloud-pulse {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-1.5px); }
       }
-      @keyframes am-storm-cloud-front {
-        0%, 100% { transform: translateX(0px); }
-        50% { transform: translateX(2.5px); }
+      @keyframes am-heavy-bolt {
+        0%, 100% { transform: scale(1); filter: drop-shadow(0 0 3px #FACC15); }
+        50% { transform: scale(1.05); filter: drop-shadow(0 0 8px #FACC15); }
       }
-      @keyframes am-lightning-flash {
-        0%, 75%, 100% { opacity: 0; transform: scale(0.95); }
-        78% { opacity: 1; transform: scale(1.08); }
-        81% { opacity: 0.2; }
-        84% { opacity: 1; transform: scale(1.04); }
-        90% { opacity: 0; }
+      @keyframes am-heavy-t-rain {
+        0%, 100% { transform: translate(0px, 0px); }
+        50% { transform: translate(-2px, 5px); }
       }
-      @keyframes am-heavy-rain-fall {
-        0% { transform: translate(3px, -7px); opacity: 0; }
-        25% { opacity: 1; }
-        80% { opacity: 1; }
-        100% { transform: translate(-3px, 9px); opacity: 0; }
-      }
-      .am-tstorm-back { animation: am-storm-cloud-back 5s ease-in-out infinite; }
-      .am-tstorm-front { animation: am-storm-cloud-front 4s ease-in-out infinite; }
-      .am-heavy-bolt { transform-origin: 31px 40px; animation: am-lightning-flash 2.8s ease-in-out infinite; }
-      .am-ht-rain-1 { animation: am-heavy-rain-fall 0.75s linear infinite; }
-      .am-ht-rain-2 { animation: am-heavy-rain-fall 0.75s linear infinite 0.35s; }
+      .am-h-thunder-cloud { animation: am-heavy-cloud-pulse 2.8s ease-in-out infinite; }
+      .am-h-bolt { transform-origin: 30px 44px; animation: am-heavy-bolt 1.8s ease-in-out infinite; }
+      .am-ht-rain-1 { animation: am-heavy-t-rain 1s ease-in-out infinite; }
+      .am-ht-rain-2 { animation: am-heavy-t-rain 1s ease-in-out infinite 0.25s; }
+      .am-ht-rain-3 { animation: am-heavy-t-rain 1s ease-in-out infinite 0.5s; }
     </style>
   </defs>
 
-  <path class="am-tstorm-back" d="M23 28 C19 28 15.5 24.5 15.5 20.5 C15.5 16.8 18.2 13.8 22 13.2 C23.2 8 28 4 34 4 C40.5 4 46 8.8 47 15 C50.5 15.5 53 18.5 53 22 C53 26 49.8 29 45.8 29 L23 28 Z"
-        fill="url(#stormCloudBack)" opacity="0.9" />
-  
-  <g class="am-tstorm-front" filter="url(#cloudShadow)">
-    <path d="M15 34 C10 34 6 30 6 25 C6 20.5 9.5 16.8 14 16.2 C15.5 10 21.2 5.5 28 5.5 C35.5 5.5 41.8 11 43 18.2 C47 18.8 50 22.2 50 26.5 C50 31.2 46.2 35 41.5 35 L15 34 Z"
-          fill="url(#stormCloudFront)" />
+  <g class="am-h-thunder-cloud" filter="url(#cloudShadow)">
+    <path d="M16 33 C11 33 7 29 7 24 C7 19.5 10.5 15.8 15 15.2 C16.5 9 22.2 4.5 29 4.5 C36.5 4.5 42.8 10 44 17.2 C48 17.8 51 21.2 51 25.5 C51 30.2 47.2 34 42.5 34 L16 33 Z"
+          fill="url(#heavyStormCloud)" />
+    <ellipse cx="29" cy="11" rx="8" ry="4" fill="#64748B" opacity="0.5" />
   </g>
 
-  <g stroke="url(#rainGrad)" stroke-width="3" stroke-linecap="round">
-    <line class="am-ht-rain-1" x1="13" y1="39" x2="8" y2="52" />
-    <line class="am-ht-rain-2" x1="45" y1="38" x2="40" y2="52" />
+  <!-- Heavy Rain Streaks -->
+  <g stroke="url(#heavyRainGrad)" stroke-width="3" stroke-linecap="round">
+    <line class="am-ht-rain-1" x1="14" y1="39" x2="10" y2="50" />
+    <line class="am-ht-rain-2" x1="25" y1="41" x2="21" y2="52" />
+    <line class="am-ht-rain-3" x1="47" y1="39" x2="43" y2="50" />
   </g>
 
-  <polygon class="am-heavy-bolt" points="31,28 20,44 28,44 23,61 40,40 31,40 37,28"
-           fill="url(#lightningGrad)" stroke="#FFFFFF" stroke-width="1" filter="url(#boltGlow)" />
+  <!-- Dual Volumetric Lightning Bolt -->
+  <polygon class="am-h-bolt" points="34,26 25,41 31,41 27,57 42,38 35,38 41,26"
+           fill="url(#heavyBoltGrad)" stroke="#FFFFFF" stroke-width="0.75" filter="url(#boltGlow)" />
 </svg>
