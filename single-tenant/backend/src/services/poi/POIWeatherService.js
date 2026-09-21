@@ -55,15 +55,50 @@ export class POIWeatherService {
 
       await Promise.all(
         batchData
-          .filter((item) => item && item.zone_id)
+          .filter((item) => item && item.zone_id && item.hourly)
           .map(async (item) => {
-            // 1. Store in in-memory Map cache
+            // 1. Build structured hourly rows for zone_hourly_weathers relational table
+            const times = item.hourly.time || [];
+            const hourlyRows = [];
+
+            for (let i = 0; i < times.length; i++) {
+              const rawTime = times[i];
+              const forecastTime = new Date(rawTime.endsWith("Z") ? rawTime : `${rawTime}:00Z`);
+              const rainProb = Number(item.hourly.precipitation_probability?.[i] ?? 0);
+              const wCode = Number(item.hourly.weather_code?.[i] ?? 0);
+              const wmoMeta = this.evaluator.getWmoMeta ? this.evaluator.getWmoMeta(wCode) : { label: "Cerah" };
+              const c4Risk = Math.min(1.0, Math.max(0.0, rainProb / 100));
+
+              hourlyRows.push({
+                forecast_time: forecastTime,
+                temperature_2m: item.hourly.temperature_2m?.[i] ?? 28.0,
+                apparent_temperature: item.hourly.apparent_temperature?.[i] ?? item.hourly.temperature_2m?.[i] ?? 29.0,
+                relative_humidity_2m: item.hourly.relative_humidity_2m?.[i] ?? 70.0,
+                dew_point_2m: item.hourly.dew_point_2m?.[i] ?? 23.0,
+                precipitation_probability: rainProb,
+                precipitation: item.hourly.precipitation?.[i] ?? 0.0,
+                rain: item.hourly.rain?.[i] ?? 0.0,
+                weather_code: wCode,
+                wind_speed_10m: item.hourly.wind_speed_10m?.[i] ?? 10.0,
+                weather_risk_score: c4Risk,
+                condition_label: wmoMeta.label || "Cerah",
+                data_quality: "VALID",
+                source: "OPEN_METEO",
+              });
+            }
+
+            // 2. Persist granular hourly rows via atomic UPSERT in PostgreSQL
+            if (hourlyRows.length > 0) {
+              await this.repo.saveBatchHourlyWeather(item.zone_id, hourlyRows, now);
+            }
+
+            // 3. Store in in-memory Map cache
             this.memoryCache.set(item.zone_id, {
               hourly: item.hourly,
               fetchedAt: now,
             });
 
-            // 2. Store in Redis cache if available
+            // 4. Store in Redis cache if available
             const cacheKey = `weather:zone:${item.zone_id}`;
             try {
               if (redisClient && (redisClient.isOpen || redisClient.isReady)) {
@@ -75,7 +110,7 @@ export class POIWeatherService {
               // Redis error should not fail execution
             }
 
-            // 3. Evaluate C4 score and save directly to PostgreSQL with 30-minute freshness
+            // 5. Evaluate C4 score and save snapshot in weathers table for backwards compatibility
             const evaluated = this.evaluator.evaluateC4Score(item.hourly, now);
             evaluated.hourly = item.hourly;
 
@@ -83,7 +118,7 @@ export class POIWeatherService {
           })
       );
 
-      console.log(`✅ Weather Batch Sync Berhasil: Data cuaca ${batchData.length} zona diperbarui di Redis & PostgreSQL via 1 Open-Meteo HTTP Request.`);
+      console.log(`✅ Weather Batch Sync Berhasil: Data cuaca ${batchData.length} zona diperbarui di zone_hourly_weathers, Redis & memory via 1 Open-Meteo HTTP Request.`);
       return batchData;
     } catch (err) {
       console.warn("⚠️ Warning: Open-Meteo API Sync gagal, menggunakan data cache DB jika tersedia:", err.message);
@@ -116,10 +151,14 @@ export class POIWeatherService {
       return mem.hourly;
     }
 
-    // 3. Check PostgreSQL Database Cache (30-minute TTL)
-    const dbCached = await this.repo.getCachedWeather(zoneId, 30);
-    if (dbCached && dbCached.hourly_cache) {
-      return dbCached.hourly_cache;
+    // 3. Check PostgreSQL zone_hourly_weathers Table for Fresh Data
+    const freshness = await this.repo.checkZoneWeatherFreshness(zoneId, 30);
+    if (freshness.isFresh) {
+      const { hourly } = await this.repo.getZoneHourlyForecast(zoneId);
+      if (hourly && hourly.time && hourly.time.length > 0) {
+        this.memoryCache.set(zoneId, { hourly, fetchedAt: freshness.lastSynced });
+        return hourly;
+      }
     }
 
     // 4. If expired or not present, fetch fresh batch weather data from Open-Meteo
@@ -130,9 +169,15 @@ export class POIWeatherService {
       return updatedMem.hourly;
     }
 
-    const freshDb = await this.repo.getCachedWeather(zoneId, 30);
-    if (freshDb && freshDb.hourly_cache) {
-      return freshDb.hourly_cache;
+    // 5. Fallback: Query zone_hourly_weathers even if older, or legacy weathers table
+    const { hourly: dbHourly } = await this.repo.getZoneHourlyForecast(zoneId);
+    if (dbHourly && dbHourly.time && dbHourly.time.length > 0) {
+      return dbHourly;
+    }
+
+    const dbCached = await this.repo.getCachedWeather(zoneId, 1440); // 24 hours fallback
+    if (dbCached && dbCached.hourly_cache) {
+      return dbCached.hourly_cache;
     }
 
     return null;

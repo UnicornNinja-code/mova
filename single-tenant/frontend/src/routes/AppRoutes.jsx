@@ -15,6 +15,7 @@ const AccessChangedPage = lazy(() => import("@/pages/auth/AccessChangedPage").th
 const OverviewPage = lazy(() => import("@/pages/overview/OverviewPage").then((m) => ({ default: m.OverviewPage })));
 const MapOpsPage = lazy(() => import("@/pages/mapops/MapOpsPage").then((m) => ({ default: m.MapOpsPage })));
 const WeatherPage = lazy(() => import("@/pages/operations/WeatherPage").then((m) => ({ default: m.WeatherPage })));
+const ZoneDetailPage = lazy(() => import("@/pages/operations/ZoneDetailPage").then((m) => ({ default: m.ZoneDetailPage })));
 const RiderHomePage = lazy(() => import("@/pages/rider/RiderHomePage").then((m) => ({ default: m.RiderHomePage })));
 const UsersPage = lazy(() => import("@/pages/admin/UsersPage").then((m) => ({ default: m.UsersPage })));
 const CreateUserPage = lazy(() => import("@/pages/admin/CreateUserPage").then((m) => ({ default: m.CreateUserPage })));
@@ -161,6 +162,17 @@ export function AppRoutes() {
           <ProtectedRoute allowedRoles={["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"]}>
             <PageSuspense>
               <WeatherPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/operations/zones/:id"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"]}>
+            <PageSuspense>
+              <ZoneDetailPage />
             </PageSuspense>
           </ProtectedRoute>
         }

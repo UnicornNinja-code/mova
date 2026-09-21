@@ -49,7 +49,7 @@ export class POIEltPipelineService {
       const citySetting = await SystemSettingModel.getByKey("HUB_CITY_NAME");
       hubCity = citySetting?.value || citySetting?.setting_value || "Sidoarjo";
     }
-    return hubCity;
+    return String(hubCity).replace(/["\\]/g, "").trim() || "Sidoarjo";
   }
 
   /**
