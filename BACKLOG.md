@@ -42,6 +42,16 @@ daftar backlog aplikasi mova
   - Integrasi aksi Overpass Sync & Re-cluster dengan ConfirmDialog
   - Role-based capabilities (Superadmin & Supervisor)
 
+- perbaikan halaman master data poi : Layoutnya kurang rapi dan tidak UI Friendly
+- perbaikan pada semua tema table yang ada di aplikasi mova ini agar sesuai dengan table default dan menerapkan sort ascending dan descending secara default ke tampilan table pada atributnya 
+- perbaikan pada parameter penarikan data Kota agar tidak terjadi over scope misal HUb ada di kota sidoarjo dan sistem akan secara strict menampilkan dan menarik data poi, jalan protokol, jalan tol , kompetitor pada kota sidoarjo saja bukan seindonesia
+- perbaikan pada penyatuan line string jalan protokol dan jalan tol agar tidak ada ruas jalan yang terpotong dan tidak sesuai panjang pada peta
+- perbaikan pada handling jalan protokol yang tidak ada nama jalannya 
+- perbaikan pada handling jalan tol yang tidak ada namanya  
+- perbaikan layout halaman data jalan protokol dan jalan tol 
+- penambahan visualisasi map letak poi pada modal detail data poi
+- pe
+
 - pembuatan frontend halaman map ops 
 - pembuatan frontend halaman jalan protocol & TOL
-- pembuatan frontend halaman Kompetitor 
+- pembuatan frontend halaman Kompetitor 
