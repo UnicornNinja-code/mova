@@ -37,6 +37,8 @@ export function RoadMapCanvas({
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
+    let resizeObserver = null;
+
     if (!mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
         center: SIDOARJO_CENTER,
@@ -45,8 +47,9 @@ export function RoadMapCanvas({
         attributionControl: true,
       });
 
-      // Pure Standard OpenStreetMap Tile Layer
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      // Pure Standard OpenStreetMap Tile Layer with subdomains
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        subdomains: ["a", "b", "c"],
         maxZoom: 19,
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors | MOVA GIS',
@@ -56,10 +59,27 @@ export function RoadMapCanvas({
         setMapZoom(map.getZoom());
       });
 
+      // Force recalculate dimensions so tiles render immediately
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 150);
+
+      resizeObserver = new ResizeObserver(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      });
+      resizeObserver.observe(mapContainerRef.current);
+
       mapInstanceRef.current = map;
     }
 
     return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;

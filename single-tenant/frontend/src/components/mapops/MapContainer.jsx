@@ -83,7 +83,8 @@ export function MapCanvas({
       });
 
       // Pure Standard OpenStreetMap Tile Layer (Free & No API Key Required)
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        subdomains: ["a", "b", "c"],
         maxZoom: 19,
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
