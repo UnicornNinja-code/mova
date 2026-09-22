@@ -572,17 +572,21 @@ export class POIRepository {
   }
 
   /**
-   * Aggregate POI Statistics & Spatial Density Summary
+   * Aggregate POI Statistics & Spatial Density Summary (Control Center Metrics)
    */
   async getPoiStatsData() {
-    // 1. Total POIs, Valid, Pending, Duplicate
+    // 1. Total POIs, Valid, Eligible, Excluded, Pending, Duplicate, Last Sync, Last Update
     const { rows: summaryRows } = await this.pool.query(`
       SELECT 
         COUNT(*)::int AS total_pois,
         COUNT(CASE WHEN status = 'APPROVED' AND operational_status <> 'EXCLUDED' THEN 1 END)::int AS valid_count,
-        COUNT(CASE WHEN status = 'PENDING' THEN 1 END)::int AS pending_count,
+        COUNT(CASE WHEN status = 'APPROVED' AND operational_status = 'ELIGIBLE' THEN 1 END)::int AS eligible_count,
+        COUNT(CASE WHEN operational_status = 'EXCLUDED' THEN 1 END)::int AS excluded_count,
+        COUNT(CASE WHEN status = 'PENDING' OR approval_status = 'PENDING' THEN 1 END)::int AS pending_count,
         COUNT(CASE WHEN duplicate_of IS NOT NULL OR status = 'DUPLICATE' THEN 1 END)::int AS duplicate_count,
-        COUNT(DISTINCT category)::int AS total_categories
+        COUNT(DISTINCT category)::int AS total_categories,
+        MAX(updated_at) AS last_updated_at,
+        MAX(created_at) FILTER (WHERE metadata->>'source' = 'OVERPASS_API' OR external_id LIKE 'osm:%') AS last_sync_at
       FROM pois
     `);
 
@@ -598,7 +602,25 @@ export class POIRepository {
       ORDER BY count DESC
     `);
 
-    // 3. Density & Count per Zone
+    // 3. Breakdown per Data Source
+    const { rows: sourceRows } = await this.pool.query(`
+      SELECT 
+        COALESCE(
+          metadata->>'source', 
+          CASE 
+            WHEN external_id LIKE 'osm:%' THEN 'OVERPASS_API'
+            WHEN external_id LIKE 'manual:%' THEN 'MANUAL_ENTRY'
+            ELSE 'SYSTEM'
+          END
+        ) AS source_key,
+        COUNT(*)::int AS count,
+        ROUND((COUNT(*)::numeric / NULLIF((SELECT COUNT(*) FROM pois), 0)::numeric) * 100, 1) AS percentage
+      FROM pois
+      GROUP BY 1
+      ORDER BY count DESC
+    `);
+
+    // 4. Density & Count per Zone
     const { rows: zoneRows } = await this.pool.query(`
       SELECT 
         z.id AS zone_id,
@@ -607,23 +629,167 @@ export class POIRepository {
         COUNT(p.id)::int AS poi_count,
         COUNT(DISTINCT p.category)::int AS category_count,
         ROUND(
-          (COUNT(p.id)::numeric / NULLIF(ST_Area(z.polygon::geography) / 1000000.0, 0)::numeric), 
+          (COUNT(p.id)::numeric / NULLIF(ST_Area(z.geom::geography) / 1000000.0, 0)::numeric), 
           2
         ) AS poi_density_km2
       FROM zones z
       LEFT JOIN pois p 
         ON p.status = 'APPROVED' 
         AND p.operational_status <> 'EXCLUDED' 
-        AND ST_Contains(z.polygon, p.geom)
-      GROUP BY z.id, z.name, z.status, z.polygon
+        AND ST_Contains(z.geom, p.geom)
+      GROUP BY z.id, z.name, z.status, z.geom
       ORDER BY poi_count DESC
     `);
 
+    const summary = summaryRows[0] || {
+      total_pois: 0,
+      valid_count: 0,
+      eligible_count: 0,
+      excluded_count: 0,
+      pending_count: 0,
+      duplicate_count: 0,
+      total_categories: 0,
+      last_updated_at: null,
+      last_sync_at: null,
+    };
+
+    // Calculate Dataset Health Status
+    let health_status = "OPTIMAL";
+    let health_message = "Dataset normal, terverifikasi, dan siap digunakan";
+    if (summary.total_pois === 0) {
+      health_status = "EMPTY";
+      health_message = "Belum ada dataset POI tersimpan";
+    } else if (summary.pending_count > 0) {
+      health_status = "NEEDS_REVIEW";
+      health_message = `${summary.pending_count} POI memerlukan peninjauan persetujuan`;
+    }
+
     return {
-      summary: summaryRows[0] || { total_pois: 0, valid_count: 0, pending_count: 0, duplicate_count: 0, total_categories: 0 },
+      summary: {
+        ...summary,
+        health_status,
+        health_message,
+      },
       categories_summary: categoryRows,
+      sources_summary: sourceRows,
       density_by_zone: zoneRows,
     };
+  }
+
+  /**
+   * Create a single manual POI record
+   */
+  async createManualPoi(poiData) {
+    const genUuid = poiData.id || crypto.randomUUID();
+    const extId = poiData.external_id || `manual:${genUuid}`;
+    const logicalPoiId = poiData.logical_poi_id || genUuid;
+    const approvalStatus = poiData.approval_status || "APPROVED";
+    const status = poiData.status || (approvalStatus === "PENDING" || approvalStatus === "PENDING_APPROVAL" ? "PENDING" : "APPROVED");
+
+    const insertQuery = `
+      INSERT INTO pois (
+        id, external_id, osm_type, osm_id, name, category, latitude, longitude,
+        approval_status, operational_status, exclusion_reason, metadata, logical_poi_id, geom, status
+      )
+      VALUES (
+        $1::uuid, $2, $3, $4, $5, $6,
+        $7::double precision, $8::double precision,
+        $9, $10, $11, $12::jsonb, $13::uuid,
+        ST_SetSRID(ST_MakePoint($8::double precision, $7::double precision), 4326),
+        $14
+      )
+      RETURNING *;
+    `;
+    const { rows } = await this.pool.query(insertQuery, [
+      genUuid,
+      extId,
+      poiData.osm_type || null,
+      poiData.osm_id || null,
+      poiData.name,
+      poiData.category || "Lainnya",
+      poiData.latitude,
+      poiData.longitude,
+      approvalStatus,
+      poiData.operational_status || "ELIGIBLE",
+      poiData.exclusion_reason || null,
+      JSON.stringify(poiData.metadata || {}),
+      logicalPoiId,
+      status,
+    ]);
+    return rows[0];
+  }
+
+  /**
+   * Update an existing POI record
+   */
+  async updateManualPoi(id, updateData) {
+    const fields = [];
+    const values = [];
+    let idx = 1;
+
+    if (updateData.name !== undefined) {
+      fields.push(`name = $${idx++}`);
+      values.push(updateData.name);
+    }
+    if (updateData.category !== undefined) {
+      fields.push(`category = $${idx++}`);
+      values.push(updateData.category);
+    }
+    if (updateData.latitude !== undefined) {
+      fields.push(`latitude = $${idx++}::double precision`);
+      values.push(Number(updateData.latitude));
+    }
+    if (updateData.longitude !== undefined) {
+      fields.push(`longitude = $${idx++}::double precision`);
+      values.push(Number(updateData.longitude));
+    }
+    if (updateData.latitude !== undefined && updateData.longitude !== undefined) {
+      fields.push(`geom = ST_SetSRID(ST_MakePoint($${idx - 1}::double precision, $${idx - 2}::double precision), 4326)`);
+    }
+    if (updateData.approval_status !== undefined) {
+      fields.push(`approval_status = $${idx++}`);
+      values.push(updateData.approval_status);
+      fields.push(`status = $${idx++}`);
+      values.push(updateData.approval_status === "APPROVED" ? "APPROVED" : (updateData.approval_status === "REJECTED" ? "REJECTED" : "PENDING"));
+    }
+    if (updateData.operational_status !== undefined) {
+      fields.push(`operational_status = $${idx++}`);
+      values.push(updateData.operational_status);
+    }
+    if (updateData.exclusion_reason !== undefined) {
+      fields.push(`exclusion_reason = $${idx++}`);
+      values.push(updateData.exclusion_reason);
+    }
+    if (updateData.metadata !== undefined) {
+      fields.push(`metadata = $${idx++}::jsonb`);
+      values.push(JSON.stringify(updateData.metadata));
+    }
+
+    if (fields.length === 0) {
+      return await this.findById(id);
+    }
+
+    fields.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
+    const query = `
+      UPDATE pois
+      SET ${fields.join(", ")}
+      WHERE id = $${idx}::uuid
+      RETURNING *;
+    `;
+    const { rows } = await this.pool.query(query, values);
+    return rows[0] || null;
+  }
+
+  /**
+   * Delete POI record and clean related links
+   */
+  async deleteManualPoi(id) {
+    await this.pool.query("UPDATE candidate_selling_locations SET poi_id = NULL WHERE poi_id = $1", [id]);
+    await this.pool.query("DELETE FROM poi_approval_logs WHERE poi_id = $1", [id]);
+    const { rows } = await this.pool.query("DELETE FROM pois WHERE id = $1 RETURNING *;", [id]);
+    return rows[0] || null;
   }
 }
 

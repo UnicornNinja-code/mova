@@ -25,20 +25,23 @@ daftar backlog aplikasi mova
   - Multi-level dynamic .env path resolver di env.js ✅
   - Standarisasi konfigurasi terpusat (env.DB, env.REDIS, env.JWT, env.SMTP) ✅
   - Script uji diagnostik multi-stack (test-stack-connections.js / npm run test:stack) ✅
-
-
-
-
-
+- [BACKEND] Master POI & Rekonsiliasi Kompetitor Module Overhaul: ✅
+  - Endpoint CRUD manual POI (`POST /api/pois`, `GET /api/pois/:id`, `PUT /api/pois/:id`, `DELETE /api/pois/:id`) ✅
+  - Bulk ingestion POI dengan auto-clustering kategori & spatial deduplication (`POST /api/pois/bulk`) ✅
+  - Integrasi evaluasi kriteria spasial DSS $C_1, C_2, C_3$ & $C_6$ (Kepadatan Kompetitor) ✅
+  - Endpoint Rekonsiliasi Kompetitor vs Canonical POI (`POST /api/competitors/:id/reconcile`, `POST /api/competitors/:id/unlink`) ✅
+  - Test suite lengkap (`test-poi-crud.test.js`, `test-poi-contract.test.js`, `test-competitor-contract.test.js`) 100% PASS ✅
 
 - penambahan FAQ pada halaaman system ⚠️
-- perbaikan hubungi superadmin di halaman FAQ
+- perbaikan hubungi superadmin di halaman FAQ 
 
-- pembuatan halaman master poi 
+- [FRONTEND] Pembuatan Halaman Master POI: ✅
+  - Table & search/filter (kategori, status, keyword)
+  - Detail Inspection Drawer (koordinat, sumber data OSM/manual, status operasional)
+  - Modal Tambah Manual, Edit, dan Bulk Import JSON/CSV dengan auto-clustering
+  - Integrasi aksi Overpass Sync & Re-cluster dengan ConfirmDialog
+  - Role-based capabilities (Superadmin & Supervisor)
 
-- pembuatan halaman map ops 
-- pembuatan halaman jalan protocol & TOL
-- pembuatan halaman Kompetitor 
-
-- pembuatan halaman 
-	
+- pembuatan frontend halaman map ops 
+- pembuatan frontend halaman jalan protocol & TOL
+- pembuatan frontend halaman Kompetitor 

@@ -24,6 +24,14 @@ router.post(
   (req, res, next) => roadController.syncTollRoads(req, res, next)
 );
 
+// POST /api/roads/sync-protocol - Trigger Overpass API ingestion for Protocol Roads (SUPERADMIN ONLY)
+router.post(
+  "/sync-protocol",
+  authenticateToken,
+  checkRole(["SUPERADMIN"]),
+  (req, res, next) => roadController.syncProtocolRoads(req, res, next)
+);
+
 import { getZoneC4Score } from "../controllers/poiController.js";
 
 // GET /api/roads/zone-accessibility-score/:zone_id - Calculate C4 Road Accessibility Score for a Zone

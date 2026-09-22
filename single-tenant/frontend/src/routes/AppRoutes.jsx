@@ -23,6 +23,8 @@ const UserDetailPage = lazy(() => import("@/pages/admin/UserDetailPage").then((m
 const RolesPage = lazy(() => import("@/pages/help/FaqPage").then((m) => ({ default: m.FaqPage })));
 const FaqPage = lazy(() => import("@/pages/help/FaqPage").then((m) => ({ default: m.FaqPage })));
 const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage").then((m) => ({ default: m.ProfilePage })));
+const MasterPoiPage = lazy(() => import("@/pages/data/MasterPoiPage").then((m) => ({ default: m.MasterPoiPage })));
+const RoadRestrictionsPage = lazy(() => import("@/pages/data/RoadRestrictionsPage").then((m) => ({ default: m.RoadRestrictionsPage })));
 const NotFoundPage = lazy(() => import("@/pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })));
 
 function PageSuspense({ children }) {
@@ -196,6 +198,28 @@ export function AppRoutes() {
           <ProtectedRoute allowedRoles={["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"]}>
             <PageSuspense>
               <OverviewPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Data Management Routes */}
+      <Route
+        path="/data/pois"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN", "SUPERVISOR", "MANAGEMENT"]}>
+            <PageSuspense>
+              <MasterPoiPage />
+            </PageSuspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/data/roads"
+        element={
+          <ProtectedRoute allowedRoles={["SUPERADMIN", "SUPERVISOR", "MANAGEMENT"]}>
+            <PageSuspense>
+              <RoadRestrictionsPage />
             </PageSuspense>
           </ProtectedRoute>
         }

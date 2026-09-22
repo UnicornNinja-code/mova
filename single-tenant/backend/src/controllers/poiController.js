@@ -16,12 +16,70 @@ import {
   getQualitySummaryService,
   resolveAnomalyService,
   getPoiStatsService,
+  getPoiByIdService,
+  createManualPoiService,
+  updateManualPoiService,
+  deleteManualPoiService,
+  bulkCreateManualPoisService,
 } from "../services/poiService.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 
 const handleControllerError = (res, error, defaultStatus = 500) => {
   const statusCode = error.statusCode || defaultStatus;
   return sendError(res, error.message || "Internal server error", statusCode, error.details || null);
+};
+
+export const getPoiById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const poi = await getPoiByIdService(id);
+    return sendSuccess(res, poi, "Data POI berhasil dimuat.", 200, { poi });
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
+export const createPoi = async (req, res) => {
+  try {
+    const user = req.user || {};
+    const created = await createManualPoiService(req.body, user);
+    return sendSuccess(res, created, "POI berhasil didaftarkan.", 201, { poi: created });
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
+export const updatePoi = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user || {};
+    const updated = await updateManualPoiService(id, req.body, user);
+    return sendSuccess(res, updated, "Data POI berhasil diperbarui.", 200, { poi: updated });
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
+export const deletePoi = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user || {};
+    const deleted = await deleteManualPoiService(id, user);
+    return sendSuccess(res, deleted, "Data POI berhasil dihapus.", 200, { poi: deleted });
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
+};
+
+export const bulkCreatePois = async (req, res) => {
+  try {
+    const user = req.user || {};
+    const items = Array.isArray(req.body.pois) ? req.body.pois : req.body;
+    const result = await bulkCreateManualPoisService(items, user);
+    return sendSuccess(res, result, "Bulk POI berhasil disinkronkan.", 201, result);
+  } catch (error) {
+    return handleControllerError(res, error);
+  }
 };
 
 export const syncCityPois = async (req, res) => {

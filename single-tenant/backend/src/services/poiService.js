@@ -356,6 +356,196 @@ export class POIEltPipelineService {
   async getPoiStats() {
     return await poiRepository.getPoiStatsData();
   }
+
+  /**
+   * Get single POI by ID
+   */
+  async getPoiById(id) {
+    const poi = await this.repo.findById(id);
+    if (!poi) {
+      const error = new Error("Data POI tidak ditemukan");
+      error.statusCode = 404;
+      throw error;
+    }
+    return poi;
+  }
+
+  /**
+   * Create a manual POI (with auto-clustering support)
+   */
+  async createManualPoi(data, user = {}) {
+    if (!data || typeof data !== "object") {
+      const error = new Error("Data POI wajib diisi");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const name = String(data.name || "").trim();
+    if (!name) {
+      const error = new Error("Nama POI ('name') wajib diisi");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const lat = Number(data.latitude);
+    const lon = Number(data.longitude);
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      const error = new Error("Nilai latitude tidak valid (-90 s/d 90)");
+      error.statusCode = 400;
+      throw error;
+    }
+    if (isNaN(lon) || lon < -180 || lon > 180) {
+      const error = new Error("Nilai longitude tidak valid (-180 s/d 180)");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    let category = data.category ? String(data.category).trim() : null;
+    if (!category || category === "") {
+      category = this.clusterer.cluster({ name, ...(data.metadata || {}) });
+      if (category === "IGNORED") {
+        category = "Lainnya";
+      }
+    }
+
+    const poiPayload = {
+      name,
+      category,
+      latitude: lat,
+      longitude: lon,
+      approval_status: data.approval_status || "APPROVED",
+      operational_status: data.operational_status || "ELIGIBLE",
+      exclusion_reason: data.exclusion_reason || null,
+      metadata: {
+        ...(data.metadata || {}),
+        created_by_user_id: user.id || user.userId || null,
+        created_by_role: user.role || null,
+        creation_source: "MANUAL_ENTRY",
+      },
+    };
+
+    const created = await this.repo.createManualPoi(poiPayload);
+
+    // Audit log
+    try {
+      await pool.query(
+        `INSERT INTO audit_logs (user_id, user_role, action, entity_type, details, status)
+         VALUES ($1, $2, 'CREATE_MANUAL_POI', 'POI', $3::jsonb, 'SUCCESS');`,
+        [user.id || user.userId || null, user.role || "SUPERADMIN", JSON.stringify({ poi_id: created.id, name: created.name })]
+      );
+    } catch (e) {
+      // Non-blocking audit log
+    }
+
+    return created;
+  }
+
+  /**
+   * Update an existing manual POI
+   */
+  async updateManualPoi(id, updateData, user = {}) {
+    const existing = await this.getPoiById(id);
+
+    const payload = {};
+    if (updateData.name !== undefined) payload.name = String(updateData.name).trim();
+    if (updateData.category !== undefined) payload.category = String(updateData.category).trim();
+    if (updateData.latitude !== undefined) payload.latitude = Number(updateData.latitude);
+    if (updateData.longitude !== undefined) payload.longitude = Number(updateData.longitude);
+    if (updateData.approval_status !== undefined) payload.approval_status = updateData.approval_status;
+    if (updateData.operational_status !== undefined) payload.operational_status = updateData.operational_status;
+    if (updateData.exclusion_reason !== undefined) payload.exclusion_reason = updateData.exclusion_reason;
+    if (updateData.metadata !== undefined) {
+      payload.metadata = { ...(existing.metadata || {}), ...updateData.metadata };
+    }
+
+    const updated = await this.repo.updateManualPoi(id, payload);
+
+    try {
+      await pool.query(
+        `INSERT INTO audit_logs (user_id, user_role, action, entity_type, details, status)
+         VALUES ($1, $2, 'UPDATE_MANUAL_POI', 'POI', $3::jsonb, 'SUCCESS');`,
+        [user.id || user.userId || null, user.role || "SUPERADMIN", JSON.stringify({ poi_id: id, updates: payload })]
+      );
+    } catch (e) {
+      // Non-blocking
+    }
+
+    return updated;
+  }
+
+  /**
+   * Delete an existing manual POI
+   */
+  async deleteManualPoi(id, user = {}) {
+    const existing = await this.getPoiById(id);
+    const deleted = await this.repo.deleteManualPoi(id);
+
+    try {
+      await pool.query(
+        `INSERT INTO audit_logs (user_id, user_role, action, entity_type, details, status)
+         VALUES ($1, $2, 'DELETE_MANUAL_POI', 'POI', $3::jsonb, 'SUCCESS');`,
+        [user.id || user.userId || null, user.role || "SUPERADMIN", JSON.stringify({ poi_id: id, name: existing.name })]
+      );
+    } catch (e) {
+      // Non-blocking
+    }
+
+    return deleted;
+  }
+
+  /**
+   * Bulk ingest POIs from array (CSV / JSON upload) with auto-clustering & deduplication
+   */
+  async bulkCreateManualPois(items, user = {}) {
+    if (!Array.isArray(items) || items.length === 0) {
+      const error = new Error("Daftar POI bulk wajib berupa array tidak kosong");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const processedPois = items.map((item, idx) => {
+      const name = String(item.name || `POI-${idx + 1}`).trim();
+      const lat = Number(item.latitude || item.lat);
+      const lon = Number(item.longitude || item.lon || item.lng);
+
+      if (isNaN(lat) || isNaN(lon)) {
+        throw new Error(`Item baris ke-${idx + 1} ('${name}') memiliki koordinat tidak valid.`);
+      }
+
+      let category = item.category ? String(item.category).trim() : null;
+      if (!category || category === "") {
+        category = this.clusterer.cluster({ name, ...(item.tags || item.metadata || {}) });
+      }
+
+      return {
+        external_id: item.external_id || (item.osm_id ? `osm:${item.osm_type || 'node'}:${item.osm_id}` : null),
+        osm_type: item.osm_type || null,
+        osm_id: item.osm_id || null,
+        name,
+        category: category === "IGNORED" ? "Lainnya" : category,
+        latitude: lat,
+        longitude: lon,
+        approval_status: item.approval_status || "APPROVED",
+        operational_status: item.operational_status || (category === "IGNORED" ? "EXCLUDED" : "ELIGIBLE"),
+        exclusion_reason: item.exclusion_reason || null,
+        metadata: {
+          ...(item.metadata || {}),
+          ingested_by: user.id || null,
+          source: "MANUAL_BULK_UPLOAD",
+        },
+      };
+    });
+
+    const deduplicatedPois = this.deduplicator.deduplicate(processedPois, 15);
+    const savedPois = await this.repo.syncCityPoisWithTransaction(deduplicatedPois);
+
+    return {
+      total_submitted: items.length,
+      total_deduplicated: deduplicatedPois.length,
+      total_saved: savedPois.length,
+      pois: savedPois,
+    };
+  }
 }
 
 // Singleton Instance Export
@@ -384,6 +574,12 @@ export const getAllOperationalPoisService = () => poiEltPipelineService.getAllOp
 export const getDensitasDanDiversitasC1C2Service = (zoneId) => poiEltPipelineService.getDensitasDanDiversitasC1C2(zoneId);
 export const getLeakageReportService = () => poiEltPipelineService.getLeakageReport();
 export const getPoiStatsService = () => poiEltPipelineService.getPoiStats();
+export const getPoiByIdService = (id) => poiEltPipelineService.getPoiById(id);
+export const createManualPoiService = (data, user) => poiEltPipelineService.createManualPoi(data, user);
+export const updateManualPoiService = (id, data, user) => poiEltPipelineService.updateManualPoi(id, data, user);
+export const deleteManualPoiService = (id, user) => poiEltPipelineService.deleteManualPoi(id, user);
+export const bulkCreateManualPoisService = (items, user) => poiEltPipelineService.bulkCreateManualPois(items, user);
+
 
 // New POI Approval Workflow Exports
 export const getQualitySummaryService = () => poiEltPipelineService.getQualitySummary();

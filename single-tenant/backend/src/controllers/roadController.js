@@ -1,4 +1,4 @@
-import { roadService, syncTollRoadsService } from "../services/roadService.js";
+import { roadService, syncTollRoadsService, syncProtocolRoadsService } from "../services/roadService.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 
 const handleControllerError = (res, error, defaultStatus = 500) => {
@@ -25,9 +25,18 @@ export class RoadController {
     }
   }
 
+  async syncProtocolRoads(req, res) {
+    try {
+      const result = await syncProtocolRoadsService(req.body || {});
+      return sendSuccess(res, result, "Sinkronisasi jalan protokol berhasil.", 200, result);
+    } catch (error) {
+      return handleControllerError(res, error);
+    }
+  }
+
   async syncTollRoads(req, res) {
     try {
-      const result = await syncTollRoadsService();
+      const result = await syncTollRoadsService(req.body || {});
       return sendSuccess(res, result, "Sinkronisasi jalan tol berhasil.", 200, result);
     } catch (error) {
       return handleControllerError(res, error);

@@ -10,6 +10,7 @@ import {
   Skeleton,
   EmptyState,
 } from "@/components/primitives";
+import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function DataTableComponent({
@@ -24,6 +25,9 @@ function DataTableComponent({
   onRowClick,
   selectedRowId,
   idKey = "id",
+  sortBy = null,
+  sortDirection = "asc",
+  onSort,
   className,
 }) {
   return (
@@ -31,11 +35,45 @@ function DataTableComponent({
       <Table>
         <TableHeader>
           <TableRow>
-            {columns.map((col, idx) => (
-              <TableHead key={col.key || idx} className={col.headerClassName}>
-                {col.header}
-              </TableHead>
-            ))}
+            {columns.map((col, idx) => {
+              const colKey = col.accessor || col.id || col.key || idx;
+              const isSortable = Boolean(col.sortable);
+              const isSorted = sortBy === colKey || (col.accessor && sortBy === col.accessor);
+
+              return (
+                <TableHead
+                  key={colKey}
+                  className={cn(
+                    col.headerClassName,
+                    isSortable &&
+                      "cursor-pointer select-none hover:text-slate-900 dark:hover:text-white transition-colors"
+                  )}
+                  onClick={isSortable && onSort ? () => onSort(colKey) : undefined}
+                >
+                  <div
+                    className={cn(
+                      "inline-flex items-center gap-1.5",
+                      col.headerClassName?.includes("text-right") ? "justify-end w-full" : "justify-start"
+                    )}
+                  >
+                    <span>{col.header}</span>
+                    {isSortable && (
+                      <span className="inline-flex items-center text-slate-400 dark:text-slate-500">
+                        {isSorted ? (
+                          sortDirection === "asc" ? (
+                            <ArrowUp className="w-3.5 h-3.5 text-brand-teal" />
+                          ) : (
+                            <ArrowDown className="w-3.5 h-3.5 text-brand-teal" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+                </TableHead>
+              );
+            })}
           </TableRow>
         </TableHeader>
 
