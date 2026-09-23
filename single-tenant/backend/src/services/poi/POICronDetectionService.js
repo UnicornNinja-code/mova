@@ -10,8 +10,9 @@ import { spatialDeduplicator } from "./SpatialDeduplicator.js";
 import { poiEntityFactory } from "./POIEntityFactory.js";
 import { poiRepository } from "../../repositories/poiRepository.js";
 import { syncRunRepository } from "../../repositories/syncRunRepository.js";
+import { operationalScope, isWithinOperationalScope } from "../../config/operationalScope.js";
 
-const DEFAULT_HUB_CITY = "Sidoarjo";
+const DEFAULT_HUB_CITY = operationalScope.city || "Sidoarjo";
 const OVERPASS_TIMEOUT_SECONDS = 300;
 const SPATIAL_DEDUP_TOLERANCE_METERS = 15;
 const DATA_TYPE_POI = "POI";
@@ -69,7 +70,7 @@ export class POICronDetectionService {
 
     const query = `
       [out:json][timeout:${OVERPASS_TIMEOUT_SECONDS}];
-      area["name"="${hubCity}"]["admin_level"="5"]->.searchArea;
+      area["name"="${hubCity}"]["admin_level"="${operationalScope.adminLevel || 5}"]->.searchArea;
       (
         nwr["amenity"](area.searchArea); nwr["shop"](area.searchArea);
         nwr["leisure"](area.searchArea); nwr["office"](area.searchArea);
@@ -103,10 +104,15 @@ export class POICronDetectionService {
 
     const recordsFetched = overpassData.length;
 
-    // 1. Transform Overpass elements
+    // 1. Transform Overpass elements and enforce operational scope boundary
     const transformedPois = overpassData
       .map((el) => this.factory.createFromOverpassElement(el, this.clusterer))
-      .filter((p) => p.category !== "IGNORED" && !isNaN(p.latitude) && !isNaN(p.longitude));
+      .filter((p) => 
+        p.category !== "IGNORED" && 
+        !isNaN(p.latitude) && 
+        !isNaN(p.longitude) && 
+        isWithinOperationalScope(p.latitude, p.longitude)
+      );
 
     const recordsRejected = recordsFetched - transformedPois.length;
 

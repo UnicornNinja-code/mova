@@ -38,6 +38,17 @@ const build429Response = (title, message) => (req, res) => {
 };
 
 /**
+ * Helper to determine whether a request can skip rate limiting.
+ * STRICT SECURITY INVARIANT: Absolute lockout of bypass in production under any circumstance.
+ */
+const shouldSkipRateLimiter = (req) => {
+  if (process.env.NODE_ENV === "production") {
+    return false;
+  }
+  return process.env.NODE_ENV === "test" || req.headers["x-test-suite"] === "true";
+};
+
+/**
  * General API rate limiter (5000 requests per 1 minute window in dev/test, production protects against DDoS)
  */
 const apiLimiter = rateLimit({
@@ -50,7 +61,7 @@ const apiLimiter = rateLimit({
     "Trafik Terlalu Tinggi",
     "Batas penggunaan API tercapai. Harap tunggu beberapa saat sebelum mencoba lagi."
   ),
-  skip: (req) => process.env.NODE_ENV === "test" || req.headers["x-test-suite"] === "true",
+  skip: shouldSkipRateLimiter,
 });
 
 /**
@@ -62,7 +73,7 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
-  skip: (req) => process.env.NODE_ENV === "test" || req.headers["x-test-suite"] === "true",
+  skip: shouldSkipRateLimiter,
   keyGenerator: (req, res) => {
     const clientIp = ipKeyGenerator(req, res);
     const identifier = req.body?.identifier || req.body?.email || "anonymous";
@@ -164,7 +175,7 @@ const registerLimiter = rateLimit({
   max: process.env.NODE_ENV === "production" ? 5 : 500,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.NODE_ENV !== "production" || req.headers["x-test-suite"] === "true",
+  skip: shouldSkipRateLimiter,
   store: getStore("AUTH_REGISTER"),
   handler: build429Response(
     "Batas Pendaftaran Akun",
@@ -180,7 +191,7 @@ const overpassSyncLimiter = rateLimit({
   max: process.env.NODE_ENV === "production" ? 2 : 500,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.NODE_ENV !== "production" || req.headers["x-test-suite"] === "true",
+  skip: shouldSkipRateLimiter,
   store: getStore("OVERPASS_ROAD"),
   handler: build429Response(
     "Batas Sinkronisasi Jalan",
@@ -196,7 +207,7 @@ const citySyncLimiter = rateLimit({
   max: process.env.NODE_ENV === "production" ? 1 : 500,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => process.env.NODE_ENV !== "production" || req.headers["x-test-suite"] === "true",
+  skip: shouldSkipRateLimiter,
   store: getStore("OVERPASS_CITY"),
   handler: build429Response(
     "Batas Sinkronisasi POI Kota",

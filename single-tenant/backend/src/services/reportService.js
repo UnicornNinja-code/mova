@@ -342,22 +342,30 @@ export class ReportService {
    * 6. Audit Logs Report: Security & Change History
    */
   async getAuditLogsReport({ limit = 50, offset = 0, action = null, entityType = null } = {}) {
-    const values = [limit, offset];
-    let whereConditions = [];
+    const filterValues = [];
+    const filterConditions = [];
 
-    if (action) {
-      values.push(action);
-      whereConditions.push(`al.action = $${values.length}`);
+    if (action && typeof action === "string" && action.trim()) {
+      filterValues.push(action.trim());
+      filterConditions.push(`al.action = $${filterValues.length}`);
     }
 
-    if (entityType) {
-      values.push(entityType);
-      whereConditions.push(`al.entity_type = $${values.length}`);
+    if (entityType && typeof entityType === "string" && entityType.trim()) {
+      filterValues.push(entityType.trim());
+      filterConditions.push(`al.entity_type = $${filterValues.length}`);
     }
 
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
+    const countWhereClause = filterConditions.length > 0 ? `WHERE ${filterConditions.join(" AND ")}` : "";
+    const countQuery = `SELECT COUNT(*)::int AS total FROM audit_logs al ${countWhereClause};`;
 
-    const query = `
+    // For dataQuery, parameter indices are offset by 2 due to limit ($1) and offset ($2)
+    const dataWhereConditions = filterConditions.map((cond, idx) => {
+      return cond.replace(`$${idx + 1}`, `$${idx + 3}`);
+    });
+    const dataWhereClause = dataWhereConditions.length > 0 ? `WHERE ${dataWhereConditions.join(" AND ")}` : "";
+
+    const dataValues = [limit, offset, ...filterValues];
+    const dataQuery = `
       SELECT 
         al.id,
         al.action,
@@ -374,17 +382,14 @@ export class ReportService {
         u.role AS user_role
       FROM audit_logs al
       LEFT JOIN users u ON u.id = al.user_id
-      ${whereClause}
+      ${dataWhereClause}
       ORDER BY al.created_at DESC
       LIMIT $1 OFFSET $2;
     `;
 
-    const countQuery = `SELECT COUNT(*)::int AS total FROM audit_logs al ${whereClause};`;
-    const countValues = values.slice(2);
-
     const [{ rows }, { rows: countRows }] = await Promise.all([
-      this.pool.query(query, values),
-      this.pool.query(countQuery, countValues),
+      this.pool.query(dataQuery, dataValues),
+      this.pool.query(countQuery, filterValues),
     ]);
 
     return {

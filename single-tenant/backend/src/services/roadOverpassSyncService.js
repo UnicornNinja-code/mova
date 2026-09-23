@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { overpassApiClient } from "../utils/overpassClient.js";
 import { roadRepository } from "../repositories/roadRepository.js";
+import { operationalScope, isGeometryWithinScope } from "../config/operationalScope.js";
 
 const OVERPASS_TIMEOUT_SECONDS = 180;
 const FALLBACK_TOLL_GEOJSON_PATH = "public/geojson/jalan_tol.geojson";
@@ -73,6 +74,13 @@ export const transformOsmElementToRoad = (el) => {
       coordinates: coords,
     },
   };
+
+  // Spatial Scope Guard: Filter out road geometries located entirely outside operational boundaries
+  if (!isGeometryWithinScope(roadPayload.geometry)) {
+    return null;
+  }
+
+  return roadPayload;
 };
 
 export class RoadOverpassSyncService {
@@ -101,7 +109,7 @@ export class RoadOverpassSyncService {
    * Sync Protocol Roads (Pilar 2) from live Overpass API or fallback snapshot
    */
   async syncProtocolRoadsFromOverpass(options = {}) {
-    const hubCity = options.hubCity || "Sidoarjo";
+    const hubCity = options.hubCity || operationalScope.city;
     const customBbox = options.customBbox || null;
 
     let query = "";
@@ -140,11 +148,11 @@ export class RoadOverpassSyncService {
     } catch (err) {
       console.warn("⚠️ Error Overpass API admin_level=5 protocol roads:", err.message);
       if (!customBbox) {
-        console.warn("⚠️ Mencoba query geografis BBox Sidoarjo sebagai fallback live Overpass...");
+        console.warn("⚠️ Mencoba query geografis BBox operationalScope sebagai fallback live Overpass...");
         const bboxFallbackQuery = `
           [out:json][timeout:${OVERPASS_TIMEOUT_SECONDS}];
           (
-            way["highway"~"^(trunk|trunk_link|primary|primary_link|secondary|secondary_link)$"](-7.65,112.45,-7.25,112.95);
+            way["highway"~"^(trunk|trunk_link|primary|primary_link|secondary|secondary_link)$"](${operationalScope.bbox.minLat},${operationalScope.bbox.minLon},${operationalScope.bbox.maxLat},${operationalScope.bbox.maxLon});
           );
           out geom;
         `;
@@ -214,7 +222,7 @@ export class RoadOverpassSyncService {
    * Sync Toll Roads (Pilar 3) from live Overpass API or fallback snapshot
    */
   async syncTollRoadsFromOverpass(options = {}) {
-    const hubCity = options.hubCity || "Sidoarjo";
+    const hubCity = options.hubCity || operationalScope.city;
     const customBbox = options.customBbox || null;
 
     let query = "";
@@ -260,13 +268,13 @@ export class RoadOverpassSyncService {
     } catch (err) {
       console.warn("⚠️ Error Overpass API admin_level=5 toll roads:", err.message);
       if (!customBbox) {
-        console.warn("⚠️ Mencoba query geografis BBox Sidoarjo sebagai fallback live Overpass...");
+        console.warn("⚠️ Mencoba query geografis BBox operationalScope sebagai fallback live Overpass...");
         const bboxFallbackQuery = `
           [out:json][timeout:${OVERPASS_TIMEOUT_SECONDS}];
           (
-            way["highway"="motorway"](-7.65,112.45,-7.25,112.95);
-            way["highway"="motorway_link"](-7.65,112.45,-7.25,112.95);
-            way["toll"="yes"](-7.65,112.45,-7.25,112.95);
+            way["highway"="motorway"](${operationalScope.bbox.minLat},${operationalScope.bbox.minLon},${operationalScope.bbox.maxLat},${operationalScope.bbox.maxLon});
+            way["highway"="motorway_link"](${operationalScope.bbox.minLat},${operationalScope.bbox.minLon},${operationalScope.bbox.maxLat},${operationalScope.bbox.maxLon});
+            way["toll"="yes"](${operationalScope.bbox.minLat},${operationalScope.bbox.minLon},${operationalScope.bbox.maxLat},${operationalScope.bbox.maxLon});
           );
           out geom;
         `;

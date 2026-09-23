@@ -17,6 +17,11 @@ import { poiEntityFactory } from "./poi/POIEntityFactory.js";
 import { poiRawRepository } from "../repositories/poiRawRepository.js";
 import { poiRepository } from "../repositories/poiRepository.js";
 import { syncRunRepository } from "../repositories/syncRunRepository.js";
+import {
+  operationalScope,
+  isWithinOperationalScope,
+  assertWithinOperationalScope,
+} from "../config/operationalScope.js";
 
 /**
  * POI ELT Pipeline Service (Clean Architecture OOP Orchestrator)
@@ -47,9 +52,9 @@ export class POIEltPipelineService {
     let hubCity = hubCityOverride;
     if (!hubCity) {
       const citySetting = await SystemSettingModel.getByKey("HUB_CITY_NAME");
-      hubCity = citySetting?.value || citySetting?.setting_value || "Sidoarjo";
+      hubCity = citySetting?.value || citySetting?.setting_value || operationalScope.city;
     }
-    return String(hubCity).replace(/["\\]/g, "").trim() || "Sidoarjo";
+    return String(hubCity).replace(/["\\]/g, "").trim() || operationalScope.city;
   }
 
   /**
@@ -118,9 +123,19 @@ export class POIEltPipelineService {
       }
     }
 
-    await this.rawRepo.saveRawData(hubCity, overpassData || []);
-    console.log(`✅ Staging ELT Phase 1 (Extract & Load): ${(overpassData || []).length} raw Overpass elements berhasil disimpan ke pois_raw (${hubCity}).`);
-    return { count: (overpassData || []).length, city: hubCity };
+    // Filter raw elements strictly against operational regional scope boundary
+    const scopedOverpassData = (overpassData || []).filter((el) => {
+      const lat = el.lat ?? el.center?.lat;
+      const lon = el.lon ?? el.center?.lon;
+      if (typeof lat === "number" && typeof lon === "number") {
+        return isWithinOperationalScope(lat, lon);
+      }
+      return true;
+    });
+
+    await this.rawRepo.saveRawData(hubCity, scopedOverpassData);
+    console.log(`✅ Staging ELT Phase 1 (Extract & Load): ${scopedOverpassData.length}/${(overpassData || []).length} raw Overpass elements within operational scope (${operationalScope.city}) berhasil disimpan ke pois_raw (${hubCity}).`);
+    return { count: scopedOverpassData.length, city: hubCity };
   }
 
   /**
@@ -136,10 +151,15 @@ export class POIEltPipelineService {
       throw error;
     }
 
-    // 1. Transform raw elements to POI DTOs via Factory
+    // 1. Transform raw elements to POI DTOs via Factory and enforce spatial scope
     const transformedPois = rawData
       .map((el) => this.factory.createFromOverpassElement(el, this.clusterer))
-      .filter((poi) => poi.category !== "IGNORED" && !isNaN(poi.latitude) && !isNaN(poi.longitude));
+      .filter((poi) => 
+        poi.category !== "IGNORED" && 
+        !isNaN(poi.latitude) && 
+        !isNaN(poi.longitude) &&
+        isWithinOperationalScope(poi.latitude, poi.longitude)
+      );
 
     // 2. Spatial Deduplication (<=15m Haversine Threshold)
     const deduplicatedPois = this.deduplicator.deduplicate(transformedPois, 15);
@@ -400,6 +420,9 @@ export class POIEltPipelineService {
       throw error;
     }
 
+    // Spatial Guard: Ensure coordinate falls within operational regional scope
+    assertWithinOperationalScope(lat, lon, `POI '${name}'`);
+
     let category = data.category ? String(data.category).trim() : null;
     if (!category || category === "") {
       category = this.clusterer.cluster({ name, ...(data.metadata || {}) });
@@ -458,6 +481,13 @@ export class POIEltPipelineService {
       payload.metadata = { ...(existing.metadata || {}), ...updateData.metadata };
     }
 
+    // Spatial Guard: Validate updated coordinates against operational scope
+    const checkLat = updateData.latitude !== undefined ? Number(updateData.latitude) : existing.latitude;
+    const checkLon = updateData.longitude !== undefined ? Number(updateData.longitude) : existing.longitude;
+    if (updateData.latitude !== undefined || updateData.longitude !== undefined) {
+      assertWithinOperationalScope(checkLat, checkLon, `POI '${payload.name || existing.name}'`);
+    }
+
     const updated = await this.repo.updateManualPoi(id, payload);
 
     try {
@@ -511,6 +541,9 @@ export class POIEltPipelineService {
       if (isNaN(lat) || isNaN(lon)) {
         throw new Error(`Item baris ke-${idx + 1} ('${name}') memiliki koordinat tidak valid.`);
       }
+
+      // Spatial Guard for bulk manual POI ingestion
+      assertWithinOperationalScope(lat, lon, `Bulk POI baris ke-${idx + 1} ('${name}')`);
 
       let category = item.category ? String(item.category).trim() : null;
       if (!category || category === "") {

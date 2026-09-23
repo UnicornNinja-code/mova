@@ -11,11 +11,13 @@ import { env } from "../config/env.js";
  * Express middleware to enforce Cloudflare Turnstile CAPTCHA verification on sensitive routes.
  */
 export const requireTurnstile = async (req, res, next) => {
-  // Allow test runners or internal automated suites to bypass
+  // Allow test runners or internal automated suites to bypass strictly in non-production environments
+  const isNonProduction = env.NODE_ENV !== "production";
   if (
-    process.env.NODE_ENV === "test" ||
-    req.headers["x-test-suite"] === "true" ||
-    req.headers["x-bypass-captcha"] === "dev-secret-internal"
+    isNonProduction &&
+    (process.env.NODE_ENV === "test" ||
+      req.headers["x-test-suite"] === "true" ||
+      req.headers["x-bypass-captcha"] === "dev-secret-internal")
   ) {
     return next();
   }

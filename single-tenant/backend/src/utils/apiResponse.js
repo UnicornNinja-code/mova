@@ -103,16 +103,34 @@ export const sendError = (
   errors = null,
   ui_notice = null
 ) => {
+  const isProd = process.env.NODE_ENV === "production";
+
+  // Information Disclosure Defense (OWASP API3:2023)
+  // Mask raw database errors, syntax faults, and internal driver states in production
+  let sanitizedMessage = message;
+  let sanitizedErrors = errors;
+
+  if (isProd && statusCode >= 500) {
+    const isDbOrInternalLeak =
+      typeof message === "string" &&
+      (/relation\s+"|\bcolumn\s+"|\bsyntax error\b|\bprepared statement\b|\bpg_\b|\bPostgreSQL\b|\bviolates\s+(unique|foreign key|not-null)\b/i.test(message));
+
+    if (isDbOrInternalLeak || message === "Internal server error") {
+      sanitizedMessage = "Terjadi kesalahan internal pada server. Silakan hubungi administrator.";
+    }
+    sanitizedErrors = null;
+  }
+
   const responsePayload = {
     success: false,
     status: "error",
     statusCode,
-    message,
-    msg: message, // Backward-compatible alias
+    message: sanitizedMessage,
+    msg: sanitizedMessage, // Backward-compatible alias
   };
 
-  if (errors) {
-    responsePayload.errors = errors;
+  if (sanitizedErrors) {
+    responsePayload.errors = sanitizedErrors;
   }
 
   if (ui_notice) {
@@ -121,7 +139,7 @@ export const sendError = (
     responsePayload.ui_notice = {
       type: statusCode === 429 ? "warning" : "error",
       title: statusCode === 429 ? "Batas Request" : "Permintaan Gagal",
-      message,
+      message: sanitizedMessage,
     };
   }
 

@@ -1,18 +1,19 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
-  Layers,
-  Maximize2,
   ZoomIn,
   ZoomOut,
+  RotateCcw,
+  Search,
+  CheckSquare,
+  Square,
+  RefreshCw,
+  X,
   Compass,
-  MapPin,
-  ShieldAlert,
 } from "lucide-react";
-import { Button, Badge } from "@/components/primitives";
+import { Button, Badge, Input } from "@/components/primitives";
 
-// Sidoarjo Default Center
 const SIDOARJO_CENTER = [-7.4478, 112.7183];
 const DEFAULT_ZOOM = 12;
 
@@ -20,10 +21,21 @@ export function RoadMapCanvas({
   protocolGeoJson,
   tollGeoJson,
   showProtocol = true,
+  setShowProtocol,
   showToll = true,
+  setShowToll,
+  protocolCount = 0,
+  tollCount = 0,
+  searchQuery = "",
+  setSearchQuery,
+  searchResults = [],
   selectedSegment = null,
   onSelectSegment,
   focusSegment = null,
+  onResetView,
+  onOpenSyncModal,
+  isSyncing = false,
+  isSuperadmin = false,
 }) {
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -32,6 +44,7 @@ export function RoadMapCanvas({
   const highlightLayerRef = useRef(null);
 
   const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -47,19 +60,17 @@ export function RoadMapCanvas({
         attributionControl: true,
       });
 
-      // Pure Standard OpenStreetMap Tile Layer with subdomains
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         subdomains: ["a", "b", "c"],
         maxZoom: 19,
         attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors | MOVA GIS',
+          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors | MOVA Operations',
       }).addTo(map);
 
       map.on("zoomend", () => {
         setMapZoom(map.getZoom());
       });
 
-      // Force recalculate dimensions so tiles render immediately
       setTimeout(() => {
         if (mapInstanceRef.current) {
           mapInstanceRef.current.invalidateSize();
@@ -92,7 +103,6 @@ export function RoadMapCanvas({
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    // Remove old layer
     if (protocolLayerRef.current) {
       map.removeLayer(protocolLayerRef.current);
       protocolLayerRef.current = null;
@@ -100,22 +110,22 @@ export function RoadMapCanvas({
 
     if (showProtocol && protocolGeoJson?.features?.length > 0) {
       const layer = L.geoJSON(protocolGeoJson, {
-        style: (feature) => ({
-          color: "#F59E0B", // Amber Orange
+        style: () => ({
+          color: "#d97706", // Amber 600
           weight: 3.5,
-          opacity: 0.85,
+          opacity: 0.9,
           lineCap: "round",
           lineJoin: "round",
         }),
         onEachFeature: (feature, layerItem) => {
           const props = feature.properties || {};
           const name = props.name || "Jalan Protokol (Tanpa Nama)";
-          const hType = props.highway || "secondary";
+          const hType = (props.highway || "sekunder").replace(/_/g, " ");
 
           layerItem.bindTooltip(
-            `<div style="font-family: sans-serif; font-size: 11px; padding: 2px 4px;">
-              <strong style="color: #D97706;">[PROTOKOL]</strong> ${name}<br/>
-              <span style="color: #6B7280; font-size: 10px;">Tipe: ${hType}</span>
+            `<div style="font-family: inherit; font-size: 11px; padding: 2px 4px;">
+              <strong style="color: #b45309;">[JALAN PROTOKOL]</strong> ${name}<br/>
+              <span style="color: #6b7280; font-size: 10px;">Tipe: ${hType} · Dilarang untuk berjualan</span>
             </div>`,
             { sticky: true, className: "mova-road-tooltip" }
           );
@@ -126,7 +136,7 @@ export function RoadMapCanvas({
               target.setStyle({
                 weight: 5.5,
                 opacity: 1.0,
-                color: "#D97706",
+                color: "#92400e",
               });
               if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
                 target.bringToFront();
@@ -135,9 +145,9 @@ export function RoadMapCanvas({
             mouseout: (e) => {
               const target = e.target;
               target.setStyle({
-                color: "#F59E0B",
+                color: "#d97706",
                 weight: 3.5,
-                opacity: 0.85,
+                opacity: 0.9,
               });
             },
             click: (e) => {
@@ -167,8 +177,8 @@ export function RoadMapCanvas({
 
     if (showToll && tollGeoJson?.features?.length > 0) {
       const layer = L.geoJSON(tollGeoJson, {
-        style: (feature) => ({
-          color: "#EF4444", // Crimson Red
+        style: () => ({
+          color: "#da1e28", // Carbon Red 60
           weight: 4.5,
           opacity: 0.95,
           lineCap: "round",
@@ -177,12 +187,12 @@ export function RoadMapCanvas({
         onEachFeature: (feature, layerItem) => {
           const props = feature.properties || {};
           const name = props.name || "Ruas Jalan Tol";
-          const hType = props.highway || "motorway";
+          const hType = (props.highway || "motorway").replace(/_/g, " ");
 
           layerItem.bindTooltip(
-            `<div style="font-family: sans-serif; font-size: 11px; padding: 2px 4px;">
-              <strong style="color: #DC2626;">[JALAN TOL]</strong> ${name}<br/>
-              <span style="color: #6B7280; font-size: 10px;">Tipe: ${hType} · DILARANG MOTOR</span>
+            `<div style="font-family: inherit; font-size: 11px; padding: 2px 4px;">
+              <strong style="color: #da1e28;">[JALAN TOL]</strong> ${name}<br/>
+              <span style="color: #6b7280; font-size: 10px;">Bebas Hambatan · DILARANG MOTOR & BERJUALAN</span>
             </div>`,
             { sticky: true, className: "mova-road-tooltip" }
           );
@@ -193,7 +203,7 @@ export function RoadMapCanvas({
               target.setStyle({
                 weight: 6.5,
                 opacity: 1.0,
-                color: "#B91C1C",
+                color: "#a2191f",
               });
               if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
                 target.bringToFront();
@@ -202,7 +212,7 @@ export function RoadMapCanvas({
             mouseout: (e) => {
               const target = e.target;
               target.setStyle({
-                color: "#EF4444",
+                color: "#da1e28",
                 weight: 4.5,
                 opacity: 0.95,
               });
@@ -233,12 +243,11 @@ export function RoadMapCanvas({
     }
 
     if (selectedSegment && selectedSegment.geometry) {
-      // Create double layer highlight (outer neon cyan/blue glow + inner line)
       const highlightOuter = L.geoJSON(selectedSegment, {
         style: {
-          color: "#3B82F6", // Vivid blue glow
-          weight: 9,
-          opacity: 0.6,
+          color: "#0f62fe", // Carbon Blue 60
+          weight: 8,
+          opacity: 0.8,
           lineCap: "round",
           lineJoin: "round",
         },
@@ -246,8 +255,8 @@ export function RoadMapCanvas({
 
       const highlightInner = L.geoJSON(selectedSegment, {
         style: {
-          color: "#FFFFFF",
-          weight: 4,
+          color: "#ffffff",
+          weight: 3.5,
           opacity: 1.0,
           lineCap: "round",
           lineJoin: "round",
@@ -274,7 +283,7 @@ export function RoadMapCanvas({
           padding: [80, 80],
           maxZoom: 16,
           animate: true,
-          duration: 0.8,
+          duration: 0.6,
         });
       }
     } catch (e) {
@@ -290,7 +299,11 @@ export function RoadMapCanvas({
     mapInstanceRef.current?.zoomOut();
   };
 
-  const handleFitAll = () => {
+  const handleResetToOperations = () => {
+    if (onResetView) {
+      onResetView();
+      return;
+    }
     const map = mapInstanceRef.current;
     if (!map) return;
 
@@ -302,7 +315,7 @@ export function RoadMapCanvas({
       const group = L.featureGroup(layers);
       const bounds = group.getBounds();
       if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [40, 40] });
+        map.fitBounds(bounds, { padding: [30, 30] });
         return;
       }
     }
@@ -311,68 +324,196 @@ export function RoadMapCanvas({
   };
 
   return (
-    <div className="relative w-full h-full min-h-[550px] rounded-xl overflow-hidden border border-[var(--border)] shadow-md bg-[var(--background)]">
+    <div className="relative w-full h-[620px] rounded-lg overflow-hidden border border-[var(--border)] shadow-sm bg-[var(--background)]">
       {/* Map DOM node */}
       <div ref={mapContainerRef} className="w-full h-full z-0" />
 
-      {/* Floating Map Controls Top-Left */}
-      <div className="absolute top-3 left-3 z-[400] flex flex-col gap-2 pointer-events-auto">
-        <div className="bg-[var(--card)]/90 backdrop-blur-md border border-[var(--border)] p-1.5 rounded-lg shadow-lg flex flex-col gap-1">
+      {/* 1. TOP-LEFT FLOATING WIDGET: Filter Layer + Pencarian Cepat */}
+      <div className="absolute top-3 left-3 z-[400] flex items-center gap-2 pointer-events-auto">
+        {/* Layer Filter Pill */}
+        <div className="bg-[var(--card)] border border-[var(--border)] px-2.5 py-1.5 rounded shadow-md flex items-center gap-2">
+          {/* Protokol Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowProtocol(!showProtocol)}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors ${
+              showProtocol
+                ? "bg-amber-500/10 text-[var(--foreground)] border border-amber-500/30"
+                : "text-[var(--muted-foreground)] opacity-60 hover:opacity-100"
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-sm bg-amber-500 shrink-0" />
+            <span className="font-semibold">Protokol</span>
+            <span className="text-[10px] text-[var(--muted-foreground)] font-mono">
+              ({protocolCount.toLocaleString()})
+            </span>
+          </button>
+
+          {/* Tol Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowToll(!showToll)}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors ${
+              showToll
+                ? "bg-red-500/10 text-[var(--foreground)] border border-red-500/30"
+                : "text-[var(--muted-foreground)] opacity-60 hover:opacity-100"
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-sm bg-red-600 shrink-0" />
+            <span className="font-semibold">Tol</span>
+            <span className="text-[10px] text-[var(--muted-foreground)] font-mono">
+              ({tollCount.toLocaleString()})
+            </span>
+          </button>
+
+          <div className="w-[1px] h-5 bg-[var(--border)] mx-0.5" />
+
+          {/* Quick Search Input */}
+          <div className="relative">
+            <Input
+              placeholder="Cari jalan..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              className="text-xs pl-7 pr-6 h-7 w-44 md:w-56 bg-[var(--background)]"
+            />
+            <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+
+            {/* Quick Search Dropdown Results */}
+            {searchQuery.trim() !== "" && (
+              <div className="absolute left-0 top-full mt-1.5 w-64 md:w-80 bg-[var(--card)] border border-[var(--border)] rounded shadow-xl max-h-56 overflow-y-auto custom-scrollbar p-1 z-50">
+                {searchResults.length === 0 ? (
+                  <div className="p-2.5 text-center text-xs text-[var(--muted-foreground)]">
+                    Tidak ada jalan cocok "{searchQuery}"
+                  </div>
+                ) : (
+                  searchResults.slice(0, 10).map((seg, idx) => {
+                    const p = seg.properties || {};
+                    const isSegToll =
+                      p.restriction_type === "PROHIBITED_TOLL_ROAD" ||
+                      p.highway === "motorway" ||
+                      p.highway === "motorway_link";
+                    const roadTitle = p.name || "Ruas Jalan Tanpa Nama";
+
+                    return (
+                      <button
+                        key={`${p.id || p.external_id || idx}`}
+                        type="button"
+                        onClick={() => {
+                          onSelectSegment(seg);
+                          setIsSearchFocused(false);
+                        }}
+                        className="w-full flex items-center justify-between p-2 rounded hover:bg-[var(--muted)]/50 text-left transition-colors group"
+                      >
+                        <div className="truncate pr-2">
+                          <p className="text-xs font-medium text-[var(--foreground)] group-hover:text-[var(--primary)] truncate">
+                            {roadTitle}
+                          </p>
+                          <span className="text-[10px] text-[var(--muted-foreground)]">
+                            {isSegToll ? "Jalan Bebas Hambatan" : "Jalan Protokol / Arteri"}
+                          </span>
+                        </div>
+                        <Badge
+                          variant={isSegToll ? "destructive" : "warning"}
+                          className="text-[9px] uppercase px-1.5 py-0 shrink-0 font-bold"
+                        >
+                          {isSegToll ? "Tol" : "Protokol"}
+                        </Badge>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 2. TOP-RIGHT FLOATING WIDGET: Tombol Aksi Peta */}
+      <div className="absolute top-3 right-3 z-[400] flex items-center gap-2 pointer-events-auto">
+        <div className="bg-[var(--card)] border border-[var(--border)] p-1 rounded shadow-md flex items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleResetToOperations}
+            className="text-xs gap-1.5 h-7 font-medium px-2.5"
+            title="Kembali ke Area Operasi Sidoarjo"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-[var(--foreground)]" />
+            <span className="hidden sm:inline">Kembali ke Area Operasi</span>
+          </Button>
+
+          <Button
+            variant="primary"
+            size="sm"
+            disabled={!isSuperadmin || isSyncing}
+            onClick={onOpenSyncModal}
+            className="text-xs gap-1.5 h-7 font-medium px-2.5"
+            title={!isSuperadmin ? "Perlu hak akses Superadmin" : "Perbarui data jalan dari OpenStreetMap"}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+            <span>{isSyncing ? "Menyinkronkan..." : "Perbarui Data"}</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* 3. LEFT ZOOM CONTROLS */}
+      <div className="absolute top-20 left-3 z-[400] flex flex-col gap-1 pointer-events-auto">
+        <div className="bg-[var(--card)] border border-[var(--border)] p-1 rounded shadow-md flex flex-col gap-1">
           <Button
             variant="ghost"
             size="icon"
             onClick={handleZoomIn}
-            className="w-8 h-8 rounded hover:bg-[var(--muted)]"
-            title="Zoom In"
+            className="w-7 h-7 rounded hover:bg-[var(--muted)]"
+            title="Perbesar Peta"
           >
-            <ZoomIn className="w-4 h-4 text-[var(--foreground)]" />
+            <ZoomIn className="w-3.5 h-3.5 text-[var(--foreground)]" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={handleZoomOut}
-            className="w-8 h-8 rounded hover:bg-[var(--muted)]"
-            title="Zoom Out"
+            className="w-7 h-7 rounded hover:bg-[var(--muted)]"
+            title="Perkecil Peta"
           >
-            <ZoomOut className="w-4 h-4 text-[var(--foreground)]" />
-          </Button>
-          <div className="w-full h-[1px] bg-[var(--border)] my-0.5" />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleFitAll}
-            className="w-8 h-8 rounded hover:bg-[var(--muted)]"
-            title="Fit Sidoarjo Restriction Bounds"
-          >
-            <Maximize2 className="w-4 h-4 text-[var(--foreground)]" />
+            <ZoomOut className="w-3.5 h-3.5 text-[var(--foreground)]" />
           </Button>
         </div>
       </div>
 
-      {/* Floating Legend Bottom-Left */}
-      <div className="absolute bottom-3 left-3 z-[400] bg-[var(--card)]/90 backdrop-blur-md border border-[var(--border)] px-3 py-2 rounded-lg shadow-lg pointer-events-auto text-xs space-y-1.5">
+      {/* 4. BOTTOM-LEFT LEGENDA */}
+      <div className="absolute bottom-3 left-3 z-[400] bg-[var(--card)] border border-[var(--border)] px-3 py-2 rounded shadow-md pointer-events-auto text-xs space-y-1">
         <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] block">
-          Legenda Restriksi
+          Legenda Peta
         </span>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-1.5">
-            <span className="w-4 h-1.5 rounded-full bg-amber-500 inline-block" />
+            <span className="w-3.5 h-1 rounded-sm bg-amber-600 inline-block" />
             <span className="text-[11px] font-medium text-[var(--foreground)]">Jalan Protokol</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-4 h-1.5 rounded-full bg-red-500 inline-block" />
+            <span className="w-3.5 h-1 rounded-sm bg-red-600 inline-block" />
             <span className="text-[11px] font-medium text-[var(--foreground)]">Jalan Tol</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-4 h-1.5 rounded-full bg-blue-500 inline-block" />
-            <span className="text-[11px] font-medium text-[var(--foreground)]">Segmen Terpilih</span>
+            <span className="w-3.5 h-1 rounded-sm bg-blue-600 inline-block" />
+            <span className="text-[11px] font-medium text-[var(--foreground)]">Ruas Terpilih</span>
           </div>
         </div>
       </div>
 
-      {/* Floating Coordinate Center Bottom-Right */}
-      <div className="absolute bottom-3 right-3 z-[400] bg-[var(--card)]/90 backdrop-blur-md border border-[var(--border)] px-2.5 py-1 rounded-md shadow-md text-[10px] font-mono text-[var(--muted-foreground)] pointer-events-none">
-        Zoom: {mapZoom} · PostGIS LineString Layer
+      {/* 5. BOTTOM-RIGHT STATUS AREA OPERASI */}
+      <div className="absolute bottom-3 right-3 z-[400] bg-[var(--card)] border border-[var(--border)] px-2.5 py-1 rounded shadow-sm text-[10px] font-mono text-[var(--muted-foreground)] pointer-events-none">
+        Area Operasi: Kab. Sidoarjo · Zoom {mapZoom}
       </div>
     </div>
   );

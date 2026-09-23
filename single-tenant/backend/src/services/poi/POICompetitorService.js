@@ -8,6 +8,10 @@ import { pool } from "../../config/database.js";
 import { ZoneModel } from "../../models/zoneModel.js";
 import { competitorRepository } from "../../repositories/competitorRepository.js";
 import { calculateStringSimilarity } from "../../utils/stringSimilarity.js";
+import {
+  operationalScope,
+  assertWithinOperationalScope,
+} from "../../config/operationalScope.js";
 
 const VALID_CATEGORIES = ["DIRECT_STARLING", "LOW_PRICE_TAKEAWAY", "INDIRECT_PREMIUM"];
 const CATEGORY_DEFAULT_WEIGHTS = {
@@ -15,14 +19,10 @@ const CATEGORY_DEFAULT_WEIGHTS = {
   LOW_PRICE_TAKEAWAY: 2,
   INDIRECT_PREMIUM: 1,
 };
-const SIDOARJO_REGIONAL_BOUNDS = {
-  minLat: -7.65,
-  maxLat: -7.25,
-  minLon: 112.45,
-  maxLon: 112.95,
-};
+const SIDOARJO_REGIONAL_BOUNDS = operationalScope.bbox;
 const CANDIDATE_PROXIMITY_METERS = 15;
 const CANDIDATE_SIMILARITY_THRESHOLD = 0.85;
+
 
 /**
  * Validates competitor input against Contract v1.0 invariants

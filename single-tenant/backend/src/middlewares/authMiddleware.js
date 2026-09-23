@@ -57,10 +57,17 @@ export const authenticateToken = async (req, res, next) => {
         req.user = user;
         next();
     } catch (error) {
-        return res.status(403).json({
+        if (error.name === "TokenExpiredError") {
+            return res.status(401).json({
+                success: false,
+                code: "TOKEN_EXPIRED",
+                msg: "Token autentikasi telah kadaluarsa. Silakan refresh sesi.",
+            });
+        }
+        return res.status(401).json({
             success: false,
-            msg: "Token tidak valid atau telah kadaluarsa.",
-            error: error.message,
+            code: "INVALID_TOKEN",
+            msg: "Token autentikasi tidak valid atau telah rusak.",
         });
     }
 };

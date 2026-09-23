@@ -44,4 +44,10 @@ router.get("/map-config", authenticateToken, (req, res, next) =>
   systemSettingController.getMapConfig(req, res, next)
 );
 
+// 5. Authoritative Operational Scope & Boundaries (SSOT)
+router.get("/operational-scope", authenticateToken, (req, res, next) =>
+  systemSettingController.getOperationalScope(req, res, next)
+);
+
 export default router;
+

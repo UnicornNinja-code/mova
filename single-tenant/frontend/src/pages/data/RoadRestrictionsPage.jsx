@@ -2,23 +2,19 @@ import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ShieldAlert,
-  Layers,
   RefreshCw,
-  MapPin,
-  CheckCircle2,
-  AlertCircle,
-  Database,
-  ArrowRight,
-  Info,
 } from "lucide-react";
-import { Button, Badge, Spinner } from "@/components/primitives";
+import { Button, Spinner } from "@/components/primitives";
 import { roadService } from "@/services/roadService";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { RoadMapCanvas } from "./components/RoadMapCanvas";
 import { RoadControlPanel } from "./components/RoadControlPanel";
 import { RoadSegmentDrawer } from "./components/RoadSegmentDrawer";
 
 export function RoadRestrictionsPage() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const isSuperadmin = user?.role === "SUPERADMIN";
 
   const [showProtocol, setShowProtocol] = useState(true);
   const [showToll, setShowToll] = useState(true);
@@ -26,8 +22,9 @@ export function RoadRestrictionsPage() {
   const [focusSegment, setFocusSegment] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [syncStatus, setSyncStatus] = useState(null);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
-  // 1. Fetch Protocol Roads GeoJSON
+  // 1. Fetch Protocol Roads GeoJSON (Merged LineStrings from PostGIS)
   const {
     data: protocolData,
     isLoading: isLoadingProtocol,
@@ -36,10 +33,10 @@ export function RoadRestrictionsPage() {
   } = useQuery({
     queryKey: ["roads", "protocol"],
     queryFn: () => roadService.getProtocolRoads(),
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
+    staleTime: 1000 * 60 * 5,
   });
 
-  // 2. Fetch Toll Roads GeoJSON
+  // 2. Fetch Toll Roads GeoJSON (Merged LineStrings from PostGIS)
   const {
     data: tollData,
     isLoading: isLoadingToll,
@@ -48,10 +45,9 @@ export function RoadRestrictionsPage() {
   } = useQuery({
     queryKey: ["roads", "toll"],
     queryFn: () => roadService.getTollRoads(),
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
+    staleTime: 1000 * 60 * 5,
   });
 
-  // Protocol & Toll features count
   const protocolFeatures = useMemo(() => protocolData?.features || [], [protocolData]);
   const tollFeatures = useMemo(() => tollData?.features || [], [tollData]);
 
@@ -59,14 +55,14 @@ export function RoadRestrictionsPage() {
   const tollCount = tollFeatures.length;
   const isLoading = isLoadingProtocol || isLoadingToll;
 
-  // 3. Sync Mutations
+  // 3. Extended Timeout Sync Mutations (180s)
   const syncProtocolMutation = useMutation({
     mutationFn: (hubCity = "Sidoarjo") => roadService.syncProtocolRoads(hubCity),
     onSuccess: (data) => {
       setSyncStatus({
         success: true,
-        message: data.message || "Sinkronisasi Jalan Protokol berhasil.",
-        source: data.source || "OVERPASS_API",
+        message: data.message || "Data Jalan Protokol berhasil diperbarui.",
+        source: data.source || "OpenStreetMap",
         acquiredAt: data.acquiredAt || new Date().toISOString(),
       });
       queryClient.invalidateQueries({ queryKey: ["roads", "protocol"] });
@@ -74,7 +70,9 @@ export function RoadRestrictionsPage() {
     onError: (err) => {
       setSyncStatus({
         success: false,
-        message: err?.response?.data?.message || err.message || "Gagal menyinkronkan Jalan Protokol.",
+        message:
+          err?.response?.data?.message ||
+          "Koneksi ke penyedia data jalan sedang mengalami gangguan. Data lokal tetap aman digunakan.",
         source: "ERROR",
         acquiredAt: new Date().toISOString(),
       });
@@ -86,8 +84,8 @@ export function RoadRestrictionsPage() {
     onSuccess: (data) => {
       setSyncStatus({
         success: true,
-        message: data.message || "Sinkronisasi Jalan Tol berhasil.",
-        source: data.source || "OVERPASS_API",
+        message: data.message || "Data Jalan Tol berhasil diperbarui.",
+        source: data.source || "OpenStreetMap",
         acquiredAt: data.acquiredAt || new Date().toISOString(),
       });
       queryClient.invalidateQueries({ queryKey: ["roads", "toll"] });
@@ -95,7 +93,9 @@ export function RoadRestrictionsPage() {
     onError: (err) => {
       setSyncStatus({
         success: false,
-        message: err?.response?.data?.message || err.message || "Gagal menyinkronkan Jalan Tol.",
+        message:
+          err?.response?.data?.message ||
+          "Koneksi ke penyedia data jalan sedang mengalami gangguan. Data lokal tetap aman digunakan.",
         source: "ERROR",
         acquiredAt: new Date().toISOString(),
       });
@@ -104,16 +104,36 @@ export function RoadRestrictionsPage() {
 
   const isSyncing = syncProtocolMutation.isPending || syncTollMutation.isPending;
 
-  const handleTriggerSync = (type) => {
+  const handleTriggerSync = async (scope) => {
     setSyncStatus(null);
-    if (type === "TOLL") {
+    if (scope === "TOLL") {
       syncTollMutation.mutate("Sidoarjo");
-    } else if (type === "PROTOCOL") {
+    } else if (scope === "PROTOCOL") {
       syncProtocolMutation.mutate("Sidoarjo");
+    } else if (scope === "ALL") {
+      try {
+        await syncProtocolMutation.mutateAsync("Sidoarjo");
+        await syncTollMutation.mutateAsync("Sidoarjo");
+        setSyncStatus({
+          success: true,
+          message: "Seluruh data Jalan Protokol & Tol berhasil diperbarui dari OpenStreetMap.",
+          source: "OpenStreetMap",
+          acquiredAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        setSyncStatus({
+          success: false,
+          message:
+            err?.response?.data?.message ||
+            "Pembaruan data belum berhasil. Data yang ditampilkan tetap menggunakan versi terakhir.",
+          source: "ERROR",
+          acquiredAt: new Date().toISOString(),
+        });
+      }
     }
   };
 
-  // 4. In-Memory Search across loaded features
+  // 4. In-Memory Search
   const searchResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return [];
@@ -146,98 +166,97 @@ export function RoadRestrictionsPage() {
 
   return (
     <div className="space-y-4 max-w-[1600px] mx-auto p-4 md:p-6 text-[var(--foreground)]">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--card)] p-5 rounded-2xl border border-[var(--border)] shadow-sm">
+      {/* 1. Header Manusiawi dengan Deskripsi Larangan Berjualan */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--card)] p-4 md:p-5 rounded-lg border border-[var(--border)] shadow-sm">
         <div className="space-y-1">
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="p-2 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 rounded bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
               <ShieldAlert className="w-5 h-5" />
             </div>
-            <h1 className="text-xl md:text-2xl font-extrabold text-[var(--foreground)] tracking-tight">
-              Data Jalan Protokol & Tol
+            <h1 className="text-xl md:text-2xl font-bold text-[var(--foreground)] tracking-tight">
+              Jalan Protokol & Tol
             </h1>
-            <Badge variant="outline" className="text-xs font-semibold px-2.5 py-0.5 bg-[var(--muted)]/50">
-              Spatial Restrictions Layer
-            </Badge>
           </div>
           <p className="text-xs md:text-sm text-[var(--muted-foreground)]">
-            Monitoring spatial pembatasan jalan protokol (arteri/sekunder) dan jalan tol untuk keselamatan armada sepeda motor MOVA.
+            Peta pembatasan rute dan area jalan yang tidak dapat dijadikan tempat operasional berjualan untuk armada MOVA.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start sm:self-center shrink-0">
+        <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
           <Button
             variant="outline"
             size="sm"
             onClick={handleRefreshAll}
             disabled={isLoading || isRefetchingProtocol || isRefetchingToll}
-            className="text-xs gap-1.5"
+            className="text-xs gap-1.5 h-8 font-medium"
           >
             <RefreshCw
               className={`w-3.5 h-3.5 ${
                 isLoading || isRefetchingProtocol || isRefetchingToll ? "animate-spin" : ""
               }`}
             />
-            Muat Ulang Layer
+            Muat Ulang
           </Button>
         </div>
       </div>
 
-      {/* Main Split Grid (Map Canvas 70% + Control Drawer 30%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Left Side: Map Workspace (70% on desktop) */}
-        <div className="lg:col-span-8 flex flex-col gap-3 min-h-[600px] lg:min-h-[720px] h-full">
-          {isLoading && !protocolData && !tollData ? (
-            <div className="w-full h-full min-h-[600px] rounded-xl border border-[var(--border)] flex flex-col items-center justify-center bg-[var(--card)] space-y-3">
-              <Spinner size="lg" label="Memuat dataset spasial PostGIS..." />
-              <p className="text-xs text-[var(--muted-foreground)]">
-                Mengambil data GeoJSON LineString Jalan Protokol & Tol Sidoarjo...
-              </p>
-            </div>
-          ) : (
-            <RoadMapCanvas
-              protocolGeoJson={protocolData}
-              tollGeoJson={tollData}
-              showProtocol={showProtocol}
-              showToll={showToll}
-              selectedSegment={selectedSegment}
-              onSelectSegment={handleSelectSegment}
-              focusSegment={focusSegment}
-            />
-          )}
-        </div>
-
-        {/* Right Side: Control Panel & Inspector Drawer (30% on desktop) */}
-        <div className="lg:col-span-4 space-y-4">
-          {/* Selected Segment Inspector Drawer */}
-          {selectedSegment && (
-            <RoadSegmentDrawer
-              selectedSegment={selectedSegment}
-              onClose={() => setSelectedSegment(null)}
-              onZoomToSegment={handleZoomToSelected}
-            />
-          )}
-
-          {/* Road Control Panel */}
-          <RoadControlPanel
-            protocolCount={protocolCount}
-            tollCount={tollCount}
-            isLoading={isLoading}
+      {/* 2. Horizontal View Main Canvas (Peta Lebar Penuh dengan Floating Widgets) */}
+      <div className="w-full">
+        {isLoading && !protocolData && !tollData ? (
+          <div className="w-full h-[620px] rounded-lg border border-[var(--border)] flex flex-col items-center justify-center bg-[var(--card)] space-y-3">
+            <Spinner size="lg" label="Menyiapkan data spasial jalan..." />
+            <p className="text-xs text-[var(--muted-foreground)]">
+              Mengambil rute jalan protokol & tol Kabupaten Sidoarjo...
+            </p>
+          </div>
+        ) : (
+          <RoadMapCanvas
+            protocolGeoJson={protocolData}
+            tollGeoJson={tollData}
             showProtocol={showProtocol}
             setShowProtocol={setShowProtocol}
             showToll={showToll}
             setShowToll={setShowToll}
+            protocolCount={protocolCount}
+            tollCount={tollCount}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             searchResults={searchResults}
+            selectedSegment={selectedSegment}
             onSelectSegment={handleSelectSegment}
-            onTriggerSync={handleTriggerSync}
+            focusSegment={focusSegment}
+            onResetView={() =>
+              setFocusSegment({
+                geometry: { type: "Point", coordinates: [112.7183, -7.4478] },
+              })
+            }
+            onOpenSyncModal={() => setConfirmModalOpen(true)}
             isSyncing={isSyncing}
-            syncStatus={syncStatus}
-            onResetView={() => setFocusSegment({ geometry: { type: "Point", coordinates: [112.7183, -7.4478] } })}
+            isSuperadmin={isSuperadmin}
           />
-        </div>
+        )}
       </div>
+
+      {/* 3. Panel Detail Ruas Terpilih (Muncul jika ada jalan yang diklik) */}
+      {selectedSegment && (
+        <RoadSegmentDrawer
+          selectedSegment={selectedSegment}
+          onClose={() => setSelectedSegment(null)}
+          onZoomToSegment={handleZoomToSelected}
+        />
+      )}
+
+      {/* 4. Panel Informasi Bawah (3-Kolom Horizontal: Ringkasan, Status, Dampak) */}
+      <RoadControlPanel
+        protocolCount={protocolCount}
+        tollCount={tollCount}
+        isLoading={isLoading}
+        onTriggerSync={handleTriggerSync}
+        isSyncing={isSyncing}
+        syncStatus={syncStatus}
+        confirmModalOpen={confirmModalOpen}
+        setConfirmModalOpen={setConfirmModalOpen}
+      />
     </div>
   );
 }

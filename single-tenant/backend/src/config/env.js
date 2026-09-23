@@ -115,6 +115,23 @@ export const env = {
     ENABLED: process.env.TURNSTILE_ENABLED !== "false",
     SECRET_KEY: process.env.TURNSTILE_SECRET_KEY || (isProduction ? undefined : DEV_FALLBACK_TURNSTILE_KEY),
   },
+
+  OPERATIONAL_SCOPE: {
+    CITY: (process.env.OPERATIONAL_CITY || "Sidoarjo").replace(/["']/g, "").trim(),
+    PROVINCE: (process.env.OPERATIONAL_PROVINCE || "Jawa Timur").replace(/["']/g, "").trim(),
+    COUNTRY: (process.env.OPERATIONAL_COUNTRY || "Indonesia").replace(/["']/g, "").trim(),
+    ADMIN_LEVEL: Number(process.env.OPERATIONAL_ADMIN_LEVEL || 5),
+    BBOX: {
+      minLat: Number(process.env.OPERATIONAL_BBOX_MIN_LAT || -7.65),
+      maxLat: Number(process.env.OPERATIONAL_BBOX_MAX_LAT || -7.25),
+      minLon: Number(process.env.OPERATIONAL_BBOX_MIN_LON || 112.45),
+      maxLon: Number(process.env.OPERATIONAL_BBOX_MAX_LON || 112.95),
+    },
+    CENTER: {
+      latitude: Number(process.env.OPERATIONAL_CENTER_LAT || -7.4478),
+      longitude: Number(process.env.OPERATIONAL_CENTER_LON || 112.7183),
+    },
+  },
 };
 
 export default env;

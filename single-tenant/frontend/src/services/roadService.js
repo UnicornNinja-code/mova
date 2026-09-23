@@ -8,7 +8,12 @@ export const roadService = {
   },
 
   async syncProtocolRoads(hubCity = "Sidoarjo") {
-    const response = await api.post("/api/roads/sync-protocol", { hubCity });
+    // 180s timeout prevents false negative abort during Overpass retry/backoff
+    const response = await api.post(
+      "/api/roads/sync-protocol",
+      { hubCity },
+      { timeout: 180000 }
+    );
     return response.data?.data || response.data;
   },
 
@@ -19,7 +24,12 @@ export const roadService = {
   },
 
   async syncTollRoads(hubCity = "Sidoarjo", customBbox = null) {
-    const response = await api.post("/api/roads/sync-toll", { hubCity, customBbox });
+    // 180s timeout prevents false negative abort during Overpass retry/backoff
+    const response = await api.post(
+      "/api/roads/sync-toll",
+      { hubCity, customBbox },
+      { timeout: 180000 }
+    );
     return response.data?.data || response.data;
   },
 

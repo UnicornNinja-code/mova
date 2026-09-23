@@ -134,6 +134,20 @@ export class SystemSettingController {
       return handleControllerError(res, error);
     }
   }
+
+  async getOperationalScope(req, res) {
+    try {
+      const { operationalScope } = await import("../config/operationalScope.js");
+      return sendSuccess(
+        res,
+        operationalScope,
+        "Konfigurasi wilayah operasional MOVA berhasil dimuat."
+      );
+    } catch (error) {
+      return handleControllerError(res, error);
+    }
+  }
 }
 
 export const systemSettingController = new SystemSettingController();
+
