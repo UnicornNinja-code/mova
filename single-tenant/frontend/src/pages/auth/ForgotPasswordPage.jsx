@@ -82,7 +82,7 @@ export function ForgotPasswordPage() {
   return (
     <AuthLayout
       title="Lupa Kata Sandi"
-      subtitle="Pemulihan akses akun MOVA Control Room"
+      subtitle="Masukkan email terdaftar untuk menerima tautan reset kata sandi"
     >
       {submittedEmail ? (
         <div className="space-y-4">

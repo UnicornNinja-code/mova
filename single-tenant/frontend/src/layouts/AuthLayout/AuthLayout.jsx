@@ -1,91 +1,100 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { useUiStore } from "@/stores/useUiStore";
-import { Sun, Moon } from "lucide-react";
-import { Panel } from "@/components/primitives";
+import { Sun, Moon, ArrowLeft } from "lucide-react";
 
 export function AuthLayout({
   children,
-  badgeText = "SIDOARJO REGION • HUB-01",
-  title = "MOVA CONTROL ROOM",
-  subtitle = "Sidoarjo Operational Command & Decision Support System",
+  badgeText,
+  title,
+  subtitle,
   maxWidth = "max-w-md",
+  showBackToLogin = false,
 }) {
   const { theme, toggleTheme } = useUiStore();
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col justify-between bg-[var(--background)] overflow-x-hidden selection:bg-[var(--accent-primary)] selection:text-white">
-      {/* Subtle Precision Grid Background */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.03] dark:opacity-[0.05]"
-        style={{
-          backgroundImage: `linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)`,
-          backgroundSize: "32px 32px",
-        }}
-        aria-hidden="true"
-      />
-
+    <div className="min-h-screen w-full flex flex-col justify-between bg-slate-50 dark:bg-[#0B1120] text-slate-800 dark:text-slate-100 font-sans antialiased overflow-x-hidden selection:bg-blue-600 selection:text-white transition-colors">
       {/* Top Header Bar */}
-      <header className="relative z-10 w-full px-4 sm:px-8 py-3.5 flex items-center justify-between border-b border-[var(--border-subtle)]">
-        {/* System Location & Status */}
-        <div className="flex items-center gap-2 text-xs font-mono text-[var(--text-secondary)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-          <span className="tracking-wide uppercase">{badgeText}</span>
-        </div>
+      <header className="w-full px-6 sm:px-10 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] transition-colors shrink-0">
+        {/* MOVA Logo */}
+        <Link to="/login" className="flex items-center gap-2.5 group">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-xs group-hover:bg-blue-700 transition-colors">
+            M
+          </div>
+          <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+            MOVA
+          </span>
+        </Link>
 
-        {/* Minimal Theme Switcher */}
-        <button
-          type="button"
-          onClick={toggleTheme}
-          aria-label={theme === "dark" ? "Ganti ke Tema Terang" : "Ganti ke Tema Gelap"}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--surface-raised)] hover:bg-[var(--surface-muted)] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-        >
-          {theme === "dark" ? (
-            <>
-              <Sun className="w-3.5 h-3.5 text-amber-400" />
-              <span className="font-mono text-[11px]">Light</span>
-            </>
-          ) : (
-            <>
-              <Moon className="w-3.5 h-3.5 text-indigo-500" />
-              <span className="font-mono text-[11px]">Dark</span>
-            </>
-          )}
-        </button>
+        {/* Right controls: Theme Switcher + Version */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Ganti ke Tema Terang" : "Ganti ke Tema Gelap"}
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700/80 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-50 dark:bg-slate-800/50 transition-colors cursor-pointer"
+          >
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-500" />
+            )}
+          </button>
+
+          <span className="text-xs font-mono text-slate-400 dark:text-slate-500 tracking-wider">
+            MOVA v1.0.0
+          </span>
+        </div>
       </header>
 
       {/* Main Centered Panel */}
-      <main className="relative z-10 flex-1 flex items-center justify-center p-4 sm:p-6 my-auto">
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 my-auto">
         <div className={`w-full ${maxWidth}`}>
-          <Panel className="p-6 sm:p-8 bg-[var(--surface)] border-[var(--border)] shadow-md rounded-[var(--radius-lg)]">
-            {/* Brand Header */}
-            <div className="flex items-center gap-3.5 mb-6 pb-4 border-b border-[var(--border-subtle)]">
-              <div className="w-9 h-9 rounded-[var(--radius-sm)] bg-[var(--accent-primary)] flex items-center justify-center text-white font-mono font-bold text-base shadow-xs shrink-0">
-                M
+          <div className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs p-6 sm:p-8 transition-colors">
+            {/* Card Header */}
+            {(title || subtitle || badgeText) && (
+              <div className="mb-6 pb-4 border-b border-slate-100 dark:border-slate-800/80">
+                {badgeText && (
+                  <div className="text-[11px] font-mono font-semibold tracking-wider uppercase text-blue-600 dark:text-blue-400 mb-1">
+                    {badgeText}
+                  </div>
+                )}
+                {title && (
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                    {title}
+                  </h1>
+                )}
+                {subtitle && (
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                    {subtitle}
+                  </p>
+                )}
               </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-base font-bold text-[var(--text-primary)] tracking-tight truncate">
-                  {title}
-                </h1>
-                <p className="text-xs text-[var(--text-muted)] truncate">
-                  {subtitle}
-                </p>
-              </div>
-            </div>
+            )}
 
             {/* Form Content */}
             {children}
-          </Panel>
+
+            {/* Back to Login Link */}
+            {showBackToLogin && (
+              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/80 text-center">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Kembali ke Halaman Login
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
-      {/* Footer System Telemetry */}
-      <footer className="relative z-10 w-full px-4 py-3 border-t border-[var(--border-subtle)] flex flex-col sm:flex-row items-center justify-between gap-1 text-[11px] font-mono text-[var(--text-muted)]">
-        <div>
-          <span>MOVA Decision Support System</span>
-        </div>
-        <div>
-          <span>v1.0.0-PROD</span>
-        </div>
+      {/* Footer Credit */}
+      <footer className="w-full px-4 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] flex items-center justify-center text-xs text-slate-400 dark:text-slate-500 font-medium transition-colors shrink-0">
+        <span>Created by Febriyan Dwi Putra</span>
       </footer>
     </div>
   );

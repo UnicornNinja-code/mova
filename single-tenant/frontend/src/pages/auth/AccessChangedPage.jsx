@@ -39,9 +39,8 @@ export function AccessChangedPage() {
 
   return (
     <AuthLayout
-      badgeText="SECURITY • SESSION INVALIDATION"
-      title="HAK AKSES DIPERBARUI"
-      subtitle="Mutasi wewenang peran & penegakan kebijakan sesi MOVA"
+      title="Perubahan Hak Akses"
+      subtitle="Sesi Anda telah diperbarui demi keamanan akun"
       maxWidth="max-w-lg"
     >
       <div className="space-y-6 pt-1 text-center">

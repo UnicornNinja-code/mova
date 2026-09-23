@@ -40,7 +40,7 @@ describe("🚀 MOVA Frontend Onboarding Lifecycle Suite", () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByText("MOVA CONTROL ROOM")).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: /^Login$/i })).toBeInTheDocument();
       expect(screen.getByLabelText(/Username.*Email/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/^Kata Sandi/i)).toBeInTheDocument();
       expect(screen.getByText(/Lupa kata sandi\?/i)).toBeInTheDocument();
