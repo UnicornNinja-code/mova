@@ -5,9 +5,7 @@
 env/
 env
 
-# Documentation / Docs
-docs/
-docs
+
 
 # Dependencies & Build Outputs
 node_modules/

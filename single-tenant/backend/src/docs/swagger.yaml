@@ -1,0 +1,5325 @@
+openapi: 3.0.3
+info:
+  title: 'MOVA DSS Engine & Fleet Operations API (Single-Tenant)'
+  description: "## Coffee Operational Zone Intelligence System (COZIS / MOVA)\n### Enterprise Single-Tenant Spatial Decision Support System & Fleet Orchestration Contract\n\nWelcome to the **MOVA DSS Single-Tenant API Specification**. This document serves as the Single Source of Truth (SSOT) contract between backend micro-services, spatial calculation engines, background queue workers, and modern web/mobile frontend applications.\n\n---\n\n### 🏛️ System Architecture Overview\nMOVA is an intelligent geospatial Decision Support System (DSS) tailored for mobile retail coffee fleets. It operates on a high-concurrency Node.js + Express 5 runtime backed by PostgreSQL with PostGIS extensions, Redis caching & BullMQ distributed job queues, and Socket.io for real-time Location-Based Services (LBS).\n\n```mermaid\ngraph TD\n    Client[Web / Mobile Client] -->|HTTPS REST / JWT| Gateway[Express 5 API Gateway]\n    Client -->|WSS Socket.io| LBS[LBS Real-Time Gateway]\n    Gateway --> Auth[4-Role RBAC Middleware]\n    Gateway --> DSS[BWM-TOPSIS Solver Engine]\n    Gateway --> Fleet[5-Min Armada Lock Queue]\n    Gateway --> GIS[PostGIS Spatial Repository]\n    DSS --> Solver[LP Linear Programming Worker]\n    Fleet --> Redis[(Redis Key-Value & Lock)]\n    GIS --> DB[(PostgreSQL + PostGIS)]\n```\n\n---\n\n### 👥 Multi-Role RBAC & Hierarchy Guard\nThe system enforces strict 4-Role Role-Based Access Control (RBAC):\n- **`SUPERADMIN`**: Complete administrative authority, polygon creation, BWM weight calibration, manual sync triggers, and user hierarchy management.\n- **`MANAGEMENT`**: Executive oversight, multi-zone KPI analytics, revenue reporting, fleet status inspection, and supervisor account provisioning.\n- **`SUPERVISOR`**: Field operations commander, real-time rider dispatching, TOPSIS recommendation approval, manual override, and fleet check-in audits.\n- **`RIDER`**: Field mobile operator, 5-minute armada holding/claiming, geofence check-in, selling spot claiming, and POS transactions recording.\n\n> **Hierarchy Guard Rule**: A user cannot create or modify an account with a role equal to or higher than their own (e.g., `MANAGEMENT` cannot create or edit `SUPERADMIN` accounts).\n\n---\n\n### 🧠 Decision Support System (DSS) Pipeline\nMOVA utilizes a **Hybrid Multi-Criteria Decision Making (MCDM)** pipeline:\n1. **Best-Worst Method (BWM)**: Computes optimal criteria weights ($w_1, \\dots, w_6$) using a Linear Programming (LP) solver with consistency ratio ($CR \\le 0.10$).\n2. **TOPSIS Ranking**: Evaluates operational zones based on 6 dynamic criteria:\n   - **$C_1$ Crowd Density**: Spatial POI concentration with time-decay weights (pagi, siang, sore, malam).\n   - **$C_2$ Weather Condition**: Real-time Open-Meteo precipitation and temperature suitability.\n   - **$C_3$ Event Proximity**: Temporal public events & gatherings within 1km buffer.\n   - **$C_4$ Road Accessibility**: Protocol and arterial road access (excluding toll roads).\n   - **$C_5$ Hub Proximity**: Haversine/geodesic distance from central operational warehouse.\n   - **$C_6$ Competitor Density**: Proximity penalty based on nearby commercial coffee vendors.\n\n---\n\n### 🛵 5-Minute Armada Reservation Lock Workflow\nTo prevent race conditions during morning shift check-in:\n1. Rider initiates `POST /api/rider/hold-armada` or `POST /api/rider-operational/hold-armada`.\n2. Redis acquires a distributed reservation lock with a strict 300-second TTL (ticket-booking style).\n3. BullMQ scheduler automatically releases the unit back to `AVAILABLE` if physical check-in is not finalized within 5 minutes.\n4. Rider confirms physical inspection via `POST /api/rider/claim-armada`, converting the state to `IN_USE`.\n\n---\n\n### 📦 Standard API Response Envelopes\nAll REST endpoints adhere to a standardized JSend-compliant envelope structure:\n\n#### Success Response (`200 OK` / `201 Created`)\n```json\n{\n  \"status\": \"success\",\n  \"message\": \"Resource retrieved successfully\",\n  \"data\": { ... },\n  \"meta\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 100\n  }\n}\n```\n\n#### Error Response (`4xx` / `5xx`)\n```json\n{\n  \"status\": \"error\",\n  \"message\": \"Validation failed on payload coordinates\",\n  \"error\": {\n    \"code\": \"SPATIAL_VALIDATION_ERROR\",\n    \"details\": [\"Polygon intersects with restricted toll road corridor\"]\n  },\n  \"timestamp\": \"2026-09-16T09:17:32.000Z\"\n}\n```\n"
+  version: 1.0.0
+  termsOfService: 'https://kopikeliling.com/terms'
+  contact:
+    name: 'MOVA Engineering Team'
+    email: engineering@kopikeliling.com
+    url: 'https://kopikeliling.com/developer'
+  license:
+    name: 'Proprietary / MOVA Enterprise License'
+    url: 'https://kopikeliling.com/license'
+servers:
+  -
+    url: 'http://localhost:8090/api'
+    description: 'Local Single-Tenant Development Server (Express 5 Backend on Port 8090)'
+  -
+    url: 'http://localhost:8080/api'
+    description: 'Local Docker / Staging Environment Gateway'
+  -
+    url: /api
+    description: 'Production Gateway (Relative URL Routing)'
+tags:
+  -
+    name: Auth
+    description: 'Authentication, JWT token issuance, session refresh, activation tokens & password recovery'
+  -
+    name: 'User Account'
+    description: 'User account management, profile settings, and role hierarchy enforcement guard'
+  -
+    name: 'Zone Master'
+    description: 'Spatial operational geofences, PostGIS polygon validation, self-intersection & overlap checks'
+  -
+    name: 'DSS Engine'
+    description: 'Hybrid BWM (LP Solver) and TOPSIS multi-criteria decision engine, active weight configs & historical snapshots'
+  -
+    name: 'POI & Spatial'
+    description: 'Point of Interest (POI) catalog, time-based crowd weights, Overpass OSM sync, and spatial density aggregation'
+  -
+    name: Competitors
+    description: 'Commercial competitor surveys, spatial density scoring (C6), and market penetration analysis'
+  -
+    name: 'Candidate Locations'
+    description: 'High-potential candidate selling spots, in-zone spatial clustering, and spot-level TOPSIS ranking'
+  -
+    name: 'Weather & Roads'
+    description: 'Open-Meteo real-time weather suitability (C2), protocol road accessibility (C4), and toll road restrictions'
+  -
+    name: 'Armada Fleet'
+    description: 'Master fleet units, 5-minute ticket reservation lock, maintenance status, and vehicle telemetry'
+  -
+    name: 'Rider Operations'
+    description: 'Daily rider operational lifecycle: armada reservation, claim, GPS geofence check-in, POS sales, and checkout'
+  -
+    name: 'Distribution & Plotting'
+    description: 'FIFO rider duty queue, automatic DSS TOPSIS zone distribution, supervisor manual overrides, and shift history'
+  -
+    name: 'Catalog & Products'
+    description: 'Product menu items, pricing configuration, stock status, and inventory availability'
+  -
+    name: 'Sales & Revenue'
+    description: 'Daily field sales transactions, cashier ledger, revenue density by zone, and performance reports'
+  -
+    name: 'LBS Telemetry'
+    description: 'Location-Based Services telemetry, 30s GPS pings, multi-rider distance matrix, and geofence deviation detection'
+  -
+    name: 'Dashboard & Analytics'
+    description: 'Executive & supervisor KPI dashboards, sales trends, fleet utilization, and real-time quick alerts'
+  -
+    name: 'Audit & Settings'
+    description: 'Immutable system activity audit trail, central hub configuration, basemap tile providers, and system parameters'
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: 'User Login (Email or Username + Password)'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - identifier
+                - password
+              properties:
+                identifier:
+                  type: string
+                  description: 'Email address or username (case-insensitive)'
+                  example: superadmin@kopikeliling.com
+                password:
+                  type: string
+                  format: password
+                  example: password123
+                turnstileToken:
+                  type: string
+                  description: 'Cloudflare Turnstile token generated by client widget'
+                  example: 0.k2...dummy_token
+      responses:
+        '200':
+          description: 'Login Successful (Returns JWT Access Token & User Profile)'
+        '400':
+          description: 'Bad Request / CAPTCHA Verification Failed'
+        '401':
+          description: 'Invalid Credentials or Inactive Account'
+        '429':
+          description: 'Too Many Requests (Rate Limit Exceeded)'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postAuthLogin
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: 'Register New User (Restricted by Role Hierarchy Guard)'
+      security:
+        -
+          BearerAuth: []
+      description: "SUPERADMIN can create any role. MANAGEMENT can only create MANAGEMENT, SUPERVISOR, or RIDER (Cannot create SUPERADMIN).\n"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateInput'
+      responses:
+        '201':
+          description: 'User Created Successfully'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden (Management attempted to create Superadmin)'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postAuthRegister
+  /auth/me:
+    get:
+      tags:
+        - Auth
+      summary: 'Get Authenticated User Profile & Active Session'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Current User Profile'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getAuthMe
+  /auth/refresh-token:
+    post:
+      tags:
+        - Auth
+      summary: 'Refresh Expired Access Token'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: 'New Access Token Issued'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postAuthRefresh-token
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: 'Invalidate Session & Revoke Token'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Logged Out Successfully'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postAuthLogout
+  /auth/forgot-password:
+    post:
+      tags:
+        - Auth
+      summary: 'Request Password Reset Link / Token'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: 'Password Reset Token Generated'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postAuthForgot-password
+  /auth/reset-password:
+    post:
+      tags:
+        - Auth
+      summary: 'Submit New Password with Reset Token'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - newPassword
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: 'Password Reset Successfully'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postAuthReset-password
+  /auth/first-login:
+    post:
+      tags:
+        - Auth
+      summary: 'Force Password Change on First Superadmin Login'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - new_password
+              properties:
+                new_password:
+                  type: string
+                  format: password
+                  example: SuperSecureAdmin2026!
+      responses:
+        '200':
+          description: 'Password Updated and first_login flag set to false'
+        '400':
+          description: 'Validation Error'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postAuthFirst-login
+  /auth/activate:
+    post:
+      tags:
+        - Auth
+      summary: 'Activate User Account via Invitation Token with Birth Date'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - email
+                - password
+                - birth_date
+              properties:
+                token:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                birth_date:
+                  type: string
+                  format: date
+                  example: '1995-08-17'
+      responses:
+        '200':
+          description: 'Account Activated Successfully'
+        '400':
+          description: 'Invalid or Expired Activation Token'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postAuthActivate
+  /users:
+    get:
+      tags:
+        - 'User Account'
+      summary: 'List All User Accounts (Filter by Role, Search)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: role
+          schema:
+            type: string
+            enum:
+              - SUPERADMIN
+              - MANAGEMENT
+              - SUPERVISOR
+              - RIDER
+        -
+          in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'List of Users'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getUsers
+    post:
+      tags:
+        - 'User Account'
+      summary: 'Administrative User Creation (Enforces Role Hierarchy)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateInput'
+      responses:
+        '201':
+          description: 'User Created'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden (Hierarchy Guard Rejection)'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postUsers
+  '/users/{id}':
+    get:
+      tags:
+        - 'User Account'
+      summary: 'Get User Account Details'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'User Details'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getUsersId
+    put:
+      tags:
+        - 'User Account'
+      summary: 'Update User Account (Profile, Role, Contact)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                username:
+                  type: string
+                phone:
+                  type: string
+                role:
+                  type: string
+                  enum: [SUPERADMIN, MANAGEMENT, SUPERVISOR, RIDER]
+      responses:
+        '200':
+          description: 'User Updated'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden (Cannot modify Superadmin account as Management)'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: putUsersId
+    delete:
+      tags:
+        - 'User Account'
+      summary: 'Deactivate or Delete User Account'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'User Deleted'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: deleteUsersId
+  '/users/{id}/status':
+    patch:
+      tags:
+        - 'User Account'
+      summary: 'Toggle User Active Status'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - is_active
+              properties:
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: 'User Status Updated'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: patchUsersIdStatus
+  /zones:
+    get:
+      tags:
+        - 'Zone Master'
+      summary: 'List All Spatial Zones with Polygon & Status'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'GeoJSON/JSON Array of Operational Zones'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getZones
+    post:
+      tags:
+        - 'Zone Master'
+      summary: 'Create New Operational Zone Polygon (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ZoneInput'
+      responses:
+        '201':
+          description: 'Zone Created with PostGIS Geometry'
+        '400':
+          description: 'Validation Failed (Overlap, Restricted Toll Road, Self-Intersection, or Area Out-of-Bounds)'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postZones
+  /zones/validate:
+    post:
+      tags:
+        - 'Zone Master'
+      summary: 'Pre-Validate Zone GeoJSON Polygon (Dry-Run PostGIS ST_IsValid & ST_Overlaps) (SUPERADMIN)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - polygon
+              properties:
+                polygon:
+                  type: object
+                  description: 'GeoJSON Polygon Object'
+                name:
+                  type: string
+                exclude_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: 'Validation Result with Validity and Overlap Flags'
+  '/zones/{id}':
+    get:
+      tags:
+        - 'Zone Master'
+      summary: 'Get Specific Zone Details with Spatial Validation Reasons'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Zone Object'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getZonesId
+    put:
+      tags:
+        - 'Zone Master'
+      summary: 'Update Zone Master Data & Polygon (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ZoneInput'
+      responses:
+        '200':
+          description: 'Zone Updated'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: putZonesId
+    delete:
+      tags:
+        - 'Zone Master'
+      summary: 'Delete Zone (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Zone Deleted'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: deleteZonesId
+  '/zones/{id}/status':
+    patch:
+      tags:
+        - 'Zone Master'
+      summary: 'Toggle Zone Status (SUPERADMIN)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [ACTIVE, INACTIVE, MAINTENANCE]
+      responses:
+        '200':
+          description: 'Zone Status Updated'
+  /dss/bwm/calculate:
+    post:
+      tags:
+        - 'DSS Engine'
+      summary: 'Execute Best-Worst Method (BWM) Linear Programming Solver (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - best_criteria_id
+                - worst_criteria_id
+                - best_to_others
+                - worst_to_others
+              properties:
+                name:
+                  type: string
+                  example: 'Bobot BWM Q3 Sidoarjo 2026'
+                best_criteria_id:
+                  type: string
+                  format: uuid
+                worst_criteria_id:
+                  type: string
+                  format: uuid
+                best_to_others:
+                  type: object
+                  description: 'Pairwise comparisons 1-9 from Best to Others'
+                worst_to_others:
+                  type: object
+                  description: 'Pairwise comparisons 1-9 from Others to Worst'
+      responses:
+        '200':
+          description: 'BWM Weights Computed Successfully (Consistency Ratio CR <= 0.10)'
+        '400':
+          description: 'Inconsistent Preferences (CR > 0.10)'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postDssBwmCalculate
+  /dss/bwm/preview-impact:
+    post:
+      tags:
+        - 'DSS Engine'
+      summary: 'Preview & Simulate BWM Weight Impact on TOPSIS Zone Rankings without Saving (SUPERADMIN, SUPERVISOR, MANAGEMENT)'
+      description: "Performs what-if simulation to project TOPSIS zone rankings when BWM weights change, without committing changes to the database. Supports either raw custom weights or BWM pairwise comparisons.\n"
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                time_slot:
+                  type: string
+                  enum: [pagi, siang, sore, malam]
+                  default: pagi
+                weights:
+                  type: object
+                  description: 'Optional direct criteria weights map (e.g. { C1: 0.25, C2: 0.15, ... })'
+                  example: {C1: 0.25, C2: 0.15, C3: 0.2, C4: 0.15, C5: 0.1, C6: 0.15}
+                best_criteria_id:
+                  type: string
+                  format: uuid
+                worst_criteria_id:
+                  type: string
+                  format: uuid
+                best_to_others:
+                  type: object
+                worst_to_others:
+                  type: object
+      responses:
+        '200':
+          description: 'Simulation Result with Projected TOPSIS Zone Rankings'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: {type: string, example: success}
+                  time_slot: {type: string, example: pagi}
+                  total_zones: {type: integer, example: 5}
+                  rankings: {type: array, items: {type: object, properties: {rank: {type: integer, example: 1}, zone_id: {type: string, format: uuid}, zone_name: {type: string, example: 'Zona Alun-Alun Sidoarjo'}, topsis_score: {type: number, example: 0.8421}, category: {type: string, example: SANGAT_DIREKOMENDASIKAN}}}}
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postDssBwmPreview-impact
+  /dss/bwm/active:
+    get:
+      tags:
+        - 'DSS Engine'
+      summary: 'Get Currently Active BWM Criteria Weights & Thresholds (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Active DSS Configuration & Weights'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDssBwmActive
+  /dss/bwm/configs:
+    get:
+      tags:
+        - 'DSS Engine'
+      summary: 'List All Saved BWM Weight Configurations (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Array of Saved BWM Configurations'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDssBwmConfigs
+  '/dss/bwm/{id}/activate':
+    post:
+      tags:
+        - 'DSS Engine'
+      summary: 'Activate a Specific BWM Configuration by ID (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Configuration Activated Successfully'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postDssBwmIdActivate
+  '/dss/zones/{id}/raw-evaluation':
+    get:
+      tags:
+        - 'DSS Engine'
+      summary: 'Get Raw Multi-Criteria Evaluation Data (C1 - C6) for a Zone (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        -
+          in: query
+          name: time
+          schema:
+            type: string
+            enum:
+              - pagi
+              - siang
+              - sore
+              - malam
+        -
+          in: query
+          name: lat
+          schema:
+            type: number
+            format: double
+        -
+          in: query
+          name: lon
+          schema:
+            type: number
+            format: double
+      responses:
+        '200':
+          description: 'Raw Criteria Matrix (C1 Density, C2 Weather, C3 Events, C4 Roads, C5 Distance, C6 Competitor Score)'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDssZonesIdRaw-evaluation
+  /dss/evaluate:
+    post:
+      tags:
+        - 'DSS Engine'
+      summary: 'Execute Hybrid BWM-TOPSIS Evaluation for Selected Zones (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                zone_ids:
+                  type: array
+                  items: {type: string, format: uuid}
+                time_slot:
+                  type: string
+                  enum: [pagi, siang, sore, malam]
+                lat:
+                  type: number
+                  format: double
+                lon:
+                  type: number
+                  format: double
+                bwm_config_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: 'TOPSIS Multi-Zone Ranking Matrix & Relative Closeness Score V_i'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postDssEvaluate
+  /dss/snapshots:
+    get:
+      tags:
+        - 'DSS Engine'
+      summary: 'Get Historical DSS Evaluation Snapshots (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 'List of Historical Evaluation Snapshots'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDssSnapshots
+  '/dss/snapshots/{id}':
+    get:
+      tags:
+        - 'DSS Engine'
+      summary: 'Get Snapshot Details by ID (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Snapshot Evaluation Details'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDssSnapshotsId
+  /dss/recommendations:
+    get:
+      tags:
+        - 'DSS Engine'
+      summary: 'Get Top Zone Recommendations for Authenticated Rider'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: time
+          schema:
+            type: string
+            enum:
+              - pagi
+              - siang
+              - sore
+              - malam
+        -
+          in: query
+          name: lat
+          schema:
+            type: number
+            format: double
+        -
+          in: query
+          name: lon
+          schema:
+            type: number
+            format: double
+      responses:
+        '200':
+          description: 'Personalized Selling Zone Recommendations'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDssRecommendations
+  /pois:
+    get:
+      tags:
+        - 'POI & Spatial'
+      summary: 'List All Approved POIs (Filter by Category, Zone)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: category_id
+          schema:
+            type: string
+            format: uuid
+        -
+          in: query
+          name: zone_id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'List of POIs'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getPois
+    post:
+      tags:
+        - 'POI & Spatial'
+      summary: 'Submit New POI (Pending Approval)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - category_id
+                - latitude
+                - longitude
+              properties:
+                name:
+                  type: string
+                  example: 'Kantor Cabang Bank Mandiri'
+                category_id:
+                  type: string
+                  format: uuid
+                latitude:
+                  type: number
+                  format: double
+                  example: -7.4478
+                longitude:
+                  type: number
+                  format: double
+                  example: 112.7183
+      responses:
+        '201':
+          description: 'POI Submitted for Approval'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postPois
+  /pois/unapproved:
+    get:
+      tags:
+        - 'POI & Spatial'
+      summary: 'List Unapproved POIs Awaiting Moderation (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Pending POIs List'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getPoisUnapproved
+  '/pois/{id}/approve':
+    patch:
+      tags:
+        - 'POI & Spatial'
+      summary: 'Approve POI Submission (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'POI Approved'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: patchPoisIdApprove
+  '/pois/{id}/reject':
+    patch:
+      tags:
+        - 'POI & Spatial'
+      summary: 'Reject POI Submission (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'POI Rejected'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: patchPoisIdReject
+  /pois/categories:
+    get:
+      tags:
+        - 'POI & Spatial'
+      summary: 'List Master POI Categories & Weights'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'List of POI Categories'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getPoisCategories
+  '/pois/density/{zone_id}':
+    get:
+      tags:
+        - 'POI & Spatial'
+      summary: 'Calculate C1 POI Density Score for a Zone'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zone_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'C1 POI Density Score & Category Breakdown'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getPoisDensityZone_id
+  '/pois/events/{zone_id}':
+    get:
+      tags:
+        - 'POI & Spatial'
+      summary: 'Calculate C3 Event / Crowd Impact Score for a Zone'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zone_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'C3 Event Impact Score'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getPoisEventsZone_id
+  '/competitors/score/{zone_id}':
+    get:
+      tags:
+        - Competitors
+      summary: 'Calculate C6 Competitor Density Score for a Zone (Relevance Weighted)'
+      description: "Calculates C6 score based on: 1. Field survey competitors (competitors table) 2. Coffee shop POIs inside the zone Formula: R_i = 0.50 * S_price + 0.30 * I_category + 0.20 * I_model\n"
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zone_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'C6 Competitor Density Score & Competitor Breakdown'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  zone_id: {type: string, format: uuid}
+                  skor_c6: {type: number, example: 0.72}
+                  total_competitors_count: {type: integer, example: 4}
+                  field_competitors_count: {type: integer, example: 2}
+                  coffee_poi_count: {type: integer, example: 2}
+                  details: {type: array, items: {type: object}}
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getCompetitorsScoreZone_id
+  '/competitors/zone/{zone_id}':
+    get:
+      tags:
+        - Competitors
+      summary: 'List Field Survey Competitors Assigned to a Zone'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zone_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'List of Survey Competitors'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getCompetitorsZoneZone_id
+  /competitors:
+    post:
+      tags:
+        - Competitors
+      summary: 'Add New Field Survey Competitor Record (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - zone_id
+                - name
+                - latitude
+                - longitude
+              properties:
+                zone_id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                  example: 'Kopi Kenangan Alun-alun'
+                category:
+                  type: string
+                  example: CHAIN_COFFEE
+                price_level:
+                  type: string
+                  enum: [LOW, MEDIUM, HIGH]
+                  default: MEDIUM
+                latitude:
+                  type: number
+                  format: double
+                longitude:
+                  type: number
+                  format: double
+      responses:
+        '201':
+          description: 'Competitor Record Created'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postCompetitors
+  '/competitors/{id}':
+    delete:
+      tags:
+        - Competitors
+      summary: 'Delete Field Survey Competitor Record (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Competitor Deleted'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: deleteCompetitorsId
+  '/candidate-locations/zone/{zone_id}':
+    get:
+      tags:
+        - 'Candidate Locations'
+      summary: 'Get High-Potential Candidate Selling Spots for a Zone'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zone_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Array of Ranked Candidate Selling Locations'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getCandidate-locationsZoneZone_id
+  /candidate-locations/all:
+    get:
+      tags:
+        - 'Candidate Locations'
+      summary: 'List All Candidate Selling Spots Across All Zones'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Array of All Candidate Locations'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getCandidate-locationsAll
+  '/candidate-locations/generate/{zone_id}':
+    post:
+      tags:
+        - 'Candidate Locations'
+      summary: 'Auto-Generate Candidate Selling Spots Based on POI Clustering & Road Network (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zone_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Spots Generated Successfully'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postCandidate-locationsGenerateZone_id
+  /weather/current:
+    get:
+      tags:
+        - 'Weather & Roads'
+      summary: 'Get Current Weather Condition for Sidoarjo from Open-Meteo'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Weather Data (Temperature, Precipitation, Condition)'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getWeatherCurrent
+  '/weather/zone/{zone_id}/score':
+    get:
+      tags:
+        - 'Weather & Roads'
+      summary: 'Calculate C2 Weather Suitability Score for a Zone'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zone_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'C2 Weather Score'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getWeatherZoneZone_idScore
+  /roads/protocol:
+    get:
+      tags:
+        - 'Weather & Roads'
+      summary: 'List Protocol Road Network Segments'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'GeoJSON/JSON List of Protocol Roads'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getRoadsProtocol
+  /roads/toll:
+    get:
+      tags:
+        - 'Weather & Roads'
+      summary: 'List Restricted Toll Road Buffer Geometries'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'List of Toll Road Segments'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getRoadsToll
+  '/roads/zone-accessibility-score/{zone_id}':
+    get:
+      tags:
+        - 'Weather & Roads'
+      summary: 'Calculate C4 Road Accessibility Score for a Zone'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zone_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'C4 Accessibility Score'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getRoadsZone-accessibility-scoreZone_id
+  /armadas:
+    get:
+      tags:
+        - 'Armada Fleet'
+      summary: 'List All Fleet Units with Operational Status'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Fleet List'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getArmadas
+    post:
+      tags:
+        - 'Armada Fleet'
+      summary: 'Register New Fleet Unit (SUPERADMIN, MANAGEMENT)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - type
+              properties:
+                code:
+                  type: string
+                  example: GBK-SDA-05
+                type:
+                  type: string
+                  enum: [GEROBAK, MOTOR_LISTRIK, LAINNYA]
+      responses:
+        '201':
+          description: 'Armada Created'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postArmadas
+  '/armadas/{id}':
+    put:
+      tags:
+        - 'Armada Fleet'
+      summary: 'Update Armada Unit Details'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                type:
+                  type: string
+                  enum: [GEROBAK, MOTOR_LISTRIK, LAINNYA]
+                status:
+                  type: string
+                  enum: [ACTIVE, IN_USE, MAINTENANCE, RESERVED]
+      responses:
+        '200':
+          description: 'Armada Updated'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: putArmadasId
+    delete:
+      tags:
+        - 'Armada Fleet'
+      summary: 'Delete Armada Unit (SUPERADMIN, MANAGEMENT)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Armada Deleted'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: deleteArmadasId
+  /rider-operational/active-session:
+    get:
+      tags:
+        - 'Rider Operations'
+      summary: 'Get Rider Current Active Duty, Assigned Zone, Claimed Armada, and Operational Session'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Active Session Object (Anchor for B-11 Field Execution)'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getRider-operationalActive-session
+  /rider/active-session:
+    get:
+      tags:
+        - 'Rider Operations'
+      summary: 'Get Rider Current Active Duty (Alias)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Active Session Object'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getRiderActive-session
+  /rider-operational/hub-armadas:
+    get:
+      tags:
+        - 'Rider Operations'
+      summary: 'List Available Hub Armada Units with Real-Time Lock Status'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'List of Claimable Armadas'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getRider-operationalHub-armadas
+  /rider-operational/hold-armada:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'Temporary 5-Minute Hold on Armada Unit for Physical Inspection (Ticket-Booking Lock)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - armada_id
+              properties:
+                armada_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: 'Armada Reserved for 5 Minutes'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postRider-operationalHold-armada
+  /rider-operational/cancel-hold-armada:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'Release Temporary 5-Minute Hold on Armada Unit'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - armada_id
+              properties:
+                armada_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: 'Hold Released'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postRider-operationalCancel-hold-armada
+  /rider-operational/claim-armada:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'Confirm Permanent Claim of Armada Unit (Converts status to IN_USE)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - armada_id
+              properties:
+                armada_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: 'Armada Claimed (Status IN_USE)'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postRider-operationalClaim-armada
+  /rider-operational/check-in:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'GPS Check-in to Assigned Zone (PostGIS ST_Covers Verification & Session Transition to OPERATING)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - latitude
+                - longitude
+              properties:
+                latitude:
+                  type: number
+                  format: double
+                  example: -7.4478
+                longitude:
+                  type: number
+                  format: double
+                  example: 112.7183
+      responses:
+        '200':
+          description: 'Check-in Verified Inside Zone Polygon (Status: OPERATING)'
+        '400':
+          description: 'GPS Location Outside Assigned Zone'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postRider-operationalCheck-in
+  /rider-operational/record-sale:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'Record Field Product Sale Transaction with Session Provenance & Compliance Tracking'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+                - qty
+                - latitude
+                - longitude
+              properties:
+                product_id:
+                  type: string
+                  format: uuid
+                qty:
+                  type: integer
+                  minimum: 1
+                  example: 2
+                latitude:
+                  type: number
+                  format: double
+                  example: -7.4478
+                longitude:
+                  type: number
+                  format: double
+                  example: 112.7183
+      responses:
+        '201':
+          description: 'Sale Transaction Logged with Monetary Snapshot & Session ID'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postRider-operationalRecord-sale
+  /rider-operational/my-sales:
+    get:
+      tags:
+        - 'Rider Operations'
+      summary: 'Fetch Personal Field Sales History for Authenticated Rider'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: date
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        -
+          in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 'Paginated Personal Sales History'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getRider-operationalMy-sales
+  /rider-operational/checkout:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'Finish Daily Shift, Release Armada back to Hub & Complete Session (OPERATING -> COMPLETED)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                return_status:
+                  type: string
+                  enum: [ACTIVE, MAINTENANCE]
+                  default: ACTIVE
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: 'Shift Completed Successfully'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postRider-operationalCheckout
+  /lbs/ping:
+    post:
+      tags:
+        - 'LBS Telemetry'
+      summary: 'Ingest Rider Live GPS Telemetry Ping (PostGIS ST_Covers Geofence & Road Restriction Evaluation)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - latitude
+                - longitude
+              properties:
+                rider_id:
+                  type: string
+                  format: uuid
+                rider_name:
+                  type: string
+                latitude:
+                  type: number
+                  format: double
+                  example: -7.4478
+                longitude:
+                  type: number
+                  format: double
+                  example: 112.7183
+                speed:
+                  type: number
+                  example: 15.5
+                heading:
+                  type: number
+                  example: 180
+                recorded_at:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: 'Telemetry Ingested, SSOT Position Upserted, and Compliance Evaluated'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postLbsPing
+  /lbs/riders/live:
+    get:
+      tags:
+        - 'LBS Telemetry'
+      summary: 'Query All Active Live Rider Positions (SSOT latest_rider_positions)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: zone_id
+          schema:
+            type: string
+            format: uuid
+        -
+          in: query
+          name: compliance
+          schema:
+            type: string
+            enum:
+              - COMPLIANT
+              - DEVIATED
+              - OUTSIDE_ZONE
+      responses:
+        '200':
+          description: 'Array of Active Live Rider Positions with Compliance Status'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getLbsRidersLive
+  /lbs/zone-logs:
+    get:
+      tags:
+        - 'LBS Telemetry'
+      summary: 'Get Discrete Geofence State Transition & Audit Logs (rider_zone_logs)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: rider_id
+          schema:
+            type: string
+            format: uuid
+        -
+          in: query
+          name: zone_id
+          schema:
+            type: string
+            format: uuid
+        -
+          in: query
+          name: session_id
+          schema:
+            type: string
+            format: uuid
+        -
+          in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        -
+          in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: 'Paginated Geofence Audit Transition Logs'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getLbsZone-logs
+  /distribution/duty/confirm:
+    post:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Rider Confirms Availability for Today''s Operational Shift (FIFO Queue)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Rider Enqueued into FIFO Duty Queue'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postDistributionDutyConfirm
+  /distribution/duty-confirm:
+    post:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Rider Confirms Availability for Today''s Shift (Backward Compatibility)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Rider Enqueued into FIFO Duty Queue'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postDistributionDuty-confirm
+  /distribution/duty/status:
+    get:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Get Unified Operational Status of Authenticated Rider (Duty Queue, Assignment, and Fleet)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Complete Unified Operational State (duty_status, queue_position, assignment, fleet)'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDistributionDutyStatus
+  /distribution/overview:
+    get:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Get Operational Overview (Waiting FIFO Riders, TOPSIS Zone Rankings, Dynamic Capacity)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: time
+          schema:
+            type: string
+            enum:
+              - pagi
+              - siang
+              - sore
+              - malam
+      responses:
+        '200':
+          description: 'Distribution Status Matrix with Remaining Capacity'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDistributionOverview
+  /distribution/auto-assign:
+    post:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Execute Automated Distribution Run (FIFO Matching to TOPSIS Zone Rank'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                time:
+                  type: string
+                  enum: [pagi, siang, sore, malam]
+      responses:
+        '200':
+          description: 'Automated Distribution Run Completed and Recorded to distribution_runs'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postDistributionAuto-assign
+  /distribution/manual-assign:
+    post:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Manual Plotting of Rider to Zone by Supervisor (Validates Capacity & Links DSS)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - rider_id
+                - zone_id
+              properties:
+                rider_id:
+                  type: string
+                  format: uuid
+                zone_id:
+                  type: string
+                  format: uuid
+                time:
+                  type: string
+                  enum: [pagi, siang, sore, malam]
+      responses:
+        '200':
+          description: 'Rider Assigned to Zone Manually'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postDistributionManual-assign
+  /distribution/runs:
+    get:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'List Recent Distribution Execution Runs Audit History (SUPERVISOR, MANAGEMENT, SUPERADMIN)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 'List of Historical Distribution Runs'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDistributionRuns
+  '/distribution/runs/{id}':
+    get:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Get Detailed Distribution Run by ID with Individual Rider Assignments'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Full Distribution Run Detail with Linked DSS History and Zone Assignments'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDistributionRunsId
+  /distribution/my-history:
+    get:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Fetch Personal Duty & Zone Assignment History for Authenticated Rider'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: limit
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: 'Personal Operational History'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDistributionMy-history
+  /products:
+    get:
+      tags:
+        - 'Catalog & Products'
+      summary: 'List All Catalog Products with Prices'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'List of Products'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getProducts
+    post:
+      tags:
+        - 'Catalog & Products'
+      summary: 'Create New Menu Item (MANAGEMENT, SUPERADMIN)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - price
+              properties:
+                name:
+                  type: string
+                  example: 'Kopi Susu Gula Aren'
+                description:
+                  type: string
+                price:
+                  type: number
+                  example: 10000
+                status:
+                  type: string
+                  enum: [AVAILABLE, DISCONTINUED]
+      responses:
+        '201':
+          description: 'Product Created'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postProducts
+  /analytics/overview:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Unified Executive & Supervisor Dashboard Overview with RBAC Projection'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: date
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: start_date
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: end_date
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: zone_id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Consolidated Operational, Compliance, Sales, and DSS Analytics'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getAnalyticsOverview
+  /analytics/operational/summary:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Operational Lifecycle Summary, Check-in/out Rates & Operating Durations'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: date
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: zone_id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Operational KPI Summary'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getAnalyticsOperationalSummary
+  /analytics/operational/fleet-utilization:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Active Fleet Deployment & Utilization Rate Breakdown'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Fleet Status Breakdown & Utilization Percentage'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getAnalyticsOperationalFleet-utilization
+  /analytics/compliance/summary:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Spatial Geofence Compliance, Deviation Rates & Prohibited Road Alerts'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: date
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: zone_id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Spatial Compliance & Geofence Transition Events'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getAnalyticsComplianceSummary
+  /analytics/sales/performance:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Commercial Performance, Hourly Sales Curves & In-Zone vs Out-of-Zone Breakdown'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: range
+          schema:
+            type: string
+            enum:
+              - today
+              - 7d
+              - 30d
+            default: today
+        -
+          in: query
+          name: zone_id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Sales Performance & Product Mix'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getAnalyticsSalesPerformance
+  /analytics/dss/plan-vs-actual:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Plan-vs-Actual Correlation (TOPSIS Rank vs Actual Field Revenue & Compliance)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: date
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: distribution_run_id
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Plan-vs-Actual Rankings Breakdown & Rank Order Alignment Analysis'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getAnalyticsDssPlan-vs-actual
+  /analytics/reports/daily-summary:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Comprehensive Tabular Operational Report (JSON or CSV Export)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: date
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: zone_id
+          schema:
+            type: string
+            format: uuid
+        -
+          in: query
+          name: format
+          schema:
+            type: string
+            enum:
+              - json
+              - csv
+            default: json
+      responses:
+        '200':
+          description: 'Tabular Report or CSV Download Stream'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getAnalyticsReportsDaily-summary
+  /dashboard/summary:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Get Dashboard Summary Metrics (Alias)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: date
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 'Dashboard Summary'
+  /dashboard/sales-trend:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Sales Revenue Trend Over Time (Legacy Alias)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: range
+          schema:
+            type: string
+            enum:
+              - today
+              - 7d
+              - 30d
+              - 90d
+            default: 7d
+      responses:
+        '200':
+          description: 'Sales Time-Series'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDashboardSales-trend
+  /audit/logs:
+    get:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Get System Activity Audit Trail Logs (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: 'List of Audit Activity Logs'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getAuditLogs
+  /settings:
+    get:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Get Global System Configuration Settings (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Global Settings Key-Value Map'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getSettings
+    put:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Update Global System Configuration Settings (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      operationId: putSettings
+      responses:
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+  /sync/status:
+    get:
+      tags:
+        - 'Data Freshness & Sync'
+      summary: 'Get Overall Data Freshness Summary (POI, Weather, Roads, Competitor)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Data Freshness Status List'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: {type: string, example: success}
+                  freshness_summary: {type: array, items: {type: object, properties: {data_type: {type: string, example: POI}, status: {type: string, example: SUCCESS}, source: {type: string, example: OVERPASS_API}, records_processed: {type: integer, example: 1487}, started_at: {type: string, format: date-time}, finished_at: {type: string, format: date-time}}}}
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getSyncStatus
+  /sync/runs:
+    get:
+      tags:
+        - 'Data Freshness & Sync'
+      summary: 'Get Recent Sync Execution Audit Logs (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 'Array of Sync Runs Logs'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getSyncRuns
+  /sync/poi:
+    post:
+      tags:
+        - 'Data Freshness & Sync'
+      summary: 'Trigger Manual POI Synchronization from Overpass API (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                city:
+                  type: string
+                  example: Sidoarjo
+      responses:
+        '200':
+          description: 'POI Sync Finished and Recorded to data_sync_runs'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postSyncPoi
+  /sync/weather:
+    post:
+      tags:
+        - 'Data Freshness & Sync'
+      summary: 'Trigger Manual Weather Batch Sync from Open-Meteo (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Weather Sync Finished for all Active Zones'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postSyncWeather
+  /poi-categories/crowd-scores:
+    get:
+      tags:
+        - 'POI & C3 Criteria Management'
+      summary: 'Get All 58 POI Categories with Time-Based Crowd Scores (DSS-CRITERIA-v1.0)'
+      responses:
+        '200':
+          description: 'Master Data Configuration for C3 Crowd Likert Scores (1-5) across 4 Time Slots'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getPoi-categoriesCrowd-scores
+    put:
+      tags:
+        - 'POI & C3 Criteria Management'
+      summary: 'Bulk Update Time-Based Crowd Scores with Audit Logging (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - scores
+              properties:
+                scores:
+                  type: array
+                  items: {type: object, required: [category_id, pagi, siang, sore, malam], properties: {category_id: {type: string, format: uuid}, pagi: {type: integer, minimum: 1, maximum: 5, example: 3}, siang: {type: integer, minimum: 1, maximum: 5, example: 4}, sore: {type: integer, minimum: 1, maximum: 5, example: 5}, malam: {type: integer, minimum: 1, maximum: 5, example: 4}}}
+      responses:
+        '200':
+          description: 'Bulk Crowd Scores Updated Successfully'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: putPoi-categoriesCrowd-scores
+  '/poi-categories/{id}/crowd-scores':
+    put:
+      tags:
+        - 'POI & C3 Criteria Management'
+      summary: 'Update Time-Based Crowd Scores for a Single Category with Audit Trail (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pagi:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 4
+                siang:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 4
+                sore:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 5
+                malam:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 3
+      responses:
+        '200':
+          description: 'Category Crowd Scores Updated Successfully'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: putPoi-categoriesIdCrowd-scores
+  /dss/history:
+    get:
+      tags:
+        - 'DSS Flashback & History'
+      summary: 'Flashback Historical DSS Executions List (Immutable Snapshot Trail)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 'List of Immutable DSS Historical Snapshots'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDssHistory
+  '/dss/history/{id}':
+    get:
+      tags:
+        - 'DSS Flashback & History'
+      summary: 'Flashback Specific DSS Historical Execution by ID (Exact Snapshot Replay)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Exact Immutable Historical Snapshot of Past DSS Execution'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDssHistoryId
+  /system-settings/operational-rules:
+    get:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Get Operational Restriction Rules (Protocol & Toll Roads)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Operational restriction configuration'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getSystem-settingsOperational-rules
+    patch:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Update Operational Restriction Rules & Trigger PostGIS Spatial Re-evaluation'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                protocol_road_prohibited:
+                  type: boolean
+                toll_road_prohibited:
+                  type: boolean
+      responses:
+        '200':
+          description: 'Rules updated and affected zones re-evaluated'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: patchSystem-settingsOperational-rules
+  /system-settings/readiness:
+    get:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Get Holistic System Operational Readiness Report'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Readiness report across all system pillars'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getSystem-settingsReadiness
+  /system-settings/hub:
+    get:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Get Central Hub Spatial Configuration'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Central Hub location, address, and operational radius'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getSystem-settingsHub
+    put:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Update Central Hub Spatial Configuration (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                hub_name:
+                  type: string
+                hub_city_name:
+                  type: string
+                hub_address:
+                  type: string
+                hub_latitude:
+                  type: number
+                  format: double
+                hub_longitude:
+                  type: number
+                  format: double
+                operational_radius_km:
+                  type: number
+      responses:
+        '200':
+          description: 'Central Hub configuration updated successfully'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: putSystem-settingsHub
+  /system-settings/map-config:
+    get:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Get Supported Basemap Tile Providers & Spatial Configuration'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'List of supported map tile providers and default settings'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getSystem-settingsMap-config
+  /audit-logs:
+    get:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Get System Audit Trail Logs (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        -
+          in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: 'Audit logs list'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getAudit-logs
+  /cron-management/configs:
+    get:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Get Cron Scheduler Configurations (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'List of cron job configurations'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getCron-managementConfigs
+  /cron-management/logs:
+    get:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Get Cron Execution History Logs (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'List of cron job execution logs'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getCron-managementLogs
+  '/cron-management/toggle/{cronKey}':
+    put:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Toggle Cron Job Active State (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: cronKey
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'Cron status toggled'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: putCron-managementToggleCronKey
+  '/cron-management/trigger/{cronKey}':
+    post:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Trigger Cron Job Manually (SUPERADMIN ONLY)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: cronKey
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'Cron job triggered successfully'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postCron-managementTriggerCronKey
+  /reports/executive-summary:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Get Executive Summary KPI Report'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 'Executive Summary Report'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getReportsExecutive-summary
+  /reports/rider-operational:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Get Rider Operational Performance Report'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 'Rider Operational Report'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getReportsRider-operational
+  /reports/zone-effectiveness:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Get Zone Effectiveness and Revenue Density Report'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 'Zone Effectiveness Report'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getReportsZone-effectiveness
+  /reports/fleet:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Get Fleet Utilization and Maintenance Report'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 'Fleet Utilization Report'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getReportsFleet
+  /reports/dss-accuracy:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Get DSS Recommendation Accuracy & Supervisor Override Report'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 'DSS Accuracy Report'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getReportsDss-accuracy
+  /reports/audit-logs:
+    get:
+      tags:
+        - 'Audit & Settings'
+      summary: 'Get Filtered Audit Trail Report'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: actor_role
+          schema:
+            type: string
+        -
+          in: query
+          name: action
+          schema:
+            type: string
+        -
+          in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 'Audit Trail Report'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getReportsAudit-logs
+  '/reports/export/{reportType}':
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Multi-Format Export Engine (CSV or Printable PDF / HTML)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: reportType
+          required: true
+          schema:
+            type: string
+            enum:
+              - executive-summary
+              - rider-operational
+              - zone-effectiveness
+              - fleet
+              - dss-accuracy
+              - audit-logs
+        -
+          in: query
+          name: format
+          schema:
+            type: string
+            enum:
+              - csv
+              - pdf
+              - print
+            default: csv
+        -
+          in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 'Binary / Stream Document File Generated Successfully'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getReportsExportReportType
+  /dashboard/overview:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Get Unified Executive & Supervisor KPI Dashboard Overview'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: date
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 'Unified Dashboard Metrics (Active Zones, Riders, Fleets, Compliance & Revenue)'
+  '/weather/hub/{city_name}':
+    get:
+      tags:
+        - 'Weather & Roads'
+      summary: 'Get Current Weather Condition for Central Hub by City Name'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: city_name
+          required: true
+          schema:
+            type: string
+            example: Sidoarjo
+      responses:
+        '200':
+          description: 'Hub Weather Data (Temperature, Precipitation, Condition, Wind)'
+  '/weather/zone/{zone_id}':
+    get:
+      tags:
+        - 'Weather & Roads'
+      summary: 'Get Weather Condition and Suitability Score for Specific Zone'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zone_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        -
+          in: query
+          name: time
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'Zone Weather Suitability & Forecast'
+  '/weather/zone/{zone_id}/timeline':
+    get:
+      tags:
+        - 'Weather & Roads'
+      summary: 'Get Hourly Weather Timeline & Rainfall Forecast for a Zone'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zone_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        -
+          in: query
+          name: date
+          schema:
+            type: string
+            default: today
+        -
+          in: query
+          name: slot
+          schema:
+            type: string
+            default: all
+      responses:
+        '200':
+          description: 'Hourly Weather Timeline'
+  '/candidate-selling-locations/zone/{zoneId}':
+    get:
+      tags:
+        - 'Candidate Locations'
+      summary: 'Get High-Potential Candidate Selling Spots for a Zone'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zoneId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Array of Ranked Candidate Selling Locations'
+  /candidate-selling-locations:
+    post:
+      tags:
+        - 'Candidate Locations'
+      summary: 'Create Candidate Selling Spot Manually (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - zone_id
+                - name
+                - latitude
+                - longitude
+              properties:
+                zone_id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                latitude:
+                  type: number
+                  format: double
+                longitude:
+                  type: number
+                  format: double
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: 'Candidate Spot Created'
+  '/candidate-selling-locations/{id}':
+    get:
+      tags:
+        - 'Candidate Locations'
+      summary: 'Get Candidate Selling Spot Details by ID'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Candidate Spot Detail'
+  '/candidate-selling-locations/generate/zone/{zoneId}':
+    post:
+      tags:
+        - 'Candidate Locations'
+      summary: 'Auto-Generate Candidate Selling Spots for a Zone based on POI Clustering (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zoneId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Spots Generated and Clustered Successfully'
+  '/candidate-selling-locations/{id}/evaluate':
+    post:
+      tags:
+        - 'Candidate Locations'
+      summary: 'Evaluate and Rank Single Candidate Location with TOPSIS Multi-Criteria (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Candidate Evaluation and Score Result'
+  '/candidate-selling-locations/evaluate/zone/{zoneId}':
+    post:
+      tags:
+        - 'Candidate Locations'
+      summary: 'Evaluate and Rank All Candidate Locations in a Zone (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: zoneId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'All Zone Candidate Spots Evaluated'
+  '/candidate-selling-locations/evaluation/{evaluationId}':
+    get:
+      tags:
+        - 'Candidate Locations'
+      summary: 'Fetch Evaluation Snapshot by ID (Phase 8 Audit Trail)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: evaluationId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Snapshot Object'
+  '/candidate-selling-locations/evaluation/{evaluationId}/explanation':
+    get:
+      tags:
+        - 'Candidate Locations'
+      summary: 'Fetch Evaluation Explanation and Criteria Breakdown'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: evaluationId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Explanation Breakdown'
+  '/candidate-selling-locations/evaluation/{evaluationId}/audit':
+    get:
+      tags:
+        - 'Candidate Locations'
+      summary: 'Fetch Evaluation Audit Metadata'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: evaluationId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Audit Metadata'
+  '/zones/{id}/capacity':
+    patch:
+      tags:
+        - 'Zone Master'
+      summary: 'Quick Update Zone Max Rider Capacity (SUPERADMIN)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - max_capacity
+              properties:
+                max_capacity:
+                  type: integer
+                  minimum: 1
+                  example: 15
+      responses:
+        '200':
+          description: 'Capacity Updated'
+  /zones/config:
+    get:
+      tags:
+        - 'Zone Master'
+      summary: 'Get Zone Spatial Configuration and Constraints'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Zone Configuration Settings'
+  /rider/hub-armadas:
+    get:
+      tags:
+        - 'Rider Operations'
+      summary: 'List Available Hub Armada Units with Real-Time Lock Status'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'List of Claimable Armadas'
+  /rider/hold-armada:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'Temporary 5-Minute Hold on Armada Unit for Physical Inspection (Ticket-Booking Lock)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - armada_id
+              properties:
+                armada_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: 'Armada Reserved for 5 Minutes'
+  /rider/cancel-hold-armada:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'Release Temporary 5-Minute Hold on Armada Unit'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - armada_id
+              properties:
+                armada_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: 'Hold Released'
+  /rider/claim-armada:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'Confirm Permanent Claim of Armada Unit (Converts status to IN_USE)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - armada_id
+              properties:
+                armada_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: 'Armada Claimed (Status IN_USE)'
+  /rider/check-in:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'GPS Check-in to Assigned Zone (PostGIS ST_Covers Verification)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - latitude
+                - longitude
+              properties:
+                latitude:
+                  type: number
+                  format: double
+                  example: -7.4478
+                longitude:
+                  type: number
+                  format: double
+                  example: 112.7183
+      responses:
+        '200':
+          description: 'Check-in Verified Inside Zone Polygon (Status: OPERATING)'
+        '400':
+          description: 'GPS Location Outside Assigned Zone'
+  /rider/lock-spot:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'Lock Candidate Selling Spot Inside Zone (Prevents Multi-Rider Conflict)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - candidate_location_id
+              properties:
+                candidate_location_id:
+                  type: string
+                  format: uuid
+                latitude:
+                  type: number
+                  format: double
+                longitude:
+                  type: number
+                  format: double
+      responses:
+        '200':
+          description: 'Spot Locked for Selling Session'
+  /rider/record-sale:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'Record Field Product Sale Transaction with Session Provenance'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+                - quantity
+              properties:
+                product_id:
+                  type: string
+                  format: uuid
+                quantity:
+                  type: integer
+                  minimum: 1
+                  example: 2
+                latitude:
+                  type: number
+                  format: double
+                longitude:
+                  type: number
+                  format: double
+      responses:
+        '201':
+          description: 'Sale Transaction Recorded'
+  /rider/my-sales:
+    get:
+      tags:
+        - 'Rider Operations'
+      summary: 'Fetch Personal Field Sales History for Authenticated Rider'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: date
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        -
+          in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 'Paginated Personal Sales History'
+  /rider/checkout:
+    post:
+      tags:
+        - 'Rider Operations'
+      summary: 'Finish Daily Shift, Release Armada back to Hub & Complete Session'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                return_status:
+                  type: string
+                  enum: [ACTIVE, MAINTENANCE]
+                  default: ACTIVE
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: 'Shift Completed Successfully'
+  '/armadas/{id}/maintenance':
+    post:
+      tags:
+        - 'Armada Fleet'
+      summary: 'Set Armada Unit to Maintenance Status (SUPERADMIN, MANAGEMENT, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: 'Armada Set to Maintenance'
+  '/armadas/{id}/release-maintenance':
+    post:
+      tags:
+        - 'Armada Fleet'
+      summary: 'Release Armada Unit from Maintenance back to ACTIVE (SUPERADMIN, MANAGEMENT, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Armada Released back to ACTIVE'
+  '/products/{id}/status':
+    patch:
+      tags:
+        - 'Catalog & Products'
+      summary: 'Toggle Product Status (AVAILABLE / OUT_OF_STOCK) (SUPERADMIN, MANAGEMENT)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [AVAILABLE, OUT_OF_STOCK, DISCONTINUED]
+      responses:
+        '200':
+          description: 'Product Status Updated'
+  /pois/pending:
+    get:
+      tags:
+        - 'POI & Spatial'
+      summary: 'List Unapproved / Pending POIs Awaiting Moderation (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Array of Pending POIs'
+  /pois/approve:
+    post:
+      tags:
+        - 'POI & Spatial'
+      summary: 'Approve or Reject POI Submission (SUPERADMIN, SUPERVISOR)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - poi_id
+                - is_approved
+              properties:
+                poi_id:
+                  type: string
+                  format: uuid
+                is_approved:
+                  type: boolean
+                rejection_reason:
+                  type: string
+      responses:
+        '200':
+          description: 'POI Moderation Decision Saved'
+  /pois/sync-city:
+    post:
+      tags:
+        - 'POI & Spatial'
+      summary: 'Master Data Full City POI Synchronization from Overpass OSM (SUPERADMIN)'
+      security:
+        -
+          BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                city:
+                  type: string
+                  example: Sidoarjo
+                force:
+                  type: boolean
+                  default: false
+      responses:
+        '200':
+          description: 'POI Sync Dispatched'
+  /pois/operational-area:
+    get:
+      tags:
+        - 'POI & Spatial'
+      summary: 'List All Approved Operational Area POIs'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Array of Approved Operational Area POIs'
+  /reports/export:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Multi-Format Report Export Engine (CSV or PDF)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: reportType
+          required: true
+          schema:
+            type: string
+            enum:
+              - EXECUTIVE
+              - RIDER_OPS
+              - ZONE_EFFECTIVENESS
+              - FLEET
+              - DSS_ACCURACY
+              - AUDIT
+        -
+          in: query
+          name: format
+          schema:
+            type: string
+            enum:
+              - csv
+              - pdf
+            default: csv
+        -
+          in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        -
+          in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 'File Download Stream (CSV text or PDF binary)'
+  '/products/{id}':
+    get:
+      tags:
+        - 'Catalog & Products'
+      summary: 'Get Product Detail by ID'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Product Detail Object'
+    put:
+      tags:
+        - 'Catalog & Products'
+      summary: 'Update Product Catalog Item (SUPERADMIN, MANAGEMENT)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                status:
+                  type: string
+                  enum: [AVAILABLE, OUT_OF_STOCK, DISCONTINUED]
+      responses:
+        '200':
+          description: 'Product Updated'
+    delete:
+      tags:
+        - 'Catalog & Products'
+      summary: 'Delete Product Catalog Item (SUPERADMIN, MANAGEMENT)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 'Product Deleted'
+  /pois/stats:
+    get:
+      tags:
+        - 'POI & Spatial'
+      summary: 'Get Global POI Statistics, Category Breakdown & Spatial Density by Zone'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Global POI Overview, Total POIs, Active Categories & Zone Density Metrics'
+  /pois/summary:
+    get:
+      tags:
+        - 'POI & Spatial'
+      summary: 'Get Global POI Statistics & Density Summary (Alias)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'POI Summary'
+  /competitors/summary:
+    get:
+      tags:
+        - Competitors
+      summary: 'Get Citywide Competitor Overview, Category Breakdown & Zone Density Metrics'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Citywide Competitor Summary (Field Surveys + Coffee POIs)'
+  /competitors/stats:
+    get:
+      tags:
+        - Competitors
+      summary: 'Get Citywide Competitor Summary (Alias)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Competitor Stats'
+  /lbs/zones-distance-summary:
+    get:
+      tags:
+        - 'LBS Telemetry'
+      summary: 'Get Fleet Multi-Rider Live Distance & Hub Proximity Summary to All Zones'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Fleet Multi-Rider Geodesic Distances to Zone Centroids'
+  /lbs/zones-distance:
+    get:
+      tags:
+        - 'LBS Telemetry'
+      summary: 'Get Fleet Multi-Rider Distance Summary (Alias)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Fleet Distance Summary'
+  /dashboard/quick-alerts:
+    get:
+      tags:
+        - 'Dashboard & Analytics'
+      summary: 'Get Unified Real-Time Quick Alerts (Weather Risks, Rider Geofence Deviations & Fleet Status)'
+      security:
+        -
+          BearerAuth: []
+      parameters:
+        -
+          in: query
+          name: zone_id
+          schema:
+            type: string
+          description: 'Optional Zone ID filter'
+      responses:
+        '200':
+          description: 'Aggregated Quick Alerts Payload with Summary and Readiness Matrix'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDashboardQuick-alerts
+  /distribution/riders-summary:
+    get:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Get Aggregate Rider Operational Status Summary (Dashboard Counter Chips)'
+      description: 'Provides high-level aggregate counters (total_riders, operating, plotted, waiting_queue, deviated, unconfirmed, off_duty) and individual rider status list for supervisor dashboard.'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Aggregate rider status summary'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: {type: string, example: success}
+                  data: {type: object, properties: {total_riders: {type: integer, example: 12}, unconfirmed: {type: integer, example: 1}, waiting_queue: {type: integer, example: 1}, plotted: {type: integer, example: 2}, operating: {type: integer, example: 8}, deviated: {type: integer, example: 1}, off_duty: {type: integer, example: 0}, riders: {type: array, items: {type: object, properties: {rider_id: {type: string}, name: {type: string}, status: {type: string, example: OPERATING}, zone_id: {type: string}, zone_name: {type: string}, armada_code: {type: string}}}}}}
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDistributionRiders-summary
+  /distribution/riders/summary:
+    get:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Get Aggregate Rider Operational Status Summary (Alias)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Aggregate rider status summary'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDistributionRidersSummary
+  /distribution/daily-status:
+    get:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Get Distribution Overview (Alias)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Shift capacity overview'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: getDistributionDaily-status
+  /distribution/auto:
+    post:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Trigger Automatic Distribution (Alias)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Automatic distribution executed'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postDistributionAuto
+  /distribution/manual:
+    post:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Manual Distribution (Alias)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Manual assignment completed'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postDistributionManual
+  /distribution/override:
+    post:
+      tags:
+        - 'Distribution & Plotting'
+      summary: 'Supervisor Distribution Override (Alias)'
+      security:
+        -
+          BearerAuth: []
+      responses:
+        '200':
+          description: 'Override assignment completed'
+        '401':
+          description: 'Unauthorized - Invalid or expired JWT token'
+        '403':
+          description: 'Forbidden - Insufficient role permissions or hierarchy guard rejection'
+        '500':
+          description: 'Internal Server Error - Unexpected server exception'
+      operationId: postDistributionOverride
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'Standard JSON Web Token (JWT) authorization header. Format: `Bearer <access_token>`'
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: refreshToken
+      description: 'HTTP-Only secure cookie containing the session refresh token.'
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: 'Unique resource identifier (UUIDv4)'
+    ZoneIdPath:
+      name: zone_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: 'Target operational zone UUIDv4 identifier'
+    DateQuery:
+      name: date
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date
+        example: '2026-09-16'
+      description: 'Target operational date in YYYY-MM-DD format'
+    TimeSlotQuery:
+      name: time
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - pagi
+          - siang
+          - sore
+          - malam
+        example: pagi
+      description: 'Operational time window slot for DSS evaluation'
+    LimitQuery:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+      description: 'Maximum number of records to return in a single page'
+    PageQuery:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+      description: 'Pagination page index'
+    SearchQuery:
+      name: search
+      in: query
+      required: false
+      schema:
+        type: string
+      description: 'Full-text search keyword query'
+  responses:
+    SuccessEnvelope:
+      description: 'Standard successful response envelope'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: success
+              message:
+                type: string
+                example: 'Operation completed successfully'
+              data:
+                type: object
+    CreatedEnvelope:
+      description: 'Resource created successfully'
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: success
+              message:
+                type: string
+                example: 'Resource created successfully'
+              data:
+                type: object
+    BadRequestError:
+      description: 'Bad Request - Invalid payload parameters or malformed syntax'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnauthorizedError:
+      description: 'Unauthorized - Missing, invalid, or expired JWT access token'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ForbiddenError:
+      description: 'Forbidden - Insufficient role permissions or RBAC hierarchy guard violation'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFoundError:
+      description: 'Not Found - Requested entity does not exist in the system'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ConflictError:
+      description: 'Conflict - State collision, duplicate key, or expired resource reservation lock'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: 'Validation Error - Schema validation failed on input attributes'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimitError:
+      description: 'Too Many Requests - Rate limit exceeded. Please back off before retrying.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: 'Internal Server Error - Unhandled system exception'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: 'An error occurred during request execution'
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            details:
+              type: array
+              items:
+                type: string
+        timestamp:
+          type: string
+          format: date-time
+          example: '2026-09-16T09:17:32.000Z'
+    GeoJSONPoint:
+      type: object
+      required:
+        - type
+        - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+            - Point
+          example: Point
+        coordinates:
+          type: array
+          items:
+            type: number
+          minItems: 2
+          maxItems: 2
+          example:
+            - 112.7166
+            - -7.4478
+          description: '[longitude, latitude] in WGS84 coordinates'
+    GeoJSONPolygon:
+      type: object
+      required:
+        - type
+        - coordinates
+      properties:
+        type:
+          type: string
+          enum:
+            - Polygon
+          example: Polygon
+        coordinates:
+          type: array
+          items:
+            type: array
+            items:
+              type: array
+              items:
+                type: number
+              minItems: 2
+              maxItems: 2
+          example:
+            -
+              -
+                - 112.716
+                - -7.447
+              -
+                - 112.72
+                - -7.447
+              -
+                - 112.72
+                - -7.45
+              -
+                - 112.716
+                - -7.45
+              -
+                - 112.716
+                - -7.447
+          description: 'Array of linear ring coordinate arrays. First and last points must be identical.'
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - username
+        - name
+        - role
+        - is_active
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: d3b07384-d113-40e1-9549-d7b889370001
+        email:
+          type: string
+          format: email
+          example: supervisor1@kopikeliling.com
+        username:
+          type: string
+          example: supervisor_sidoarjo
+        name:
+          type: string
+          example: 'Supervisor Lapangan Sidoarjo'
+        phone:
+          type: string
+          example: '081234567890'
+        role:
+          type: string
+          enum:
+            - SUPERADMIN
+            - MANAGEMENT
+            - SUPERVISOR
+            - RIDER
+          example: SUPERVISOR
+        is_active:
+          type: boolean
+          example: true
+        first_login:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    UserCreateInput:
+      type: object
+      required:
+        - email
+        - username
+        - password
+        - name
+        - role
+      properties:
+        email:
+          type: string
+          format: email
+          example: supervisor1@kopikeliling.com
+        username:
+          type: string
+          example: supervisor1
+        password:
+          type: string
+          format: password
+          example: SuperSecret2026!
+        name:
+          type: string
+          example: 'Supervisor Lapangan Sidoarjo'
+        phone:
+          type: string
+          example: '081234567890'
+        birth_date:
+          type: string
+          format: date
+          example: '1995-08-17'
+        role:
+          type: string
+          enum:
+            - SUPERADMIN
+            - MANAGEMENT
+            - SUPERVISOR
+            - RIDER
+          example: SUPERVISOR
+    UserUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 'Supervisor Lapangan Baru'
+        email:
+          type: string
+          format: email
+          example: supervisor_new@kopikeliling.com
+        username:
+          type: string
+          example: supervisor_new
+        phone:
+          type: string
+          example: '081987654321'
+        role:
+          type: string
+          enum:
+            - SUPERADMIN
+            - MANAGEMENT
+            - SUPERVISOR
+            - RIDER
+          example: SUPERVISOR
+    Zone:
+      type: object
+      required:
+        - id
+        - name
+        - status
+        - max_capacity
+        - polygon
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 8f5a3b90-1c2d-4e5f-8a9b-0c1d2e3f4a5b
+        name:
+          type: string
+          example: 'Zona Alun-Alun Sidoarjo'
+        description:
+          type: string
+          example: 'Pusat keramaian publik dan taman kota'
+        max_capacity:
+          type: integer
+          example: 3
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - RESTRICTED
+            - INACTIVE
+          example: ACTIVE
+        area_sqm:
+          type: number
+          example: 45020.5
+        polygon:
+          $ref: '#/components/schemas/GeoJSONPolygon'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ZoneInput:
+      type: object
+      required:
+        - name
+        - polygon
+      properties:
+        name:
+          type: string
+          example: 'Zona Alun-Alun Sidoarjo'
+        description:
+          type: string
+          example: 'Pusat keramaian publik dan taman kota'
+        max_capacity:
+          type: integer
+          default: 3
+          example: 3
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - RESTRICTED
+            - INACTIVE
+          default: ACTIVE
+          example: ACTIVE
+        polygon:
+          $ref: '#/components/schemas/GeoJSONPolygon'
+    ZoneValidationInput:
+      type: object
+      required:
+        - polygon
+      properties:
+        polygon:
+          $ref: '#/components/schemas/GeoJSONPolygon'
+        name:
+          type: string
+          example: 'Test Valid Zone'
+        exclude_id:
+          type: string
+          format: uuid
+          description: 'Optional zone ID to exclude when updating'
+    ZoneValidationResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        valid:
+          type: boolean
+          example: true
+        overlaps:
+          type: boolean
+          example: false
+        intersects_restricted_road:
+          type: boolean
+          example: false
+        area_sqm:
+          type: number
+          example: 52310.8
+        reasons:
+          type: array
+          items:
+            type: string
+    POICategory:
+      type: object
+      required:
+        - id
+        - name
+        - category_group
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: 'Universitas / Kampus'
+        category_group:
+          type: string
+          example: Pendidikan
+        crowd_pagi:
+          type: number
+          example: 0.9
+        crowd_siang:
+          type: number
+          example: 0.85
+        crowd_sore:
+          type: number
+          example: 0.6
+        crowd_malam:
+          type: number
+          example: 0.3
+    POI:
+      type: object
+      required:
+        - id
+        - name
+        - category_id
+        - latitude
+        - longitude
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: 'Universitas Muhammadiyah Sidoarjo (UMSIDA)'
+        category_id:
+          type: string
+          format: uuid
+        category_name:
+          type: string
+          example: 'Universitas / Kampus'
+        zone_id:
+          type: string
+          format: uuid
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          example: -7.4478
+        longitude:
+          type: number
+          format: double
+          example: 112.7166
+        status:
+          type: string
+          enum:
+            - APPROVED
+            - PENDING
+            - REJECTED
+          example: APPROVED
+        source:
+          type: string
+          example: OVERPASS_OSM
+    Competitor:
+      type: object
+      required:
+        - id
+        - name
+        - latitude
+        - longitude
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: 'Kopi Kenangan Sidoarjo'
+        brand_type:
+          type: string
+          example: CHAIN_STORE
+        latitude:
+          type: number
+          format: double
+          example: -7.4485
+        longitude:
+          type: number
+          format: double
+          example: 112.7182
+        zone_id:
+          type: string
+          format: uuid
+          nullable: true
+        price_range:
+          type: string
+          example: 15k-30k
+    CandidateSellingLocation:
+      type: object
+      required:
+        - id
+        - zone_id
+        - name
+        - latitude
+        - longitude
+      properties:
+        id:
+          type: string
+          format: uuid
+        zone_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: 'Spot Gerbang Utama Kampus A'
+        latitude:
+          type: number
+          format: double
+          example: -7.448
+        longitude:
+          type: number
+          format: double
+          example: 112.717
+        is_locked:
+          type: boolean
+          example: false
+        locked_by_rider_id:
+          type: string
+          format: uuid
+          nullable: true
+        rank:
+          type: integer
+          example: 1
+        score:
+          type: number
+          example: 0.8842
+    BWMCalculationInput:
+      type: object
+      required:
+        - best_criteria_id
+        - worst_criteria_id
+        - best_to_others
+        - worst_to_others
+      properties:
+        name:
+          type: string
+          example: 'Bobot BWM Q3 Sidoarjo 2026'
+        best_criteria_id:
+          type: string
+          format: uuid
+          example: c1-uuid
+        worst_criteria_id:
+          type: string
+          format: uuid
+          example: c6-uuid
+        best_to_others:
+          type: object
+          description: 'Pairwise comparisons 1-9 from Best to Others'
+          example:
+            c1: 1
+            c2: 2
+            c3: 3
+            c4: 3
+            c5: 4
+            c6: 7
+        worst_to_others:
+          type: object
+          description: 'Pairwise comparisons 1-9 from Others to Worst'
+          example:
+            c1: 7
+            c2: 5
+            c3: 4
+            c4: 3
+            c5: 2
+            c6: 1
+    BWMCalculationResult:
+      type: object
+      properties:
+        status:
+          type: string
+          example: success
+        weights:
+          type: object
+          example:
+            C1: 0.35
+            C2: 0.22
+            C3: 0.16
+            C4: 0.12
+            C5: 0.1
+            C6: 0.05
+        consistency_ratio:
+          type: number
+          example: 0.042
+        is_consistent:
+          type: boolean
+          example: true
+        config_id:
+          type: string
+          format: uuid
+    Armada:
+      type: object
+      required:
+        - id
+        - code
+        - plate_number
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+          example: ARM-01
+        plate_number:
+          type: string
+          example: 'W 1234 AB'
+        status:
+          type: string
+          enum:
+            - AVAILABLE
+            - HOLD
+            - IN_USE
+            - MAINTENANCE
+          example: AVAILABLE
+        hold_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        current_rider_id:
+          type: string
+          format: uuid
+          nullable: true
+    RiderOperationalSession:
+      type: object
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        rider_id:
+          type: string
+          format: uuid
+        rider_name:
+          type: string
+          example: 'Budi Santoso'
+        armada_id:
+          type: string
+          format: uuid
+        armada_code:
+          type: string
+          example: ARM-01
+        zone_id:
+          type: string
+          format: uuid
+        zone_name:
+          type: string
+          example: 'Zona Alun-Alun Sidoarjo'
+        status:
+          type: string
+          enum:
+            - HOLDING
+            - CLAIMED
+            - CHECKED_IN
+            - SELLING
+            - CHECKED_OUT
+          example: CHECKED_IN
+        checked_in_at:
+          type: string
+          format: date-time
+        total_sales_amount:
+          type: number
+          example: 350000
+    Product:
+      type: object
+      required:
+        - id
+        - name
+        - price
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: 'Es Kopi Susu Aren Klasik'
+        category:
+          type: string
+          example: Coffee
+        price:
+          type: number
+          example: 12000
+        status:
+          type: string
+          enum:
+            - AVAILABLE
+            - OUT_OF_STOCK
+          example: AVAILABLE
+    Sale:
+      type: object
+      required:
+        - id
+        - rider_id
+        - zone_id
+        - total_amount
+        - items
+      properties:
+        id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        rider_id:
+          type: string
+          format: uuid
+        zone_id:
+          type: string
+          format: uuid
+        total_amount:
+          type: number
+          example: 36000
+        payment_method:
+          type: string
+          enum:
+            - CASH
+            - QRIS
+          example: QRIS
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              product_id:
+                type: string
+                format: uuid
+              product_name:
+                type: string
+                example: 'Es Kopi Susu Aren Klasik'
+              quantity:
+                type: integer
+                example: 3
+              unit_price:
+                type: number
+                example: 12000
+              subtotal:
+                type: number
+                example: 36000
+        created_at:
+          type: string
+          format: date-time
+    DistributionRun:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        run_type:
+          type: string
+          enum:
+            - AUTO_FIFO_TOPSIS
+            - MANUAL_SUPERVISOR_OVERRIDE
+          example: AUTO_FIFO_TOPSIS
+        assigned_count:
+          type: integer
+          example: 8
+        time_slot:
+          type: string
+          example: pagi
+        created_at:
+          type: string
+          format: date-time
