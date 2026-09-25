@@ -21,7 +21,6 @@ import {
 } from "../services/authService.js";
 import {
   updateUserService,
-  changeUserRoleService,
   deleteUserService,
 } from "../services/userService.js";
 
@@ -265,56 +264,49 @@ async function runLayer1Audit() {
     // -------------------------------------------------------------------------
     console.log("\n--- 2. AUDIT VEKTOR OTORISASI & RBAC ---");
 
-    // V-RBAC-01: RIDER attempting to escalate role on another user
+    // V-RBAC-01: RIDER attempting to mutate another user via updateUserService
     try {
       let blocked = false;
       try {
-        await changeUserRoleService({
-          targetUserId: supervisorUser.id,
-          newRole: "SUPERADMIN",
-          reason: "Illicit privilege escalation",
-          currentUser: riderUser,
-        });
+        await updateUserService(
+          supervisorUser.id,
+          { name: "Hacked Supervisor" },
+          riderUser
+        );
       } catch (err) {
         blocked = err.statusCode === 403;
       }
-      recordTest("V-RBAC-01", "Pencegahan Eskalasi Peran oleh RIDER (Privilege Escalation)", "Authorization", blocked, blocked ? "Ditolak 403 Forbidden" : "Rider berhasil ubah role!");
+      recordTest("V-RBAC-01", "Pencegahan Eskalasi & Mutasi oleh RIDER (Privilege Escalation)", "Authorization", blocked, blocked ? "Ditolak 403 Forbidden" : "Rider berhasil ubah user!");
     } catch (err) {
-      recordTest("V-RBAC-01", "Pencegahan Eskalasi Peran oleh RIDER (Privilege Escalation)", "Authorization", false, err.message);
+      recordTest("V-RBAC-01", "Pencegahan Eskalasi & Mutasi oleh RIDER (Privilege Escalation)", "Authorization", false, err.message);
     }
 
-    // V-RBAC-02: Self-Protection Guard (User changing their own role)
+    // V-RBAC-02: Immutable Role Guard: Peran tidak dapat diubah via updateUserService
     try {
-      let blockedSelf = false;
-      try {
-        await changeUserRoleService({
-          targetUserId: riderUser.id,
-          newRole: "SUPERADMIN",
-          reason: "Self promotion",
-          currentUser: riderUser,
-        });
-      } catch (err) {
-        blockedSelf = err.statusCode === 400 && err.message.includes("Self-Protection Guard");
-      }
-      recordTest("V-RBAC-02", "Proteksi Diri: Larangan Mengubah Peran Sendiri", "Authorization", blockedSelf, blockedSelf ? "Ditolak Self-Protection Guard" : "Bisa ubah peran sendiri!");
+      const updated = await updateUserService(
+        riderUser.id,
+        { name: "Rider Updated Name", role: "SUPERADMIN" },
+        riderUser
+      );
+      const isRoleImmutable = updated.role === "RIDER";
+      recordTest("V-RBAC-02", "Prinsip Peran Tidak Dapat Diubah (Immutable Role)", "Authorization", isRoleImmutable, isRoleImmutable ? "Peran tetap RIDER (Role dikunci total)" : "Peran berhasil diubah!");
     } catch (err) {
-      recordTest("V-RBAC-02", "Proteksi Diri: Larangan Mengubah Peran Sendiri", "Authorization", false, err.message);
+      recordTest("V-RBAC-02", "Prinsip Peran Tidak Dapat Diubah (Immutable Role)", "Authorization", false, err.message);
     }
 
-    // V-RBAC-03: Hierarchy Guard: MANAGEMENT dilarang mengubah/menghapus SUPERADMIN
+    // V-RBAC-03: Hierarchy Guard: MANAGEMENT dilarang mengubah akun SUPERADMIN
     try {
       let blockedSuperadminMutation = false;
       try {
-        await changeUserRoleService({
-          targetUserId: superadminUser.id,
-          newRole: "RIDER",
-          reason: "Management demoting superadmin",
-          currentUser: managementUser,
-        });
+        await updateUserService(
+          superadminUser.id,
+          { name: "Hacked Superadmin by Management" },
+          managementUser
+        );
       } catch (err) {
         blockedSuperadminMutation = err.statusCode === 403 && err.message.includes("Hierarchy Guard");
       }
-      recordTest("V-RBAC-03", "Hierarchy Guard: Management Dilarang Mutasi Superadmin", "Authorization", blockedSuperadminMutation, blockedSuperadminMutation ? "Ditolak Hierarchy Guard 403" : "Management berhasil turunkan Superadmin!");
+      recordTest("V-RBAC-03", "Hierarchy Guard: Management Dilarang Mutasi Superadmin", "Authorization", blockedSuperadminMutation, blockedSuperadminMutation ? "Ditolak Hierarchy Guard 403" : "Management berhasil mutasi Superadmin!");
     } catch (err) {
       recordTest("V-RBAC-03", "Hierarchy Guard: Management Dilarang Mutasi Superadmin", "Authorization", false, err.message);
     }
@@ -349,33 +341,23 @@ async function runLayer1Audit() {
       recordTest("V-RBAC-05", "Pencegahan BOLA / IDOR: Rider Dilarang Edit Akun Lain", "Authorization", false, err.message);
     }
 
-    // V-RBAC-06: Last Superadmin Protection Guard
+    // V-RBAC-06: Endpoint Ganti Peran Dihapus Total (No change-role endpoint)
     try {
-      let lastSuperadminProtected = false;
-      try {
-        await changeUserRoleService({
-          targetUserId: superadminUser.id,
-          newRole: "MANAGEMENT",
-          reason: "Demoting single superadmin",
-          currentUser: superadminUser, // Will trigger self protection or last superadmin
-        });
-      } catch (err) {
-        lastSuperadminProtected = err.statusCode === 400;
-      }
-      recordTest("V-RBAC-06", "Perlindungan Superadmin Terakhir (Last Superadmin Guard)", "Authorization", lastSuperadminProtected, "Sistem menolak mutasi akun superadmin tunggal");
+      const serviceFile = await import("../services/userService.js");
+      const changeRoleRemoved = !serviceFile.changeUserRoleService;
+      recordTest("V-RBAC-06", "Penghapusan Total Fitur Ganti Peran", "Authorization", changeRoleRemoved, changeRoleRemoved ? "changeUserRoleService tidak lagi tersedia" : "changeUserRoleService masih ada");
     } catch (err) {
-      recordTest("V-RBAC-06", "Perlindungan Superadmin Terakhir (Last Superadmin Guard)", "Authorization", false, err.message);
+      recordTest("V-RBAC-06", "Penghapusan Total Fitur Ganti Peran", "Authorization", false, err.message);
     }
 
-    // V-RBAC-07: Inactive Operational Session Guard on Role Change
+    // V-RBAC-07: Route change-role tidak aktif di router
     try {
-      // When rider has active operational session, role change must be blocked
-      // We check if the service performs the check on active session
-      const serviceFile = await import("../services/userService.js");
-      const hasActiveSessionGuard = Boolean(serviceFile.changeUserRoleService);
-      recordTest("V-RBAC-07", "Guard Sesi Operasional Aktif Saat Mutasi Peran", "Authorization", hasActiveSessionGuard, "Guard aktif memeriksa operational_sessions");
+      const routesFile = await import("../routes/userRoutes.js");
+      const routerStack = routesFile.default?.stack || [];
+      const hasChangeRoleRoute = routerStack.some((layer) => layer.route?.path?.includes("change-role"));
+      recordTest("V-RBAC-07", "Rute /:id/change-role Bersih dari Router", "Authorization", !hasChangeRoleRoute, !hasChangeRoleRoute ? "Rute change-role terhapus 100%" : "Rute change-role masih terdaftar");
     } catch (err) {
-      recordTest("V-RBAC-07", "Guard Sesi Operasional Aktif Saat Mutasi Peran", "Authorization", false, err.message);
+      recordTest("V-RBAC-07", "Rute /:id/change-role Bersih dari Router", "Authorization", false, err.message);
     }
 
     // V-RBAC-08: RIDER Access to Profile Endpoints is Self-Scoped

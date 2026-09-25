@@ -8,9 +8,12 @@ function MetricCardComponent({
   subtitle,
   icon: Icon,
   trend, // { value: "+12%", direction: "up" | "down" | "neutral" }
-  status, // "success" | "warning" | "danger" | "info" | "brand"
+  status, // "success" | "warning" | "danger" | "info" | "brand" | "neutral"
+  selected = false,
   loading = false,
   className,
+  onClick,
+  ...props
 }) {
   const iconVariantMap = {
     success: "bg-[var(--status-success-bg)] text-[var(--status-success)] border-[var(--status-success)]/20",
@@ -25,10 +28,19 @@ function MetricCardComponent({
 
   return (
     <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
       className={cn(
-        "bg-white dark:bg-[#111318] border border-slate-200/80 dark:border-white/5 rounded-xl p-5 shadow-xs flex flex-col justify-between min-h-[110px] relative overflow-hidden select-none",
+        "bg-white dark:bg-[#111318] border rounded-xl p-5 shadow-xs flex flex-col justify-between min-h-[110px] relative overflow-hidden select-none transition-all duration-150",
+        selected
+          ? "border-[var(--brand-primary)] ring-2 ring-[var(--brand-primary)]/20 bg-[var(--brand-subtle)]/20 dark:bg-[var(--brand-subtle)]/10"
+          : "border-slate-200/80 dark:border-white/5",
+        onClick && !selected && "cursor-pointer hover:border-slate-300 dark:hover:border-white/15",
         className
       )}
+      {...props}
     >
       <div className="flex items-start justify-between gap-3 mb-2">
         <span className="text-xs font-heading font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">

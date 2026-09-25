@@ -67,16 +67,6 @@ export const userService = {
   },
 
   /**
-   * Transition / change user role with mandatory reason & active session revocation
-   * @param {string} id
-   * @param {Object} transitionData - { newRole, reason }
-   */
-  async changeUserRole(id, { newRole, reason }) {
-    const response = await api.post(`/api/users/${id}/change-role`, { newRole, reason });
-    return response.data?.data || response.data;
-  },
-
-  /**
    * Delete a user permanently
    * @param {string} id
    */

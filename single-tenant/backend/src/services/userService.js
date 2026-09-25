@@ -210,24 +210,15 @@ export const createUserService = async (
   };
 };
 
-export const updateUserService = async (id, { name, email, phone, role }, currentUser) => {
+export const updateUserService = async (id, { name, email, phone }, currentUser) => {
   const targetUser = await UserModel.findById(id);
   if (!targetUser) {
     throw createHttpError("Pengguna tidak ditemukan.", 404);
   }
 
   const isSelf = String(currentUser.id) === String(id);
-  const targetRole = role ? role.toUpperCase() : undefined;
-
-  if (isSelf) {
-    if (targetRole && targetRole !== targetUser.role && currentUser.role !== "SUPERADMIN") {
-      throw createHttpError("Akses ditolak: Hanya SUPERADMIN yang dapat mengubah peran akun.", 403);
-    }
-  } else {
+  if (!isSelf) {
     assertCanManageTargetRole(currentUser.role, targetUser.role, "mengubah");
-    if (targetRole) {
-      assertCanManageTargetRole(currentUser.role, targetRole, "menetapkan");
-    }
   }
 
   if (email && email.toLowerCase() !== targetUser.email.toLowerCase()) {
@@ -241,7 +232,7 @@ export const updateUserService = async (id, { name, email, phone, role }, curren
     name: name ? name.trim() : targetUser.name,
     email: email ? email.toLowerCase().trim() : targetUser.email,
     phone: phone !== undefined ? phone : targetUser.phone,
-    role: targetRole || targetUser.role,
+    role: targetUser.role,
   });
 };
 
@@ -314,124 +305,3 @@ export const changePasswordService = async (userId, { currentPassword, newPasswo
   return await UserModel.updatePassword(userId, hashedPassword);
 };
 
-export const changeUserRoleService = async ({
-  targetUserId,
-  newRole,
-  reason,
-  currentUser,
-  ipAddress = null,
-  userAgent = null,
-}) => {
-  if (!newRole) {
-    throw createHttpError("Peran baru (newRole) wajib ditentukan.", 400);
-  }
-
-  const normalizedNewRole = newRole.toUpperCase().trim();
-  if (!VALID_ROLES.includes(normalizedNewRole)) {
-    throw createHttpError(
-      `Peran '${newRole}' tidak valid. Pilihan yang tersedia: ${VALID_ROLES.join(", ")}`,
-      400
-    );
-  }
-
-  if (!reason || typeof reason !== "string" || reason.trim().length < 5) {
-    throw createHttpError(
-      "Alasan perubahan peran wajib diisi (minimal 5 karakter) untuk keperluan audit keamanan.",
-      400
-    );
-  }
-
-  const targetUser = await UserModel.findById(targetUserId);
-  if (!targetUser) {
-    throw createHttpError("Pengguna target tidak ditemukan.", 404);
-  }
-
-  const isSelf = String(currentUser.id) === String(targetUserId);
-  if (isSelf) {
-    throw createHttpError(
-      "Akses ditolak (Self-Protection Guard): Anda tidak dapat mengubah peran akun Anda sendiri.",
-      400
-    );
-  }
-
-  if (targetUser.role === normalizedNewRole) {
-    throw createHttpError(
-      `Pengguna sudah memiliki peran ${normalizedNewRole}.`,
-      400
-    );
-  }
-
-  // Hierarchy Guard
-  assertCanManageTargetRole(currentUser.role, targetUser.role, "mengubah peran");
-  assertCanManageTargetRole(currentUser.role, normalizedNewRole, "menetapkan peran");
-
-  // Guard: Last Superadmin Protection
-  if (targetUser.role === "SUPERADMIN" && normalizedNewRole !== "SUPERADMIN") {
-    const { rows } = await pool.query(
-      "SELECT COUNT(*)::int AS count FROM users WHERE role = 'SUPERADMIN' AND is_active = true;"
-    );
-    const superadminCount = rows[0]?.count || 0;
-    if (superadminCount <= 1) {
-      throw createHttpError(
-        "ROLE_CHANGE_BLOCKED: Sistem mewajibkan setidaknya terdapat minimal 1 akun Superadmin yang aktif.",
-        400
-      );
-    }
-  }
-
-  // Guard: Active Operational Session Block
-  if (targetUser.role === "RIDER") {
-    const activeSession = await OperationalSessionRepository.getInstance().findActiveSessionByRiderId(targetUserId);
-    if (activeSession && ["CLAIMED", "CHECKED_IN", "ACTIVE"].includes(activeSession.session_status || activeSession.status)) {
-      throw createHttpError(
-        "ROLE_CHANGE_BLOCKED: Pengguna masih memiliki sesi operasional lapangan yang aktif. Selesaikan atau checkout sesi operasional terlebih dahulu.",
-        400
-      );
-    }
-  }
-
-  // Perform Role Transition
-  const updatedUser = await UserModel.updateRole(targetUserId, normalizedNewRole);
-
-  // Invalidate all active sessions immediately
-  await RefreshTokenModel.revokeAllForUser(targetUserId);
-
-  // Real-Time Notification via Socket.IO
-  try {
-    socketManager.sendToUser(targetUserId, "access:changed", {
-      reason: "ROLE_CHANGED",
-      previousRole: targetUser.role,
-      newRole: normalizedNewRole,
-      requiresReauthentication: true,
-    });
-  } catch (socketErr) {
-    console.warn(`[USER SERVICE] Failed to emit access:changed event: ${socketErr.message}`);
-  }
-
-  // Audit Log
-  auditLogger.logAction({
-    userId: currentUser.id,
-    userRole: currentUser.role,
-    action: "ROLE_CHANGED",
-    entityType: "USER",
-    entityId: targetUser.id,
-    details: {
-      target_user_id: targetUser.id,
-      target_name: targetUser.name,
-      target_email: targetUser.email,
-      previous_role: targetUser.role,
-      new_role: normalizedNewRole,
-      reason: reason.trim(),
-    },
-    ipAddress,
-    userAgent,
-    status: "SUCCESS",
-  });
-
-  return {
-    user: updatedUser,
-    previous_role: targetUser.role,
-    new_role: normalizedNewRole,
-    message: `Peran pengguna ${targetUser.name} berhasil diubah dari ${targetUser.role} menjadi ${normalizedNewRole}. Seluruh sesi aktif pengguna telah dicabut.`,
-  };
-};

@@ -4,4 +4,3 @@ export * from "./MetricCard";
 export * from "./ConfirmDialog";
 export * from "./DataTable";
 export * from "./TurnstileWidget";
-export * from "./RoleTransitionModal";

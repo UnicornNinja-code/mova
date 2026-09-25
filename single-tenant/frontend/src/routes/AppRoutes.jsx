@@ -20,7 +20,6 @@ const RiderHomePage = lazy(() => import("@/pages/rider/RiderHomePage").then((m) 
 const UsersPage = lazy(() => import("@/pages/admin/UsersPage").then((m) => ({ default: m.UsersPage })));
 const CreateUserPage = lazy(() => import("@/pages/admin/CreateUserPage").then((m) => ({ default: m.CreateUserPage })));
 const UserDetailPage = lazy(() => import("@/pages/admin/UserDetailPage").then((m) => ({ default: m.UserDetailPage })));
-const RolesPage = lazy(() => import("@/pages/help/FaqPage").then((m) => ({ default: m.FaqPage })));
 const FaqPage = lazy(() => import("@/pages/help/FaqPage").then((m) => ({ default: m.FaqPage })));
 const ProfilePage = lazy(() => import("@/pages/profile/ProfilePage").then((m) => ({ default: m.ProfilePage })));
 const MasterPoiPage = lazy(() => import("@/pages/data/MasterPoiPage").then((m) => ({ default: m.MasterPoiPage })));
@@ -267,16 +266,6 @@ export function AppRoutes() {
           <ProtectedRoute allowedRoles={["SUPERADMIN"]}>
             <PageSuspense>
               <UserDetailPage />
-            </PageSuspense>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/roles"
-        element={
-          <ProtectedRoute allowedRoles={["SUPERADMIN"]}>
-            <PageSuspense>
-              <RolesPage />
             </PageSuspense>
           </ProtectedRoute>
         }

@@ -9,7 +9,6 @@ import {
   changePasswordService,
   resendActivationService,
   revokeUserSessionsService,
-  changeUserRoleService,
 } from "../services/userService.js";
 import { sendSuccess, sendPaginated, sendError } from "../utils/apiResponse.js";
 
@@ -180,38 +179,6 @@ export const changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     await changePasswordService(req.user.id, { currentPassword, newPassword });
     return sendSuccess(res, null, "Kata sandi berhasil diperbarui.", 200);
-  } catch (error) {
-    return handleControllerError(res, error);
-  }
-};
-
-export const changeUserRole = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { newRole, role, reason } = req.body;
-    const targetRole = newRole || role;
-
-    const result = await changeUserRoleService({
-      targetUserId: id,
-      newRole: targetRole,
-      reason,
-      currentUser: req.user,
-      ipAddress: req.ip,
-      userAgent: req.headers["user-agent"],
-    });
-
-    const safeUser = sanitizeUser(result.user);
-    return sendSuccess(
-      res,
-      {
-        user: safeUser,
-        previous_role: result.previous_role,
-        new_role: result.new_role,
-      },
-      result.message,
-      200,
-      { user: safeUser }
-    );
   } catch (error) {
     return handleControllerError(res, error);
   }

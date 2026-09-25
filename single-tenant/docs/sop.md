@@ -20,12 +20,70 @@ Kategori ini mencakup pembuatan antarmuka baru, perombakan tata letak (redesign)
   /ui-ux-designer /react-ui-patterns /web-design-guidelines Saya ingin merombak tata letak halaman [Nama Halaman] menjadi horizontal view dengan floating widget di atas kanvas peta sesuai panduan mova_visual_constitution.md.
 
 ✨ Skenario 1.2: Standardisasi Gaya Visual & Token Desain
-- Deskripsi: Memperbaiki styling komponen agar mematuhi palette dark mode MOVA (Solid Carbon, border abu-abu gelap terukur, badge warna fungsional) tanpa warna neon atau elemen berlebihan.
+- Deskripsi: Memperbaiki styling komponen agar mematuhi palette dark mode KopiGo (Solid Carbon, border abu-abu gelap terukur, badge warna fungsional) tanpa warna neon atau elemen berlebihan.
 - Rekomendasi Skill:
-  - ui-ux-pro-max: Penajaman palet warna, tipografi Inter/Roboto, dan detail mikro interaksi.
+  - ui-ux-pro-max: Penajaman palet warna, tipografi Gilroy & Work Sans, dan detail mikro interaksi.
   - core-components: Pemanfaatan komponen inti yang reusable agar tidak terjadi duplikasi styling ad-hoc.
 - Contoh Pemanggilan Cepat:
-  /ui-ux-pro-max /core-components Terapkan prinsip visual constitution pada komponen [Nama Komponen] agar selaras dengan tema gelap Solid Carbon MOVA.
+  /ui-ux-pro-max /core-components Terapkan prinsip visual constitution pada komponen [Nama Komponen] agar selaras dengan tema KopiGo.
+
+🏛️ Skenario 1.3: Standar Perancangan Halaman & Pemanfaatan Komponen Primitives (Design System Adoption)
+- Deskripsi: Panduan baku restrukturisasi dan modernisasi halaman aplikasi KopiGo menggunakan komponen primitives dan composites resmi tanpa membuat styling ad-hoc yang menumpuk.
+- Rekomendasi Skill:
+  - ui-ux-designer: Menentukan hierarki visual, spacing, dan layout 5-layer standar.
+  - react-ui-patterns: Implementasi state management, filter terintegrasi, debouncing, dan dialog terpusat.
+  - web-design-guidelines: Memastikan kepatuhan aksesibilitas, konsistensi token warna, dan zero-regression.
+
+### Panduan Baku Anatomi Halaman KopiGo (5-Layer Architecture):
+1. **Layer 1 - Header Halaman (Page Header)**:
+   - Judul Halaman: Gunakan Gilroy Medium (`font-heading font-medium tracking-tight text-slate-900 dark:text-slate-100 text-xl`). Hindari penggunaan font-bold berlebihan.
+   - Deskripsi Singkat: Gunakan Work Sans dengan warna sekunder (`text-xs text-slate-500 dark:text-slate-400 mt-0.5`).
+   - Tombol Aksi Utama: Tombol varian `primary` dengan sudut `rounded-xl`, ikon pendukung dari `lucide-react`, dan transisi warna statis murni (`transition-colors duration-150`). Dilarang keras menggunakan animasi hover bergerak/melompat (`hover:-translate-y-*`).
+
+2. **Layer 2 - Bar Metrik Interaktif (KPI Metric Cards)**:
+   - Wajib menggunakan komponen resmi `MetricCard` dari `@/components/composites`.
+   - Grid responsif: `grid grid-cols-2 lg:grid-cols-4 gap-4`.
+   - Kartu harus interaktif: Tambahkan prop `onClick` dan `selected` agar klik pada kartu langsung memfilter data tabel (misal: Total, Aktif, Menunggu, Dinonaktifkan).
+   - State aktif: Menampilkan border glow ring `ring-2 ring-[var(--brand-primary)]/20 border-[var(--brand-primary)]`.
+   - Status ikon: Gunakan status warna fungsional (`neutral`, `success`, `warning`, `danger`, `brand`).
+
+3. **Layer 3 - Area Notifikasi & Umpan Balik (Alerts)**:
+   - Gunakan komponen `Alert` dari `@/components/primitives` dengan varian `success` atau `danger`.
+   - Styling terpadu dengan sudut `rounded-xl` dan tombol tutup interaktif `onClose`.
+
+4. **Layer 4 - Bar Filter & Pencarian (Filter & Search Bar)**:
+   - Container kartu recessed: `bg-white dark:bg-[#111318] border border-slate-200/80 dark:border-white/5 rounded-xl p-3 shadow-xs`.
+   - Komponen Pencarian: Wajib menggunakan `SearchInput` dari `@/components/composites` yang sudah dilengkapi auto-debounce (300ms) dan tombol clear cepat (X). Dilarang membuat tag `<input>` pencarian manual ad-hoc.
+   - Filter Kategori: Gunakan komponen `Select` dan `SelectItem` dari `@/components/primitives`.
+   - Tombol Reset: Sediakan tombol `Reset Filter` otomatis saat ada filter atau kata kunci yang aktif.
+
+5. **Layer 5 - Penyajian Data & Tabel (DataTable & Row Interaction)**:
+   - Gunakan `DataTable` dari `@/components/composites` di dalam container `rounded-xl` yang bersih.
+   - Interaksi Baris: Gunakan `onRowClick` untuk membuka modal inspeksi terpusat.
+   - Status & Peran: Wajib menggunakan `StatusBadge` dan `Badge` varian `pill` dengan soft-tint background (10-15%) dan dot indikator warna status.
+   - Tipografi Data: Gunakan `font-mono` untuk username, email, tanggal, nomor referensi, dan kuantitas.
+
+### Standar Modal Dialog & Aksi Destruktif:
+- **Inspeksi Profil/Detail**: Gunakan modal terpusat `Dialog` (`DialogContent maxWidth="md" className="rounded-2xl p-6"`) yang menampilkan inisial avatar brand coral, data terstruktur grid, dan tombol aksi cepat. Hindari penggunaan right-side drawer/sheet sempit untuk data primer.
+- **Konfirmasi Aksi Destruktif (`ConfirmDialog`)**: Wajib menyertakan prop standar:
+  - `open` & `onOpenChange`
+  - `title` & `description`
+  - `confirmLabel` (bukan `confirmText`)
+  - `variant="danger"` atau `variant="primary"` (bukan `confirmVariant`)
+  - `loading` & `onConfirm`
+
+### Aturan Branding & Copywriting:
+- Seluruh teks antarmuka dan pesan sistem wajib menggunakan nama produk **KopiGo** (bukan MOVA).
+- Gunakan Bahasa Indonesia baku operasional yang ringkas dan profesional pada seluruh label, tombol, dan pesan dialog.
+
+### Checklist Verifikasi Kualitas Pra-Selesai (Quality Gate):
+1. [ ] Tidak ada penambahan styling inline/ad-hoc jika primitive resmi sudah ada.
+2. [ ] Tidak ada tombol yang melompat saat di-hover (`hover:-translate-y-*` dibersihkan).
+3. [ ] Tidak ada warning konsol (misal: refresh token tak berizin atau third-party storage tracking).
+4. [ ] Jalankan `bun run vitest run` dan pastikan seluruh test suite (100%) berstatus passed.
+
+- Contoh Pemanggilan Cepat:
+  /ui-ux-designer /react-ui-patterns Terapkan standar SOP Desain Halaman KopiGo (5-Layer Architecture) pada halaman [Nama Halaman] menggunakan MetricCard interaktif, SearchInput debounced, dan Dialog terpusat.
 
 ---
 
@@ -189,8 +247,8 @@ Kategori ini mencakup optimasi kecepatan render frontend, efisiensi query databa
 
 Berikut adalah panduan cepat pemilihan skill berdasarkan kata kunci kebutuhan kerja:
 
-1. Kebutuhan: Redesign Halaman / Buat Komponen UI Baru
-   - Skill Utama: ui-ux-designer, react-ui-patterns, web-design-guidelines
+1. Kebutuhan: Redesign Halaman / Buat Komponen UI Baru / Standar 5-Layer SOP
+   - Skill Utama: ui-ux-designer, react-ui-patterns, web-design-guidelines, core-components
 
 2. Kebutuhan: Buat Endpoint RESTful / Business Logic
    - Skill Utama: backend-patterns, api-patterns, clean-code

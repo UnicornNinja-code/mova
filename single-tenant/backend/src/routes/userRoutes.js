@@ -11,7 +11,6 @@ import {
     changePassword,
     resendActivation,
     revokeUserSessions,
-    changeUserRole,
 } from "../controllers/userController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 import { checkRole } from "../middlewares/roleMiddleware.js";
@@ -37,10 +36,6 @@ router.get("/:id", checkRole(["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"]), getUse
 
 // 5. Update User Profile (IDOR Protection & Hierarchy Guard in Service)
 router.put("/:id", updateUser);
-
-// 6. Explicit Role Transition Flow (SUPERADMIN & MANAGEMENT with Hierarchy Guard & Session Revocation)
-router.post("/:id/change-role", checkRole(["SUPERADMIN", "MANAGEMENT"]), changeUserRole);
-router.put("/:id/role", checkRole(["SUPERADMIN", "MANAGEMENT"]), changeUserRole);
 
 // 6. Toggle User Active Status (SUPERADMIN & MANAGEMENT with Hierarchy Guard)
 router.patch("/:id/status", checkRole(["SUPERADMIN", "MANAGEMENT"]), setUserStatus);

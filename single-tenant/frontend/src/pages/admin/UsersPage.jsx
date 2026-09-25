@@ -6,11 +6,9 @@ import {
   Select,
   SelectItem,
   Badge,
+  StatusBadge,
   Spinner,
   Alert,
-  Sheet,
-  SheetContent,
-  SheetFooter,
   Dialog,
   DialogContent,
   DialogHeader,
@@ -20,9 +18,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
+  DropdownMenuSeparator
 } from "@/components/primitives";
-import { DataTable, ConfirmDialog, RoleTransitionModal } from "@/components/composites";
+import { DataTable, ConfirmDialog, MetricCard, SearchInput } from "@/components/composites";
 import {
   Users,
   UserPlus,
@@ -65,8 +63,8 @@ export function UsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  // Quick Inspection Drawer state
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // Quick Inspection Dialog state (Modal Dialog Tengah)
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
   // Dialog states for Actions
@@ -74,13 +72,6 @@ export function UsersPage() {
     isOpen: false,
     type: null, // "suspend" | "reactivate" | "revoke_sessions" | "resend_activation" | "delete"
     targetUser: null,
-    loading: false,
-  });
-
-  const [roleChangeModal, setRoleChangeModal] = useState({
-    isOpen: false,
-    targetUser: null,
-    newRole: "",
     loading: false,
   });
 
@@ -140,9 +131,9 @@ export function UsersPage() {
   }, [users, currentPage, pageSize]);
 
   // Action handlers
-  const handleOpenDrawer = (user) => {
+  const handleOpenDetailModal = (user) => {
     setSelectedUser(user);
-    setDrawerOpen(true);
+    setDetailModalOpen(true);
   };
 
   const handleOpenConfirm = (type, targetUser) => {
@@ -183,7 +174,7 @@ export function UsersPage() {
         await userService.deleteUser(targetUser.id);
         setActionSuccess(`Akun ${targetUser.name} berhasil dihapus dari sistem.`);
         if (selectedUser?.id === targetUser.id) {
-          setDrawerOpen(false);
+          setDetailModalOpen(false);
         }
       }
 
@@ -192,31 +183,6 @@ export function UsersPage() {
     } catch (err) {
       setError(err.response?.data?.msg || err.message || "Gagal mengeksekusi tindakan.");
       setConfirmModal((prev) => ({ ...prev, loading: false }));
-    }
-  };
-
-  const handleOpenRoleChange = (targetUser) => {
-    setRoleChangeModal({
-      isOpen: true,
-      targetUser,
-      newRole: targetUser.role,
-      loading: false,
-    });
-  };
-
-  const handleExecuteRoleChange = async ({ targetUserId, newRole, reason }) => {
-    setRoleChangeModal((prev) => ({ ...prev, loading: true }));
-    try {
-      const result = await userService.changeUserRole(targetUserId, { newRole, reason });
-      setActionSuccess(result.message || `Peran pengguna berhasil diubah menjadi ${newRole}.`);
-      setRoleChangeModal({ isOpen: false, targetUser: null, newRole: "", loading: false });
-      if (selectedUser?.id === targetUserId) {
-        setSelectedUser((prev) => ({ ...prev, role: newRole }));
-      }
-      await loadUsers();
-    } catch (err) {
-      setError(err.response?.data?.msg || err.message || "Gagal mengubah peran pengguna.");
-      setRoleChangeModal((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -239,50 +205,22 @@ export function UsersPage() {
       .toUpperCase() || "U";
   };
 
-  // Status Dot Renderer (Standard Dense Calm Representation)
-  const renderStatusDot = (accountStatus) => {
-    switch (accountStatus) {
-      case "ACTIVE":
-        return (
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[var(--status-success)]" />
-            <span className="text-xs font-medium text-[var(--text-primary)]">Active</span>
-          </div>
-        );
-      case "PENDING":
-        return (
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full border-2 border-[var(--status-warning)] bg-transparent" />
-            <span className="text-xs font-medium text-[var(--text-secondary)]">Pending</span>
-          </div>
-        );
-      case "SUSPENDED":
-      default:
-        return (
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-[var(--status-danger)]" />
-            <span className="text-xs font-medium text-[var(--text-muted)]">Suspended</span>
-          </div>
-        );
-    }
-  };
-
   // Table Columns Definition
   const columns = [
     {
       key: "user",
-      header: "USER",
+      header: "PENGGUNA",
       headerClassName: "w-[280px]",
       render: (row) => (
         <div className="flex items-center gap-3 py-1">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--surface-muted)] text-xs font-semibold text-[var(--text-primary)]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-subtle)] text-[var(--brand-primary)] text-xs font-heading font-medium border border-[var(--brand-primary)]/20 shadow-xs">
             {getInitials(row.name)}
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-medium text-[var(--text-primary)] truncate hover:underline">
+            <span className="text-xs font-heading font-medium text-slate-900 dark:text-slate-100 truncate hover:text-[var(--brand-primary)] transition-colors">
               {row.name}
             </span>
-            <span className="text-[11px] text-[var(--text-muted)] truncate">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate font-mono">
               {row.email}
             </span>
           </div>
@@ -291,47 +229,52 @@ export function UsersPage() {
     },
     {
       key: "role",
-      header: "ROLE",
-      headerClassName: "w-[140px]",
+      header: "PERAN",
+      headerClassName: "w-[150px]",
       render: (row) => {
-        const config = getRoleConfig(row.role);
+        const roleVariant = {
+          SUPERADMIN: "brand",
+          SUPERVISOR: "info",
+          RIDER: "success",
+          STAFF_GUDANG: "warning",
+        }[row.role] || "neutral";
         return (
-          <span
-            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[var(--radius-full)] text-[11px] font-medium border shadow-2xs ${config.badgeClass}`}
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${config.dotClass}`} />
-            {config.label}
-          </span>
+          <Badge variant={roleVariant} size="sm" pill>
+            <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 opacity-80 shrink-0" />
+            {formatRoleName(row.role)}
+          </Badge>
         );
       },
     },
     {
       key: "account_status",
-      header: "ACCOUNT",
-      headerClassName: "w-[130px]",
-      render: (row) => renderStatusDot(row.account_status),
-    },
-    {
-      key: "last_active",
-      header: "LAST ACTIVE",
+      header: "STATUS AKUN",
       headerClassName: "w-[140px]",
       render: (row) => {
-        if (row.account_status === "PENDING") {
-          return <span className="text-xs text-[var(--text-muted)]">—</span>;
-        }
-        return (
-          <span className="text-xs text-[var(--text-secondary)]">
-            {row.last_active_at ? formatRelativeTime(row.last_active_at) : "Just now"}
-          </span>
-        );
+        const status = row.account_status || (row.is_active ? "ACTIVE" : "SUSPENDED");
+        return <StatusBadge status={status} size="sm" pill />;
       },
     },
     {
+      key: "last_active",
+      header: "AKTIVITAS TERAKHIR",
+      headerClassName: "w-[150px]",
+      render: (row) => (
+        <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+          {row.account_status === "PENDING"
+            ? "—"
+            : row.last_active_at
+              ? formatRelativeTime(row.last_active_at)
+              : "Baru saja"}
+        </span>
+      ),
+    },
+    {
       key: "created_at",
-      header: "CREATED",
+      header: "TERDAFTAR",
       headerClassName: "w-[130px]",
       render: (row) => (
-        <span className="text-xs text-[var(--text-muted)]">
+        <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
           {row.created_at ? formatDate(row.created_at) : "—"}
         </span>
       ),
@@ -355,7 +298,7 @@ export function UsersPage() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="p-1.5 rounded-[var(--radius-sm)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors cursor-pointer outline-none focus:ring-1 focus:ring-[var(--accent-primary)]"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-[#181B22] transition-colors cursor-pointer outline-none focus:ring-1 focus:ring-[var(--brand-primary)]"
                   title="Aksi Pengguna"
                   onClick={(e) => e.stopPropagation()}
                 >
@@ -363,34 +306,18 @@ export function UsersPage() {
                 </button>
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent align="end" side="bottom" sideOffset={4} className="w-48 z-50">
+              <DropdownMenuContent align="end" side="bottom" sideOffset={4} className="w-52 z-50">
                 <DropdownMenuItem
                   icon={ExternalLink}
                   onSelect={() => navigate(`/admin/users/${row.id}`)}
                 >
-                  Lihat Profil
+                  Lihat Profil Lengkap
                 </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  icon={Users}
-                  onSelect={() => navigate(`/admin/users/${row.id}`)}
-                >
-                  Ubah Pengguna
-                </DropdownMenuItem>
-
-                {!isSelf && (
-                  <DropdownMenuItem
-                    icon={Shield}
-                    onSelect={() => handleOpenRoleChange(row)}
-                  >
-                    Ganti Jabatan
-                  </DropdownMenuItem>
-                )}
 
                 {isPending && (
                   <DropdownMenuItem
                     icon={RefreshCw}
-                    className="text-[var(--accent-primary)]"
+                    className="text-[var(--brand-primary)]"
                     onSelect={() => handleOpenConfirm("resend_activation", row)}
                   >
                     Kirim Ulang Aktivasi
@@ -437,39 +364,16 @@ export function UsersPage() {
   ];
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-[var(--background)] p-6 space-y-5">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[var(--border-subtle)] pb-4">
+    <div className="flex flex-col w-full min-h-screen bg-[var(--background)] p-6 space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-[var(--text-primary)]">
-            Users
+          <h1 className="text-xl font-heading font-medium tracking-tight text-slate-900 dark:text-slate-100">
+            Manajemen Pengguna
           </h1>
-          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-            Manage MOVA accounts and access
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Kelola akun pengguna, peran akses, dan status keamanan KopiGo
           </p>
-          {/* KPI Micro-Badges summary */}
-          <div className="flex flex-wrap items-center gap-2 mt-2.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[var(--radius-full)] bg-[var(--surface-raised)] border border-[var(--border-subtle)] text-[11px] font-mono text-[var(--text-secondary)] shadow-xs">
-              <Users className="w-3 h-3 text-[var(--text-muted)]" />
-              <strong className="text-[var(--text-primary)] font-semibold">{stats.total}</strong>
-              <span className="text-[10px] text-[var(--text-muted)]">Users</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[var(--radius-full)] bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-mono text-emerald-400 shadow-xs">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              <strong className="font-semibold text-emerald-300">{stats.active}</strong>
-              <span className="text-[10px] text-emerald-400/80">Active</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[var(--radius-full)] bg-amber-500/10 border border-amber-500/25 text-[11px] font-mono text-amber-400 shadow-xs">
-              <span className="h-1.5 w-1.5 rounded-full border border-amber-400" />
-              <strong className="font-semibold text-amber-300">{stats.pending}</strong>
-              <span className="text-[10px] text-amber-400/80">Pending</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[var(--radius-full)] bg-rose-500/10 border border-rose-500/25 text-[11px] font-mono text-rose-400 shadow-xs">
-              <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-              <strong className="font-semibold text-rose-300">{stats.suspended}</strong>
-              <span className="text-[10px] text-rose-400/80">Suspended</span>
-            </span>
-          </div>
         </div>
 
         <div>
@@ -477,12 +381,64 @@ export function UsersPage() {
             variant="primary"
             size="md"
             onClick={() => navigate("/admin/users/create")}
-            className="flex items-center gap-2 text-xs h-9 px-4"
+            className="flex items-center gap-2 text-xs h-9 px-4 rounded-xl"
           >
             <UserPlus className="w-4 h-4" />
-            Add User
+            Tambah Pengguna
           </Button>
         </div>
+      </div>
+
+      {/* Interactive Metric Cards (KPI) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          title="Total Pengguna"
+          value={stats.total}
+          icon={Users}
+          status="neutral"
+          selected={selectedStatus === "ALL"}
+          onClick={() => {
+            setSelectedStatus("ALL");
+            setCurrentPage(1);
+          }}
+          className="cursor-pointer"
+        />
+        <MetricCard
+          title="Akun Aktif"
+          value={stats.active}
+          icon={CheckCircle2}
+          status="success"
+          selected={selectedStatus === "ACTIVE"}
+          onClick={() => {
+            setSelectedStatus("ACTIVE");
+            setCurrentPage(1);
+          }}
+          className="cursor-pointer"
+        />
+        <MetricCard
+          title="Menunggu Aktivasi"
+          value={stats.pending}
+          icon={Clock}
+          status="warning"
+          selected={selectedStatus === "PENDING"}
+          onClick={() => {
+            setSelectedStatus("PENDING");
+            setCurrentPage(1);
+          }}
+          className="cursor-pointer"
+        />
+        <MetricCard
+          title="Dinonaktifkan"
+          value={stats.suspended}
+          icon={Ban}
+          status="danger"
+          selected={selectedStatus === "SUSPENDED"}
+          onClick={() => {
+            setSelectedStatus("SUSPENDED");
+            setCurrentPage(1);
+          }}
+          className="cursor-pointer"
+        />
       </div>
 
       {/* Notifications */}
@@ -491,7 +447,7 @@ export function UsersPage() {
           variant="success"
           title="Berhasil"
           onClose={() => setActionSuccess(null)}
-          className="text-xs"
+          className="text-xs rounded-xl"
         >
           {actionSuccess}
         </Alert>
@@ -502,58 +458,58 @@ export function UsersPage() {
           variant="danger"
           title="Perhatian"
           onClose={() => setError(null)}
-          className="text-xs"
+          className="text-xs rounded-xl"
         >
           {error}
         </Alert>
       )}
 
       {/* Filter Bar */}
-      <div className="flex flex-wrap items-center gap-3 p-3 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-sm)]">
-        <div className="relative flex-1 min-w-[220px]">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-[var(--text-muted)]" />
-          <Input
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white dark:bg-[#111318] border border-slate-200/80 dark:border-white/5 rounded-xl shadow-xs">
+        <div className="flex flex-wrap items-center gap-3 flex-1">
+          <SearchInput
             value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
+            onChange={(val) => {
+              setSearchTerm(val);
               setCurrentPage(1);
             }}
-            placeholder="Search name, email, or username..."
-            className="pl-8 text-xs h-9"
+            placeholder="Cari nama, email, atau username..."
+            className="w-full sm:w-72"
           />
-        </div>
 
-        <div className="w-[160px]">
-          <Select
-            value={selectedRole}
-            onValueChange={(val) => {
-              setSelectedRole(val);
-              setCurrentPage(1);
-            }}
-            placeholder="Role"
-          >
-            <SelectItem value="ALL">All roles</SelectItem>
-            <SelectItem value="SUPERADMIN">Super Admin</SelectItem>
-            <SelectItem value="MANAGEMENT">Manager</SelectItem>
-            <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
-            <SelectItem value="RIDER">Rider</SelectItem>
-          </Select>
-        </div>
+          <div className="w-44">
+            <Select
+              value={selectedRole}
+              onValueChange={(val) => {
+                setSelectedRole(val);
+                setCurrentPage(1);
+              }}
+              placeholder="Semua Peran"
+            >
+              <SelectItem value="ALL">Semua Peran</SelectItem>
+              <SelectItem value="SUPERADMIN">Super Admin</SelectItem>
+              <SelectItem value="MANAGEMENT">Manajer</SelectItem>
+              <SelectItem value="SUPERVISOR">Supervisor</SelectItem>
+              <SelectItem value="RIDER">Rider</SelectItem>
+              <SelectItem value="STAFF_GUDANG">Staff Gudang</SelectItem>
+            </Select>
+          </div>
 
-        <div className="w-[160px]">
-          <Select
-            value={selectedStatus}
-            onValueChange={(val) => {
-              setSelectedStatus(val);
-              setCurrentPage(1);
-            }}
-            placeholder="Status"
-          >
-            <SelectItem value="ALL">All status</SelectItem>
-            <SelectItem value="ACTIVE">Active</SelectItem>
-            <SelectItem value="PENDING">Pending</SelectItem>
-            <SelectItem value="SUSPENDED">Suspended</SelectItem>
-          </Select>
+          <div className="w-44">
+            <Select
+              value={selectedStatus}
+              onValueChange={(val) => {
+                setSelectedStatus(val);
+                setCurrentPage(1);
+              }}
+              placeholder="Semua Status"
+            >
+              <SelectItem value="ALL">Semua Status</SelectItem>
+              <SelectItem value="ACTIVE">Aktif</SelectItem>
+              <SelectItem value="PENDING">Menunggu</SelectItem>
+              <SelectItem value="SUSPENDED">Dinonaktifkan</SelectItem>
+            </Select>
+          </div>
         </div>
 
         {(searchTerm || selectedRole !== "ALL" || selectedStatus !== "ALL") && (
@@ -566,15 +522,15 @@ export function UsersPage() {
               setSelectedStatus("ALL");
               setCurrentPage(1);
             }}
-            className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
           >
-            Reset filter
+            Reset Filter
           </Button>
         )}
       </div>
 
       {/* Main Table */}
-      <div className="border border-[var(--border)] rounded-[var(--radius-sm)] bg-[var(--surface)] overflow-hidden">
+      <div className="border border-slate-200/80 dark:border-white/5 rounded-xl bg-white dark:bg-[#111318] overflow-hidden shadow-xs">
         <DataTable
           columns={columns}
           data={paginatedUsers}
@@ -582,165 +538,130 @@ export function UsersPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
-          onRowClick={handleOpenDrawer}
+          onRowClick={handleOpenDetailModal}
           emptyTitle="Tidak ada pengguna"
           emptyDescription="Tidak ada data pengguna yang cocok dengan kriteria filter saat ini."
         />
         {!loading && users.length > 0 && (
-          <div className="flex items-center justify-between px-4 py-2 bg-[var(--surface-muted)]/30 border-t border-[var(--border-subtle)] text-[11px] text-[var(--text-muted)] font-mono">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50/50 dark:bg-white/[0.02] border-t border-slate-200/60 dark:border-white/5 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
             <span>
-              Menampilkan <strong className="text-[var(--text-primary)]">{(currentPage - 1) * pageSize + 1}</strong>–<strong className="text-[var(--text-primary)]">{Math.min(currentPage * pageSize, users.length)}</strong> dari <strong className="text-[var(--text-primary)]">{users.length}</strong> pengguna
+              Menampilkan <strong className="text-slate-800 dark:text-slate-200">{(currentPage - 1) * pageSize + 1}</strong>–<strong className="text-slate-800 dark:text-slate-200">{Math.min(currentPage * pageSize, users.length)}</strong> dari <strong className="text-slate-800 dark:text-slate-200">{users.length}</strong> pengguna
             </span>
             <span>{pageSize} data per halaman</span>
           </div>
         )}
       </div>
 
-      {/* Quick Inspection Drawer (Right-Side Sheet) */}
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent
-          side="right"
-          width="md"
-          title="User Profile"
-          subtitle="Quick identity inspection & administrative control"
-        >
+      {/* Quick Inspection Dialog Modal (Replacing Sheet) */}
+      <Dialog open={detailModalOpen} onOpenChange={setDetailModalOpen}>
+        <DialogContent maxWidth="md" className="rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-base font-heading font-medium text-slate-900 dark:text-slate-100">
+              Profil Ringkas Pengguna
+            </DialogTitle>
+          </DialogHeader>
+
           {selectedUser && (
-            <div className="space-y-5">
-              {/* Identity Header Card */}
-              <div className="flex items-center gap-3 p-3.5 bg-[var(--surface-raised)] border border-[var(--border-subtle)] rounded-[var(--radius-sm)]">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-muted)] text-sm font-semibold text-[var(--text-primary)]">
+            <div className="space-y-5 pt-2">
+              {/* Identity Header */}
+              <div className="flex items-center gap-3.5 p-3.5 bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/5 rounded-xl">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-subtle)] text-[var(--brand-primary)] text-base font-heading font-medium border border-[var(--brand-primary)]/20 shadow-xs">
                   {getInitials(selectedUser.name)}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                  <h3 className="text-sm font-heading font-medium text-slate-900 dark:text-slate-100 truncate">
                     {selectedUser.name}
                   </h3>
-                  <p className="text-xs text-[var(--text-muted)] truncate">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-mono">
                     {selectedUser.email}
                   </p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    {renderStatusDot(selectedUser.account_status)}
-                    <span className="text-[10px] text-[var(--text-muted)]">·</span>
-                    <span className="font-mono text-[11px] text-[var(--text-secondary)] font-medium">
-                      {selectedUser.role}
-                    </span>
+                  <div className="flex items-center gap-2 mt-2">
+                    <StatusBadge status={selectedUser.account_status || (selectedUser.is_active ? "ACTIVE" : "SUSPENDED")} size="sm" pill />
+                    <span className="text-[10px] text-slate-400">·</span>
+                    <Badge variant="neutral" size="sm" pill>
+                      {formatRoleName(selectedUser.role)}
+                    </Badge>
                   </div>
                 </div>
               </div>
 
-              {/* Section: Account Information */}
-              <div className="space-y-2.5">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  Account
+              {/* Account Information Details Grid */}
+              <div className="space-y-2">
+                <h4 className="text-[11px] font-heading font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Informasi Akun
                 </h4>
-                <div className="space-y-2 text-xs border border-[var(--border-subtle)] rounded-[var(--radius-sm)] p-3 bg-[var(--surface)] divide-y divide-[var(--border-subtle)]">
-                  <div className="flex items-center justify-between py-1">
-                    <span className="text-[var(--text-secondary)]">Role</span>
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[var(--radius-full)] text-[10px] font-medium border ${
-                        getRoleConfig(selectedUser.role).badgeClass
-                      }`}
-                    >
-                      <span className={`h-1 w-1 rounded-full ${getRoleConfig(selectedUser.role).dotClass}`} />
-                      {formatRoleName(selectedUser.role)}
+                <div className="grid grid-cols-2 gap-2 text-xs border border-slate-200/70 dark:border-white/5 rounded-xl p-3 bg-white dark:bg-[#111318]">
+                  <div>
+                    <span className="text-[11px] text-slate-400 block">Username</span>
+                    <span className="font-mono text-slate-800 dark:text-slate-200 mt-0.5 block truncate">
+                      {selectedUser.username || "—"}
                     </span>
                   </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-[var(--text-secondary)]">Username</span>
-                    <span className="font-mono text-[var(--text-primary)]">
-                      {selectedUser.username}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-[var(--text-secondary)]">Phone</span>
-                    <span className="text-[var(--text-primary)]">
+                  <div>
+                    <span className="text-[11px] text-slate-400 block">Nomor Telepon</span>
+                    <span className="text-slate-800 dark:text-slate-200 mt-0.5 block truncate">
                       {selectedUser.phone || "—"}
                     </span>
                   </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-[var(--text-secondary)]">Created</span>
-                    <span className="text-[var(--text-primary)]">
+                  <div>
+                    <span className="text-[11px] text-slate-400 block">Terdaftar Pada</span>
+                    <span className="text-slate-800 dark:text-slate-200 mt-0.5 block">
                       {selectedUser.created_at ? formatDate(selectedUser.created_at) : "—"}
                     </span>
                   </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-[var(--text-secondary)]">Last active</span>
-                    <span className="text-[var(--text-primary)]">
+                  <div>
+                    <span className="text-[11px] text-slate-400 block">Aktivitas Terakhir</span>
+                    <span className="text-slate-800 dark:text-slate-200 mt-0.5 block">
                       {selectedUser.last_active_at ? formatRelativeTime(selectedUser.last_active_at) : "—"}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Section: Authentication & Access */}
-              <div className="space-y-2.5">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  Authentication
-                </h4>
-                <div className="space-y-2 text-xs border border-[var(--border-subtle)] rounded-[var(--radius-sm)] p-3 bg-[var(--surface)] divide-y divide-[var(--border-subtle)]">
-                  <div className="flex justify-between py-1">
-                    <span className="text-[var(--text-secondary)]">Status Aktivasi</span>
-                    <span className="font-medium text-[var(--text-primary)]">
-                      {selectedUser.account_status === "PENDING" ? "Menunggu Aktivasi" : "Terverifikasi"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-[var(--text-secondary)]">Active Sessions</span>
-                    <span className="font-mono text-[var(--text-primary)]">
-                      {selectedUser.active_sessions_count || 0} active
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons in Drawer */}
-              <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
+              {/* Action Buttons in Modal */}
+              <div className="flex flex-col sm:flex-row items-center gap-2 pt-2 border-t border-slate-200/70 dark:border-white/5">
                 <Button
                   variant="primary"
                   size="md"
                   onClick={() => {
-                    setDrawerOpen(false);
+                    setDetailModalOpen(false);
                     navigate(`/admin/users/${selectedUser.id}`);
                   }}
-                  className="w-full flex items-center justify-center gap-2 text-xs h-9 shadow-xs"
+                  className="w-full sm:flex-1 flex items-center justify-center gap-2 text-xs h-9 rounded-xl"
                 >
                   <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                  <span>Open Full Profile</span>
+                  <span>Lihat Profil Lengkap</span>
                 </Button>
 
                 {selectedUser.account_status === "PENDING" && (
                   <Button
                     variant="outline"
                     size="md"
-                    onClick={() => handleOpenConfirm("resend_activation", selectedUser)}
-                    className="w-full flex items-center justify-center gap-2 text-xs h-9 text-[var(--accent-primary)] hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10"
+                    onClick={() => {
+                      setDetailModalOpen(false);
+                      handleOpenConfirm("resend_activation", selectedUser);
+                    }}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 text-xs h-9 rounded-xl text-[var(--accent-primary)] hover:border-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/10"
                   >
                     <RefreshCw className="w-3.5 h-3.5 shrink-0" />
-                    <span>Resend Activation Link</span>
+                    <span>Kirim Ulang Link</span>
                   </Button>
                 )}
 
                 {String(selectedUser.id) !== String(currentAuthUser?.id) ? (
                   <>
-                    <Button
-                      variant="outline"
-                      size="md"
-                      onClick={() => handleOpenRoleChange(selectedUser)}
-                      className="w-full flex items-center justify-center gap-2 text-xs h-9"
-                    >
-                      <Shield className="w-3.5 h-3.5 shrink-0 text-[var(--text-muted)]" />
-                      <span>Change Role</span>
-                    </Button>
-
                     {selectedUser.account_status === "ACTIVE" && (
                       <Button
                         variant="outline"
                         size="md"
-                        onClick={() => handleOpenConfirm("suspend", selectedUser)}
-                        className="w-full flex items-center justify-center gap-2 text-xs h-9 text-rose-400 border-rose-500/30 hover:bg-rose-500/10 hover:border-rose-500/60"
+                        onClick={() => {
+                          setDetailModalOpen(false);
+                          handleOpenConfirm("suspend", selectedUser);
+                        }}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 text-xs h-9 rounded-xl text-rose-500 border-rose-500/30 hover:bg-rose-500/10 hover:border-rose-500/60"
                       >
                         <Ban className="w-3.5 h-3.5 shrink-0" />
-                        <span>Suspend Account</span>
+                        <span>Nonaktifkan</span>
                       </Button>
                     )}
 
@@ -748,25 +669,23 @@ export function UsersPage() {
                       <Button
                         variant="outline"
                         size="md"
-                        onClick={() => handleOpenConfirm("reactivate", selectedUser)}
-                        className="w-full flex items-center justify-center gap-2 text-xs h-9 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 hover:border-emerald-500/60"
+                        onClick={() => {
+                          setDetailModalOpen(false);
+                          handleOpenConfirm("reactivate", selectedUser);
+                        }}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 text-xs h-9 rounded-xl text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/10 hover:border-emerald-500/60"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                        <span>Reactivate Account</span>
+                        <span>Aktifkan</span>
                       </Button>
                     )}
                   </>
-                ) : (
-                  <div className="p-2.5 rounded-[var(--radius-sm)] bg-[var(--surface-muted)]/60 border border-[var(--border-subtle)] text-[11px] text-[var(--text-muted)] flex items-center gap-2">
-                    <Shield className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
-                    <span>Akun Superadmin Anda saat ini (Proteksi aktif).</span>
-                  </div>
-                )}
+                ) : null}
               </div>
             </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {/* Contextual Confirmation Dialog */}
       <ConfirmDialog
@@ -776,77 +695,68 @@ export function UsersPage() {
         }}
         title={
           confirmModal.type === "suspend"
-            ? "Suspend account?"
+            ? "Nonaktifkan akun?"
             : confirmModal.type === "reactivate"
-            ? "Reactivate account?"
-            : confirmModal.type === "revoke_sessions"
-            ? "Revoke all active sessions?"
-            : confirmModal.type === "resend_activation"
-            ? "Generate new activation link?"
-            : "Delete user account?"
+              ? "Aktifkan kembali akun?"
+              : confirmModal.type === "revoke_sessions"
+                ? "Cabut seluruh sesi aktif?"
+                : confirmModal.type === "resend_activation"
+                  ? "Kirim tautan aktivasi baru?"
+                  : "Hapus akun pengguna?"
         }
         description={
           confirmModal.targetUser ? (
-            <div className="space-y-2 text-xs text-[var(--text-secondary)]">
-              <div className="font-semibold text-[var(--text-primary)]">
+            <div className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+              <div className="font-semibold text-slate-900 dark:text-slate-100">
                 {confirmModal.targetUser.name} ({confirmModal.targetUser.email})
               </div>
               {confirmModal.type === "suspend" && (
                 <p>
-                  This will immediately prevent the user from signing in to MOVA.
-                  All active refresh sessions and access tokens will be revoked.
+                  Pengguna ini akan segera dicegah untuk masuk ke sistem KopiGo.
+                  Seluruh sesi aktif dan token akses akan langsung dicabut.
                 </p>
               )}
               {confirmModal.type === "reactivate" && (
                 <p>
-                  This will restore the user's ability to sign in to MOVA with their existing credentials.
+                  Pengguna akan dapat masuk kembali ke sistem KopiGo menggunakan kredensial mereka yang telah terdaftar.
                 </p>
               )}
               {confirmModal.type === "revoke_sessions" && (
                 <p>
-                  This will force the user to sign in again on all devices and active browsers.
+                  Pengguna akan dipaksa keluar dan harus masuk kembali di semua perangkat dan peramban aktif.
                 </p>
               )}
               {confirmModal.type === "resend_activation" && (
                 <p>
-                  This will invalidate any previous activation tokens and generate a fresh 48-hour activation link.
+                  Tautan aktivasi sebelumnya akan dibatalkan dan tautan baru yang berlaku selama 48 jam akan dibuat.
                 </p>
               )}
               {confirmModal.type === "delete" && (
                 <p className="text-[var(--status-danger)]">
-                  This action is permanent and cannot be undone. All assigned records will be orphaned or removed.
+                  Tindakan ini bersifat permanen dan tidak dapat dibatalkan.
                 </p>
               )}
             </div>
           ) : null
         }
-        confirmText={
+        confirmLabel={
           confirmModal.type === "suspend"
-            ? "Suspend account"
+            ? "Nonaktifkan Akun"
             : confirmModal.type === "reactivate"
-            ? "Reactivate account"
-            : confirmModal.type === "revoke_sessions"
-            ? "Revoke sessions"
-            : confirmModal.type === "resend_activation"
-            ? "Generate link"
-            : "Delete account"
+              ? "Aktifkan Akun"
+              : confirmModal.type === "revoke_sessions"
+                ? "Cabut Sesi"
+                : confirmModal.type === "resend_activation"
+                  ? "Buat Tautan"
+                  : "Hapus Akun"
         }
-        confirmVariant={
+        variant={
           confirmModal.type === "suspend" || confirmModal.type === "delete"
             ? "danger"
             : "primary"
         }
         loading={confirmModal.loading}
         onConfirm={handleExecuteConfirm}
-      />
-
-      {/* Dedicated Role Transition Modal */}
-      <RoleTransitionModal
-        isOpen={roleChangeModal.isOpen}
-        targetUser={roleChangeModal.targetUser}
-        loading={roleChangeModal.loading}
-        onClose={() => setRoleChangeModal((prev) => ({ ...prev, isOpen: false }))}
-        onConfirm={handleExecuteRoleChange}
       />
 
       {/* Manual Activation Link Modal */}
@@ -856,23 +766,25 @@ export function UsersPage() {
           if (!open) setActivationLinkModal((prev) => ({ ...prev, isOpen: false }));
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent maxWidth="md" className="rounded-2xl p-6">
           <DialogHeader>
-            <DialogTitle>Manual Activation Link</DialogTitle>
+            <DialogTitle className="text-base font-heading font-medium text-slate-900 dark:text-slate-100">
+              Tautan Aktivasi Manual
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 py-2 text-xs">
-            <p className="text-[var(--text-secondary)]">
+            <p className="text-slate-500 dark:text-slate-400">
               Berikan tautan aktivasi berikut kepada pengguna untuk menetapkan kata sandi mereka. Tautan berlaku selama 48 jam.
             </p>
 
-            <div className="flex items-center gap-2 p-2.5 bg-[var(--surface-muted)] border border-[var(--border-subtle)] rounded-[var(--radius-sm)] font-mono text-[11px]">
+            <div className="flex items-center gap-2 p-2.5 bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/5 rounded-xl font-mono text-[11px]">
               <div className="relative flex-1">
                 <input
                   type={activationLinkModal.showLink ? "text" : "password"}
                   readOnly
                   value={activationLinkModal.link}
-                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-sm)] pl-2.5 pr-8 py-1.5 text-xs font-mono text-[var(--text-primary)] select-all"
+                  className="w-full bg-white dark:bg-[#111318] border border-slate-200/80 dark:border-white/10 rounded-lg pl-2.5 pr-8 py-1.5 text-xs font-mono text-slate-800 dark:text-slate-200 select-all"
                 />
                 <button
                   type="button"
@@ -887,7 +799,7 @@ export function UsersPage() {
                       ? "Sembunyikan tautan"
                       : "Tampilkan tautan"
                   }
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 >
                   {activationLinkModal.showLink ? (
                     <EyeOff className="w-3.5 h-3.5" />
@@ -900,7 +812,7 @@ export function UsersPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => copyToClipboard(activationLinkModal.link)}
-                className="shrink-0 flex items-center gap-1.5 h-8 text-xs"
+                className="shrink-0 flex items-center gap-1.5 h-8 text-xs rounded-lg"
               >
                 {activationLinkModal.copied ? (
                   <>
@@ -924,6 +836,7 @@ export function UsersPage() {
               onClick={() =>
                 setActivationLinkModal((prev) => ({ ...prev, isOpen: false }))
               }
+              className="rounded-lg"
             >
               Tutup
             </Button>

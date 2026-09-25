@@ -100,47 +100,47 @@ export function CreateUserPage() {
       <div>
         <Link
           to="/admin/users"
-          className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors mb-2"
+          className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors mb-2"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Users
+          <span>Kembali ke Manajemen Pengguna</span>
         </Link>
-        <h1 className="text-xl font-semibold tracking-tight text-[var(--text-primary)]">
-          Create User
+        <h1 className="text-xl font-heading font-medium tracking-tight text-slate-900 dark:text-slate-100">
+          Tambah Pengguna Baru
         </h1>
-        <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-          Provision a new MOVA account with invitation-based activation
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          Buat akun staf baru untuk sistem operasional KopiGo dengan alur aktivasi mandiri
         </p>
       </div>
 
       {error && (
-        <Alert variant="danger" title={error.title} className="text-xs">
-          {error.message}
+        <Alert variant="danger" title={error.title || "Perhatian"} className="text-xs rounded-xl">
+          {error.message || error}
         </Alert>
       )}
 
       {/* Success State Screen if Created */}
       {createdResult ? (
-        <div className="p-6 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-sm)] space-y-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--status-success)]/10 text-[var(--status-success)]">
+        <div className="p-6 bg-white dark:bg-[#111318] border border-slate-200/80 dark:border-white/5 rounded-xl shadow-xs space-y-5">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--status-success-bg)] text-[var(--status-success)] border border-[var(--status-success)]/20 shadow-xs">
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-[var(--text-primary)]">
+              <h3 className="text-sm font-heading font-medium text-slate-900 dark:text-slate-100">
                 Akun Pengguna Berhasil Dibuat
               </h3>
-              <p className="text-xs text-[var(--text-muted)]">
-                Akun untuk {createdResult.name} ({createdResult.email}) siap diaktivasi.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Akun untuk <strong className="text-slate-800 dark:text-slate-200">{createdResult.name}</strong> ({createdResult.email}) siap diaktivasi.
               </p>
             </div>
           </div>
 
           {createdResult.invitation_link && (
-            <div className="p-4 bg-[var(--surface-muted)] border border-[var(--border-subtle)] rounded-[var(--radius-sm)] space-y-2.5">
-              <div className="flex items-center justify-between text-xs font-medium text-[var(--text-secondary)]">
+            <div className="p-4 bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/5 rounded-xl space-y-2.5">
+              <div className="flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300">
                 <span>Tautan Aktivasi Mandiri (Berlaku 48 Jam)</span>
-                <span className="text-[10px] text-[var(--text-muted)]">Single-use</span>
+                <span className="text-[10px] text-slate-400 font-mono">Sekali Pakai</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
@@ -148,13 +148,13 @@ export function CreateUserPage() {
                     type={showInvitationLink ? "text" : "password"}
                     readOnly
                     value={createdResult.invitation_link}
-                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-sm)] pl-3 pr-9 py-1.5 text-xs font-mono text-[var(--text-primary)] select-all"
+                    className="w-full bg-white dark:bg-[#111318] border border-slate-200/80 dark:border-white/10 rounded-xl pl-3 pr-9 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 select-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowInvitationLink(!showInvitationLink)}
                     aria-label={showInvitationLink ? "Sembunyikan tautan" : "Tampilkan tautan"}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                   >
                     {showInvitationLink ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
@@ -163,7 +163,7 @@ export function CreateUserPage() {
                   variant="primary"
                   size="sm"
                   onClick={() => copyToClipboard(createdResult.invitation_link)}
-                  className="flex items-center gap-1.5 text-xs shrink-0"
+                  className="flex items-center gap-1.5 text-xs shrink-0 rounded-xl h-9"
                 >
                   {copied ? (
                     <>
@@ -178,8 +178,8 @@ export function CreateUserPage() {
                   )}
                 </Button>
               </div>
-              <p className="text-[11px] text-[var(--text-muted)]">
-                Kirimkan tautan ini kepada pengguna untuk menyelesaikan aktivasi akun dan membuat kata sandi baru.
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                Kirimkan tautan ini kepada staf terkait untuk menyelesaikan aktivasi akun dan mengatur kata sandi mereka.
               </p>
             </div>
           )}
@@ -195,7 +195,7 @@ export function CreateUserPage() {
                 setValue("username", "");
                 setValue("phone", "");
               }}
-              className="text-xs"
+              className="text-xs rounded-xl h-9"
             >
               Buat Pengguna Lain
             </Button>
@@ -203,9 +203,9 @@ export function CreateUserPage() {
               variant="primary"
               size="md"
               onClick={() => navigate("/admin/users")}
-              className="text-xs"
+              className="text-xs rounded-xl h-9"
             >
-              Kembali ke Daftar Pengguna
+              Kembali ke Manajemen Pengguna
             </Button>
           </div>
         </div>
@@ -213,37 +213,37 @@ export function CreateUserPage() {
         /* Create User Form */
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="space-y-6 p-6 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius-sm)]"
+          className="space-y-6 p-6 bg-white dark:bg-[#111318] border border-slate-200/80 dark:border-white/5 rounded-xl shadow-xs"
         >
           {/* Section: Basic Information */}
           <div className="space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Basic Information
+            <h3 className="text-xs font-heading font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Informasi Dasar
             </h3>
 
             <FormField error={!!errors.name}>
               <FormLabel htmlFor="name" required>
-                Full Name
+                Nama Lengkap
               </FormLabel>
               <Input
                 id="name"
                 {...register("name")}
-                placeholder="e.g. Febriyan Dwi"
-                className="text-xs"
+                placeholder="Contoh: Budi Santoso"
+                className="text-xs rounded-xl"
               />
               {errors.name && <FormErrorText>{errors.name.message}</FormErrorText>}
             </FormField>
 
             <FormField error={!!errors.email}>
               <FormLabel htmlFor="email" required>
-                Email Address
+                Alamat Email
               </FormLabel>
               <Input
                 id="email"
                 type="email"
                 {...register("email")}
-                placeholder="e.g. user@kopikeliling.com"
-                className="text-xs"
+                placeholder="Contoh: budi@kopigo.id"
+                className="text-xs rounded-xl"
               />
               {errors.email && <FormErrorText>{errors.email.message}</FormErrorText>}
             </FormField>
@@ -251,58 +251,58 @@ export function CreateUserPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField error={!!errors.username}>
                 <FormLabel htmlFor="username">
-                  Username <span className="text-[var(--text-muted)] text-[10px]">(Optional)</span>
+                  Username <span className="text-slate-400 text-[10px]">(Opsional)</span>
                 </FormLabel>
                 <Input
                   id="username"
                   {...register("username")}
-                  placeholder="Auto-generated if empty"
-                  className="text-xs"
+                  placeholder="Dibuat otomatis bila kosong"
+                  className="text-xs rounded-xl"
                 />
               </FormField>
 
               <FormField error={!!errors.phone}>
                 <FormLabel htmlFor="phone">
-                  Phone Number <span className="text-[var(--text-muted)] text-[10px]">(Optional)</span>
+                  Nomor Telepon <span className="text-slate-400 text-[10px]">(Opsional)</span>
                 </FormLabel>
                 <Input
                   id="phone"
                   {...register("phone")}
-                  placeholder="e.g. 081234567890"
-                  className="text-xs"
+                  placeholder="Contoh: 081234567890"
+                  className="text-xs rounded-xl"
                 />
               </FormField>
             </div>
 
             <FormField error={!!errors.role}>
               <FormLabel htmlFor="role" required>
-                Role
+                Peran Pengguna
               </FormLabel>
               <Select
                 value={selectedRole}
                 onValueChange={(val) => setValue("role", val)}
               >
-                <SelectItem value="SUPERVISOR">Supervisor (Operational Control)</SelectItem>
-                <SelectItem value="MANAGEMENT">Manager (Business & Analytics)</SelectItem>
-                <SelectItem value="RIDER">Rider (Field Mobile Operations)</SelectItem>
-                <SelectItem value="SUPERADMIN">Super Admin (Full Administration)</SelectItem>
+                <SelectItem value="SUPERVISOR">Supervisor (Kontrol Operasional)</SelectItem>
+                <SelectItem value="MANAGEMENT">Manajer (Bisnis & Analitik)</SelectItem>
+                <SelectItem value="RIDER">Rider (Operasional Lapangan)</SelectItem>
+                <SelectItem value="SUPERADMIN">Super Admin (Akses Penuh)</SelectItem>
               </Select>
               {errors.role && <FormErrorText>{errors.role.message}</FormErrorText>}
             </FormField>
           </div>
 
-          <div className="border-t border-[var(--border-subtle)] pt-4 space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              Account Activation Flow
+          <div className="border-t border-slate-100 dark:border-white/5 pt-4 space-y-3">
+            <h3 className="text-xs font-heading font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Metode Aktivasi Akun
             </h3>
 
             <div className="space-y-2">
               <label
                 onClick={() => setActivationType("manual")}
-                className={`flex items-start gap-3 p-3 rounded-[var(--radius-sm)] border cursor-pointer transition-colors ${
+                className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
                   activationType === "manual"
-                    ? "border-[var(--accent-primary)] bg-[var(--surface-raised)]"
-                    : "border-[var(--border-subtle)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"
+                    ? "border-[var(--brand-primary)] bg-[var(--brand-subtle)]/20 dark:bg-[var(--brand-subtle)]/10 ring-1 ring-[var(--brand-primary)]/20"
+                    : "border-slate-200/80 dark:border-white/5 bg-white dark:bg-[#111318] hover:bg-slate-50/50 dark:hover:bg-white/[0.02]"
                 }`}
               >
                 <div className="flex h-5 items-center">
@@ -310,15 +310,15 @@ export function CreateUserPage() {
                     type="radio"
                     checked={activationType === "manual"}
                     onChange={() => setActivationType("manual")}
-                    className="h-4 w-4 text-[var(--accent-primary)] cursor-pointer"
+                    className="h-4 w-4 text-[var(--brand-primary)] cursor-pointer"
                   />
                 </div>
                 <div className="text-xs">
-                  <span className="font-medium text-[var(--text-primary)] flex items-center gap-1.5">
-                    <LinkIcon className="w-3.5 h-3.5" />
-                    Generate activation link manually
+                  <span className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <LinkIcon className="w-3.5 h-3.5 text-slate-400" />
+                    Buat tautan aktivasi mandiri (Manual)
                   </span>
-                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                     Buat akun langsung dan tampilkan tautan aktivasi instan untuk disalin ke clipboard.
                   </p>
                 </div>
@@ -326,10 +326,10 @@ export function CreateUserPage() {
 
               <label
                 onClick={() => setActivationType("email")}
-                className={`flex items-start gap-3 p-3 rounded-[var(--radius-sm)] border cursor-pointer transition-colors ${
+                className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
                   activationType === "email"
-                    ? "border-[var(--accent-primary)] bg-[var(--surface-raised)]"
-                    : "border-[var(--border-subtle)] bg-[var(--surface)] hover:bg-[var(--surface-muted)]"
+                    ? "border-[var(--brand-primary)] bg-[var(--brand-subtle)]/20 dark:bg-[var(--brand-subtle)]/10 ring-1 ring-[var(--brand-primary)]/20"
+                    : "border-slate-200/80 dark:border-white/5 bg-white dark:bg-[#111318] hover:bg-slate-50/50 dark:hover:bg-white/[0.02]"
                 }`}
               >
                 <div className="flex h-5 items-center">
@@ -337,16 +337,16 @@ export function CreateUserPage() {
                     type="radio"
                     checked={activationType === "email"}
                     onChange={() => setActivationType("email")}
-                    className="h-4 w-4 text-[var(--accent-primary)] cursor-pointer"
+                    className="h-4 w-4 text-[var(--brand-primary)] cursor-pointer"
                   />
                 </div>
                 <div className="text-xs">
-                  <span className="font-medium text-[var(--text-primary)] flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5" />
-                    Send activation email automatically
+                  <span className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-slate-400" />
+                    Kirim email aktivasi secara otomatis
                   </span>
-                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Kirim undangan aktivasi langsung ke alamat email staf melalui server SMTP.
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Kirim undangan aktivasi langsung ke alamat email staf melalui server SMTP KopiGo.
                   </p>
                 </div>
               </label>
@@ -354,25 +354,25 @@ export function CreateUserPage() {
           </div>
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border-subtle)]">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
             <Button
               type="button"
               variant="ghost"
               size="md"
               onClick={() => navigate("/admin/users")}
-              className="text-xs"
+              className="text-xs rounded-xl h-9"
             >
-              Cancel
+              Batal
             </Button>
             <Button
               type="submit"
               variant="primary"
               size="md"
               loading={loading}
-              className="flex items-center gap-2 text-xs"
+              className="flex items-center gap-2 text-xs rounded-xl h-9"
             >
               <UserPlus className="w-4 h-4" />
-              Create User
+              Simpan Pengguna
             </Button>
           </div>
         </form>
