@@ -153,7 +153,7 @@ export function ResetPasswordPage() {
       {verifying ? (
         <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
           <Spinner size="lg" />
-          <p className="text-xs text-[var(--text-muted)] font-mono">Memverifikasi keabsahan token reset...</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">Memverifikasi keabsahan token reset...</p>
         </div>
       ) : verifyError ? (
         <div className="space-y-4">
@@ -163,12 +163,12 @@ export function ResetPasswordPage() {
 
           <div className="pt-2 flex flex-col gap-2">
             <Link to="/forgot-password">
-              <Button variant="primary" className="w-full">
+              <Button variant="primary" size="lg" className="w-full">
                 Kirim Ulang Tautan Reset
               </Button>
             </Link>
             <Link to="/login">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" size="lg" className="w-full">
                 Kembali ke Halaman Login
               </Button>
             </Link>
@@ -177,14 +177,14 @@ export function ResetPasswordPage() {
       ) : (
         <div>
           {tokenData?.email && (
-            <div className="mb-4 p-3 rounded-[var(--radius-sm)] bg-[var(--surface-raised)] border border-[var(--border-subtle)] text-xs">
-              <span className="text-[10px] text-[var(--text-muted)] uppercase font-mono block">Akun</span>
-              <span className="font-medium text-[var(--text-primary)] font-mono">{tokenData.email}</span>
+            <div className="mb-4 p-3.5 rounded-xl bg-slate-50/50 dark:bg-[#111318] border border-slate-200/80 dark:border-white/10 text-xs">
+              <span className="text-[10px] text-slate-400 uppercase font-mono block">Akun</span>
+              <span className="font-medium text-slate-900 dark:text-white font-mono">{tokenData.email}</span>
             </div>
           )}
 
           {submitError && (
-            <Alert variant="danger" title={submitError.title} className="mb-5 text-xs">
+            <Alert variant="danger" title={submitError.title} className="mb-4 text-xs">
               {submitError.message}
             </Alert>
           )}
@@ -201,7 +201,7 @@ export function ResetPasswordPage() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
-                    className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                    className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -214,15 +214,15 @@ export function ResetPasswordPage() {
 
             {/* Minimal Strength Indicator */}
             {enteredPassword.length > 0 && (
-              <div className="space-y-1.5 p-2.5 rounded-[var(--radius-sm)] bg-[var(--surface-raised)] border border-[var(--border-subtle)]">
+              <div className="space-y-1.5 p-3 rounded-xl bg-slate-50/50 dark:bg-[#111318] border border-slate-200/80 dark:border-white/10">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)] text-[11px]">Kekuatan Sandi</span>
-                  <span className="font-semibold text-[var(--text-primary)] text-xs">{strength.label}</span>
+                  <span className="text-slate-400 text-[11px]">Kekuatan Sandi</span>
+                  <span className="font-semibold text-slate-900 dark:text-white text-xs">{strength.label}</span>
                 </div>
-                <div className="grid grid-cols-3 gap-1 h-1 w-full">
-                  <div className={`h-full rounded-full transition-all duration-200 ${strength.score >= 1 ? strength.color : "bg-zinc-700/40"}`} />
-                  <div className={`h-full rounded-full transition-all duration-200 ${strength.score >= 2 ? strength.color : "bg-zinc-700/40"}`} />
-                  <div className={`h-full rounded-full transition-all duration-200 ${strength.score >= 3 ? strength.color : "bg-zinc-700/40"}`} />
+                <div className="grid grid-cols-3 gap-1.5 h-1.5 w-full">
+                  <div className={`h-full rounded-full transition-all duration-200 ${strength.score >= 1 ? strength.color : "bg-slate-200 dark:bg-zinc-800"}`} />
+                  <div className={`h-full rounded-full transition-all duration-200 ${strength.score >= 2 ? strength.color : "bg-slate-200 dark:bg-zinc-800"}`} />
+                  <div className={`h-full rounded-full transition-all duration-200 ${strength.score >= 3 ? strength.color : "bg-slate-200 dark:bg-zinc-800"}`} />
                 </div>
               </div>
             )}
@@ -250,16 +250,16 @@ export function ResetPasswordPage() {
               variant="primary"
               size="lg"
               loading={submitting}
-              className="w-full mt-2"
+              className="w-full mt-4"
             >
               Perbarui Kata Sandi
             </Button>
           </form>
 
-          <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] text-center">
+          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5 text-center">
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-[var(--brand-primary)] transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Kembali ke Halaman Login

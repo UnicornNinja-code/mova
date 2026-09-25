@@ -61,9 +61,9 @@ function DataTableComponent({
                       <span className="inline-flex items-center text-slate-400 dark:text-slate-500">
                         {isSorted ? (
                           sortDirection === "asc" ? (
-                            <ArrowUp className="w-3.5 h-3.5 text-brand-teal" />
+                            <ArrowUp className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
                           ) : (
-                            <ArrowDown className="w-3.5 h-3.5 text-brand-teal" />
+                            <ArrowDown className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
                           )
                         ) : (
                           <ArrowUpDown className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />

@@ -19,7 +19,7 @@ export function Sidebar({ className }) {
     <TooltipProvider delayDuration={150}>
       <aside
         className={cn(
-          "flex flex-col h-screen border-r border-[var(--border-subtle)] bg-[var(--surface)] transition-all duration-200 select-none z-20 shrink-0",
+          "flex flex-col h-screen border-r border-slate-200/80 dark:border-white/5 bg-white dark:bg-[#090A0D] transition-all duration-200 select-none z-20 shrink-0",
           isSidebarCollapsed ? "w-18" : "w-64",
           className
         )}
@@ -27,22 +27,24 @@ export function Sidebar({ className }) {
         {/* Brand Header */}
         <div
           className={cn(
-            "flex items-center h-16 border-b border-[var(--border-subtle)] bg-[var(--surface)] transition-all",
+            "flex items-center h-16 border-b border-slate-200/80 dark:border-white/5 bg-white dark:bg-[#090A0D] transition-all",
             isSidebarCollapsed ? "justify-center px-2" : "justify-between px-4"
           )}
         >
           {!isSidebarCollapsed ? (
             <>
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-8 h-8 rounded-[var(--radius-md)] bg-[var(--accent-primary)] flex items-center justify-center text-white shrink-0 font-bold font-mono text-sm shadow-xs">
-                  M
-                </div>
+                <img
+                  src="/assets/img/kopigo_logo.jpg"
+                  alt="KopiGo Logo"
+                  className="w-8 h-8 rounded-xl object-cover shrink-0 shadow-xs"
+                />
                 <div className="min-w-0">
-                  <span className="font-bold text-sm tracking-tight text-[var(--text-primary)] block leading-none">
-                    MOVA CONTROL
+                  <span className="font-heading font-medium text-sm tracking-tight text-slate-900 dark:text-slate-100 block leading-tight">
+                   KopiGo System
                   </span>
-                  <span className="text-[10px] text-[var(--text-muted)] tracking-wider uppercase font-mono block mt-1">
-                    Sidoarjo Hub
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 tracking-wider uppercase font-mono block mt-0.5">
+                    Unit Kopi Keliling
                   </span>
                 </div>
               </div>
@@ -52,18 +54,22 @@ export function Sidebar({ className }) {
                 label="Kecilkan Menu"
                 size="sm"
                 onClick={toggleSidebar}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
               />
             </>
           ) : (
-            <Tooltip content="Perluas Menu (MOVA Control)" side="right">
+            <Tooltip content="Perluas Menu (KopiGo Control)" side="right">
               <button
                 type="button"
                 onClick={toggleSidebar}
-                className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/90 text-white flex items-center justify-center font-bold font-mono text-sm shadow-xs transition-all hover:scale-105 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center shadow-xs transition-colors hover:ring-2 hover:ring-[var(--brand-primary)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] p-0.5 bg-slate-100 dark:bg-[#181B22]"
                 aria-label="Perluas Menu"
               >
-                M
+                <img
+                  src="/assets/img/kopigo_logo.jpg"
+                  alt="KopiGo Logo"
+                  className="w-full h-full rounded-lg object-cover"
+                />
               </button>
             </Tooltip>
           )}
@@ -80,11 +86,11 @@ export function Sidebar({ className }) {
             return (
               <div key={pillar.id} className="space-y-1.5">
                 {!isSidebarCollapsed ? (
-                  <div className="px-3 py-1 text-[10px] font-bold tracking-widest text-[var(--text-muted)] uppercase font-mono">
+                  <div className="px-3 py-1 text-[10px] font-heading font-medium tracking-widest text-slate-400 dark:text-slate-500 uppercase font-mono">
                     {pillar.title}
                   </div>
                 ) : (
-                  <div className="h-[1px] bg-[var(--border-subtle)] my-2 mx-1" />
+                  <div className="h-[1px] bg-slate-200/80 dark:bg-white/5 my-2 mx-1" />
                 )}
 
                 <div className="space-y-1">
@@ -96,14 +102,14 @@ export function Sidebar({ className }) {
                       <Link
                         to={item.path}
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] text-xs font-medium transition-all duration-150 cursor-pointer",
+                          "flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors duration-150 cursor-pointer group",
                           isActive
-                            ? "bg-[var(--accent-primary)] text-white shadow-xs font-semibold"
-                            : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)]",
+                            ? "bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] font-semibold border-l-2 border-[var(--brand-primary)]"
+                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/70 dark:hover:bg-[#181B22]/70",
                           isSidebarCollapsed ? "justify-center px-0 h-10 w-10 mx-auto" : ""
                         )}
                       >
-                        <Icon className={cn("w-4 h-4 shrink-0 transition-colors", isActive ? "text-white" : "text-[var(--text-muted)] group-hover:text-[var(--text-primary)]")} />
+                        <Icon className={cn("w-4 h-4 shrink-0 transition-colors", isActive ? "text-[var(--brand-primary)]" : "text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200")} />
                         {!isSidebarCollapsed ? <span className="truncate">{item.label}</span> : null}
                       </Link>
                     );
@@ -125,16 +131,16 @@ export function Sidebar({ className }) {
         </div>
 
         {/* Operational Telemetry Pulse Footer */}
-        <div className="p-3 border-t border-[var(--border-subtle)] bg-[var(--surface)]">
+        <div className="p-3 border-t border-slate-200/80 dark:border-white/5 bg-white dark:bg-[#090A0D]">
           {!isSidebarCollapsed ? (
-            <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
+            <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-[var(--status-success)] animate-pulse" />
-                <span className="font-mono text-[10px] uppercase font-semibold text-[var(--text-primary)]">
+                <span className="font-mono text-[10px] uppercase font-semibold text-slate-800 dark:text-slate-200">
                   SYSTEM ONLINE
                 </span>
               </div>
-              <span className="font-mono text-[10px] text-[var(--text-muted)]">v1.0.0</span>
+              <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">v1.0.0</span>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-2">
@@ -144,7 +150,7 @@ export function Sidebar({ className }) {
                   label="Perluas Menu"
                   size="sm"
                   onClick={toggleSidebar}
-                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] h-7 w-7"
+                  className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 h-7 w-7"
                 />
               </Tooltip>
               <Tooltip content="Status: System Online (v1.0.0)" side="right">

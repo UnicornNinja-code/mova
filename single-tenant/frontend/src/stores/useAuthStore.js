@@ -1,9 +1,61 @@
 import { create } from "zustand";
 import axios from "axios";
 
-const STORAGE_SESSION_MARKER = "mova_session_active";
-const STORAGE_USER_KEY = "mova_user_profile";
-const STORAGE_TOKEN_KEY = "mova_access_token";
+const STORAGE_SESSION_MARKER = "kopigo_session_active";
+const STORAGE_USER_KEY = "kopigo_user_profile";
+const STORAGE_TOKEN_KEY = "kopigo_access_token";
+
+const LEGACY_SESSION_MARKER = "mova_session_active";
+const LEGACY_USER_KEY = "mova_user_profile";
+const LEGACY_TOKEN_KEY = "mova_access_token";
+
+function readStorageToken() {
+  try {
+    return sessionStorage.getItem(STORAGE_TOKEN_KEY) || sessionStorage.getItem(LEGACY_TOKEN_KEY) || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function readStorageUser() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_USER_KEY) || sessionStorage.getItem(LEGACY_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeStorageAuth(token, user) {
+  try {
+    sessionStorage.setItem(STORAGE_SESSION_MARKER, "true");
+    sessionStorage.setItem(LEGACY_SESSION_MARKER, "true");
+    if (token) {
+      sessionStorage.setItem(STORAGE_TOKEN_KEY, token);
+      sessionStorage.setItem(LEGACY_TOKEN_KEY, token);
+    }
+    if (user) {
+      const uStr = JSON.stringify(user);
+      sessionStorage.setItem(STORAGE_USER_KEY, uStr);
+      sessionStorage.setItem(LEGACY_USER_KEY, uStr);
+    }
+  } catch (err) {
+    console.warn("Storage save warning:", err);
+  }
+}
+
+function clearStorageAuth() {
+  try {
+    sessionStorage.removeItem(STORAGE_SESSION_MARKER);
+    sessionStorage.removeItem(STORAGE_TOKEN_KEY);
+    sessionStorage.removeItem(STORAGE_USER_KEY);
+    sessionStorage.removeItem(LEGACY_SESSION_MARKER);
+    sessionStorage.removeItem(LEGACY_TOKEN_KEY);
+    sessionStorage.removeItem(LEGACY_USER_KEY);
+  } catch (err) {
+    console.warn("Storage remove warning:", err);
+  }
+}
 
 export const useAuthStore = create((set, get) => {
   let initialToken = null;
@@ -11,12 +63,11 @@ export const useAuthStore = create((set, get) => {
   let hasSessionMarker = false;
 
   try {
-    hasSessionMarker = sessionStorage.getItem(STORAGE_SESSION_MARKER) === "true";
-    initialToken = sessionStorage.getItem(STORAGE_TOKEN_KEY) || null;
-    const savedUser = sessionStorage.getItem(STORAGE_USER_KEY);
-    if (savedUser) {
-      initialUser = JSON.parse(savedUser);
-    }
+    hasSessionMarker =
+      sessionStorage.getItem(STORAGE_SESSION_MARKER) === "true" ||
+      sessionStorage.getItem(LEGACY_SESSION_MARKER) === "true";
+    initialToken = readStorageToken();
+    initialUser = readStorageUser();
   } catch (err) {
     console.warn("Session storage access warning:", err);
   }
@@ -32,46 +83,49 @@ export const useAuthStore = create((set, get) => {
 
     initializeAuth: async () => {
       const currentState = get();
-      const currentToken = currentState.token || sessionStorage.getItem(STORAGE_TOKEN_KEY);
+      const currentToken = currentState.token || readStorageToken();
 
-      // 1. If token exists in sessionStorage, verify token validity via /api/auth/me
-      if (currentToken) {
-        try {
-          const meResponse = await axios.get(
-            `${import.meta.env.VITE_API_URL || ""}/api/auth/me`,
-            {
-              headers: { Authorization: `Bearer ${currentToken}` },
-              withCredentials: true,
-              timeout: 8000,
-            }
-          );
-
-          const fetchedUser = meResponse.data?.user || meResponse.data?.data?.user || currentState.user;
-          if (fetchedUser) {
-            try {
-              sessionStorage.setItem(STORAGE_SESSION_MARKER, "true");
-              sessionStorage.setItem(STORAGE_TOKEN_KEY, currentToken);
-              sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(fetchedUser));
-            } catch (err) {
-              console.warn("Storage save warning:", err);
-            }
-
-            set({
-              token: currentToken,
-              user: fetchedUser,
-              isAuthenticated: true,
-              isInitialized: true,
-              lastActivity: Date.now(),
-            });
-            return true;
-          }
-        } catch (meErr) {
-          // Token might be expired or invalid; fall through to silent refresh
-          console.warn("Access token verification failed, attempting silent refresh...", meErr?.response?.status || meErr.message);
-        }
+      // Lazy check: If no access token exists in storage, finish initialization immediately without network calls
+      if (!currentToken) {
+        clearStorageAuth();
+        set({
+          token: null,
+          user: null,
+          isAuthenticated: false,
+          isInitialized: true,
+        });
+        return false;
       }
 
-      // 2. Silent recovery via HTTP-Only cookie /api/auth/refresh-token
+      // 1. Verify existing token validity via /api/auth/me
+      try {
+        const meResponse = await axios.get(
+          `${import.meta.env.VITE_API_URL || ""}/api/auth/me`,
+          {
+            headers: { Authorization: `Bearer ${currentToken}` },
+            withCredentials: true,
+            timeout: 8000,
+          }
+        );
+
+        const fetchedUser = meResponse.data?.user || meResponse.data?.data?.user || currentState.user;
+        if (fetchedUser) {
+          writeStorageAuth(currentToken, fetchedUser);
+
+          set({
+            token: currentToken,
+            user: fetchedUser,
+            isAuthenticated: true,
+            isInitialized: true,
+            lastActivity: Date.now(),
+          });
+          return true;
+        }
+      } catch (meErr) {
+        // Token might be expired or invalid; fall through to silent recovery
+      }
+
+      // 2. Silent recovery via HTTP-Only cookie /api/auth/refresh-token (only if token existed previously)
       try {
         const refreshResponse = await axios.post(
           `${import.meta.env.VITE_API_URL || ""}/api/auth/refresh-token`,
@@ -84,13 +138,7 @@ export const useAuthStore = create((set, get) => {
         const returnedUser = data?.user || currentState.user;
 
         if (newToken && returnedUser) {
-          try {
-            sessionStorage.setItem(STORAGE_SESSION_MARKER, "true");
-            sessionStorage.setItem(STORAGE_TOKEN_KEY, newToken);
-            sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(returnedUser));
-          } catch (err) {
-            console.warn("Storage save warning:", err);
-          }
+          writeStorageAuth(newToken, returnedUser);
 
           set({
             token: newToken,
@@ -106,11 +154,7 @@ export const useAuthStore = create((set, get) => {
       }
 
       // 3. Clear any invalid/partial session state if all recovery attempts fail
-      try {
-        sessionStorage.removeItem(STORAGE_SESSION_MARKER);
-        sessionStorage.removeItem(STORAGE_TOKEN_KEY);
-        sessionStorage.removeItem(STORAGE_USER_KEY);
-      } catch (e) {}
+      clearStorageAuth();
 
       set({
         token: null,
@@ -122,17 +166,7 @@ export const useAuthStore = create((set, get) => {
     },
 
     setAuth: (token, user) => {
-      try {
-        sessionStorage.setItem(STORAGE_SESSION_MARKER, "true");
-        if (token) {
-          sessionStorage.setItem(STORAGE_TOKEN_KEY, token);
-        }
-        if (user) {
-          sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
-        }
-      } catch (err) {
-        console.warn("Storage save warning:", err);
-      }
+      writeStorageAuth(token, user);
       set({
         token,
         user,
@@ -146,6 +180,7 @@ export const useAuthStore = create((set, get) => {
       try {
         if (newToken) {
           sessionStorage.setItem(STORAGE_TOKEN_KEY, newToken);
+          sessionStorage.setItem(LEGACY_TOKEN_KEY, newToken);
         }
       } catch (err) {
         console.warn("Storage save warning:", err);
@@ -157,7 +192,9 @@ export const useAuthStore = create((set, get) => {
       const currentUser = get().user || {};
       const updatedUser = { ...currentUser, ...partialUser };
       try {
-        sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(updatedUser));
+        const uStr = JSON.stringify(updatedUser);
+        sessionStorage.setItem(STORAGE_USER_KEY, uStr);
+        sessionStorage.setItem(LEGACY_USER_KEY, uStr);
       } catch (err) {
         console.warn("Storage save warning:", err);
       }
@@ -169,13 +206,7 @@ export const useAuthStore = create((set, get) => {
     },
 
     clearAuth: () => {
-      try {
-        sessionStorage.removeItem(STORAGE_SESSION_MARKER);
-        sessionStorage.removeItem(STORAGE_TOKEN_KEY);
-        sessionStorage.removeItem(STORAGE_USER_KEY);
-      } catch (err) {
-        console.warn("Storage remove warning:", err);
-      }
+      clearStorageAuth();
       set({
         token: null,
         user: null,

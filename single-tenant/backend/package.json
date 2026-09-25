@@ -1,7 +1,7 @@
 {
-  "name": "backend",
+  "name": "kopigo-single-tenant-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "KopiGo Single-Tenant Mobile Coffee Fleet Backend",
   "license": "ISC",
   "author": "",
   "type": "module",

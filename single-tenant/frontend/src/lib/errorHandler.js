@@ -34,7 +34,7 @@ export function formatApiError(error, fallbackContext = "auth") {
   if (isNetworkError) {
     return {
       title: "Koneksi Terputus",
-      message: "Tidak dapat terhubung ke server MOVA. Pastikan perangkat Anda terhubung ke jaringan internet dan coba kembali.",
+      message: "Tidak dapat terhubung ke server KopiGo. Pastikan perangkat Anda terhubung ke jaringan internet dan coba kembali.",
     };
   }
 
@@ -108,7 +108,7 @@ export function formatApiError(error, fallbackContext = "auth") {
   if (status && status >= 500) {
     return {
       title: "Layanan Sedang Mengalami Penyesuaian",
-      message: "Sistem pusat MOVA sedang dalam penanganan teknis. Silakan coba kembali dalam beberapa saat.",
+      message: "Sistem pusat KopiGo sedang dalam penanganan teknis. Silakan coba kembali dalam beberapa saat.",
     };
   }
 

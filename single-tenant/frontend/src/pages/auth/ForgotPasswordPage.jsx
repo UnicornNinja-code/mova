@@ -82,20 +82,20 @@ export function ForgotPasswordPage() {
   return (
     <AuthLayout
       title="Lupa Kata Sandi"
-      subtitle="Masukkan email terdaftar untuk menerima tautan reset kata sandi"
+      subtitle="Masukkan email terdaftar untuk menerima tautan pemulihan kata sandi"
     >
       {submittedEmail ? (
         <div className="space-y-4">
           <Alert variant="success" title="Tautan Pemulihan Dikirim" className="text-xs">
-            Jika alamat email <span className="font-mono font-semibold text-[var(--text-primary)]">{submittedEmail}</span> terdaftar dalam sistem MOVA, instruksi pengaturan ulang kata sandi telah dikirimkan ke kotak masuk Anda (berlaku 15 menit).
+            Jika alamat email <span className="font-mono font-semibold text-slate-900 dark:text-white">{submittedEmail}</span> terdaftar dalam sistem KopiGo, instruksi pengaturan ulang kata sandi telah dikirimkan ke kotak masuk Anda (berlaku 15 menit).
           </Alert>
 
           {/* Cooldown & Resend Action Box */}
-          <div className="p-3.5 rounded-[var(--radius-sm)] bg-[var(--surface-raised)] border border-[var(--border-subtle)] space-y-3">
+          <div className="p-4 rounded-xl bg-slate-50/50 dark:bg-[#111318] border border-slate-200/80 dark:border-white/10 space-y-3">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-[var(--text-secondary)]">Belum menerima email pemulihan?</span>
+              <span className="text-slate-500 dark:text-slate-400">Belum menerima email pemulihan?</span>
               {cooldown > 0 && (
-                <span className="font-mono font-semibold text-[var(--accent-primary)] tabular-nums">
+                <span className="font-mono font-semibold text-[var(--brand-primary)] tabular-nums">
                   {formatTime(cooldown)}
                 </span>
               )}
@@ -124,7 +124,7 @@ export function ForgotPasswordPage() {
 
           <div className="pt-2">
             <Link to="/login">
-              <Button variant="primary" className="w-full">
+              <Button variant="primary" size="lg" className="w-full">
                 Kembali ke Halaman Login
               </Button>
             </Link>
@@ -132,12 +132,8 @@ export function ForgotPasswordPage() {
         </div>
       ) : (
         <div>
-          <p className="text-xs text-[var(--text-secondary)] mb-5 leading-relaxed">
-            Masukkan alamat email yang terdaftar. Sistem akan mengirimkan tautan untuk mengatur ulang kata sandi Anda.
-          </p>
-
           {error && (
-            <Alert variant="danger" title={error.title} className="mb-5 text-xs">
+            <Alert variant="danger" title={error.title} className="mb-4 text-xs">
               {error.message}
             </Alert>
           )}
@@ -149,7 +145,7 @@ export function ForgotPasswordPage() {
                 id="email"
                 type="email"
                 {...register("email")}
-                placeholder="nama@mantakopi.com"
+                placeholder="nama@kopigo.id"
                 autoComplete="email"
               />
               {errors.email && <FormErrorText>{errors.email.message}</FormErrorText>}
@@ -160,16 +156,16 @@ export function ForgotPasswordPage() {
               variant="primary"
               size="lg"
               loading={submitting}
-              className="w-full mt-2"
+              className="w-full mt-4"
             >
               Kirim Tautan Pemulihan
             </Button>
           </form>
 
-          <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] text-center">
+          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5 text-center">
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-[var(--brand-primary)] transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Kembali ke Halaman Login

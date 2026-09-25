@@ -12,7 +12,7 @@ export function NotFoundPage() {
       <h2 className="text-3xl font-mono font-bold text-[var(--text-primary)] mb-1">404</h2>
       <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">Halaman Tidak Ditemukan</h3>
       <p className="text-xs text-[var(--text-secondary)] max-w-sm mb-5 leading-relaxed">
-        Rute yang Anda tuju tidak terdaftar pada sistem kontrol operasional MOVA.
+        Rute yang Anda tuju tidak terdaftar pada sistem kontrol operasional KopiGo.
       </p>
       <Link to="/overview">
         <Button variant="secondary" size="sm" leadingIcon={ArrowLeft}>

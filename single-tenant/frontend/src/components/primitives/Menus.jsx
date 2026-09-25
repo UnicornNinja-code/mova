@@ -18,7 +18,7 @@ export function ContextMenuContent({ className, ...props }) {
     <ContextMenuPrimitive.Portal>
       <ContextMenuPrimitive.Content
         className={cn(
-          "z-50 min-w-[160px] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface)] p-1 text-[var(--text-primary)] shadow-md animate-in fade-in-80 text-xs",
+          "z-50 min-w-[160px] overflow-hidden rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#111318] p-1.5 text-slate-800 dark:text-slate-200 shadow-xl animate-in fade-in-80 text-xs",
           className
         )}
         {...props}
@@ -31,7 +31,7 @@ export function ContextMenuItem({ className, inset, ...props }) {
   return (
     <ContextMenuPrimitive.Item
       className={cn(
-        "relative flex cursor-pointer select-none items-center rounded-xs px-2 py-1.5 text-xs outline-none transition-colors hover:bg-[var(--surface-raised)] focus:bg-[var(--surface-raised)] focus:text-[var(--text-primary)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "relative flex cursor-pointer select-none items-center rounded-lg px-2.5 py-1.5 text-xs outline-none transition-colors hover:bg-slate-100 dark:hover:bg-[#181B22] focus:bg-slate-100 dark:focus:bg-[#181B22] focus:text-[var(--brand-primary)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         inset && "pl-8",
         className
       )}
@@ -43,7 +43,7 @@ export function ContextMenuItem({ className, inset, ...props }) {
 export function ContextMenuSeparator({ className, ...props }) {
   return (
     <ContextMenuPrimitive.Separator
-      className={cn("-mx-1 my-1 h-[1px] bg-[var(--border-subtle)]", className)}
+      className={cn("-mx-1 my-1 h-[1px] bg-slate-200/80 dark:bg-white/5", className)}
       {...props}
     />
   );
@@ -54,7 +54,7 @@ export function Menubar({ className, ...props }) {
   return (
     <MenubarPrimitive.Root
       className={cn(
-        "flex h-9 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xs text-xs",
+        "flex h-9 items-center gap-1 rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#111318] p-1 shadow-xs text-xs",
         className
       )}
       {...props}
@@ -72,7 +72,7 @@ export function MenubarTrigger({ className, ...props }) {
   return (
     <MenubarPrimitive.Trigger
       className={cn(
-        "flex cursor-pointer select-none items-center rounded-xs px-2.5 py-1 text-xs font-medium outline-none hover:bg-[var(--surface-raised)] focus:bg-[var(--surface-raised)] focus:text-[var(--text-primary)] data-[state=open]:bg-[var(--surface-raised)] data-[state=open]:text-[var(--text-primary)] text-[var(--text-secondary)]",
+        "flex cursor-pointer select-none items-center rounded-lg px-2.5 py-1 text-xs font-medium outline-none hover:bg-slate-100 dark:hover:bg-[#181B22] focus:bg-slate-100 dark:focus:bg-[#181B22] focus:text-[var(--brand-primary)] data-[state=open]:bg-slate-100 dark:data-[state=open]:bg-[#181B22] data-[state=open]:text-[var(--brand-primary)] text-slate-600 dark:text-slate-400 transition-colors",
         className
       )}
       {...props}
@@ -88,7 +88,7 @@ export function MenubarContent({ className, align = "start", alignOffset = -4, s
         alignOffset={alignOffset}
         sideOffset={sideOffset}
         className={cn(
-          "z-50 min-w-[160px] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface)] p-1 text-[var(--text-primary)] shadow-md animate-in fade-in-80 text-xs",
+          "z-50 min-w-[160px] overflow-hidden rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#111318] p-1.5 text-slate-800 dark:text-slate-200 shadow-xl animate-in fade-in-80 text-xs",
           className
         )}
         {...props}
@@ -101,7 +101,7 @@ export function MenubarItem({ className, inset, ...props }) {
   return (
     <MenubarPrimitive.Item
       className={cn(
-        "relative flex cursor-pointer select-none items-center rounded-xs px-2 py-1.5 text-xs outline-none hover:bg-[var(--surface-raised)] focus:bg-[var(--surface-raised)] focus:text-[var(--text-primary)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "relative flex cursor-pointer select-none items-center rounded-lg px-2.5 py-1.5 text-xs outline-none hover:bg-slate-100 dark:hover:bg-[#181B22] focus:bg-slate-100 dark:focus:bg-[#181B22] focus:text-[var(--brand-primary)] data-[disabled]:pointer-events-none data-[disabled]:opacity-50 transition-colors",
         inset && "pl-8",
         className
       )}
@@ -113,7 +113,7 @@ export function MenubarItem({ className, inset, ...props }) {
 export function MenubarSeparator({ className, ...props }) {
   return (
     <MenubarPrimitive.Separator
-      className={cn("-mx-1 my-1 h-[1px] bg-[var(--border-subtle)]", className)}
+      className={cn("-mx-1 my-1 h-[1px] bg-slate-200/80 dark:bg-white/5", className)}
       {...props}
     />
   );
@@ -147,7 +147,7 @@ export function NavigationMenuTrigger({ className, children, ...props }) {
   return (
     <NavigationMenuPrimitive.Trigger
       className={cn(
-        "group inline-flex h-9 w-max items-center justify-center rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)] focus:bg-[var(--surface-raised)] focus:text-[var(--text-primary)] focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-[var(--surface-raised)] data-[state=open]:bg-[var(--surface-raised)]",
+        "group inline-flex h-9 w-max items-center justify-center rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-[#181B22] hover:text-slate-900 dark:hover:text-slate-100 focus:bg-slate-100 dark:focus:bg-[#181B22] focus:text-[var(--brand-primary)] focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-slate-100 dark:data-[active]:bg-[#181B22] data-[state=open]:bg-slate-100 dark:data-[state=open]:bg-[#181B22]",
         className
       )}
       {...props}
@@ -180,7 +180,7 @@ export function NavigationMenuViewport({ className, ...props }) {
     <div className={cn("absolute left-0 top-full flex justify-center")}>
       <NavigationMenuPrimitive.Viewport
         className={cn(
-          "origin-top-center relative mt-1.5 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface)] text-[var(--text-primary)] shadow-lg md:w-[var(--radix-navigation-menu-viewport-width)]",
+          "origin-top-center relative mt-1.5 h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-xl border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#111318] text-slate-800 dark:text-slate-200 shadow-xl md:w-[var(--radix-navigation-menu-viewport-width)]",
           className
         )}
         {...props}

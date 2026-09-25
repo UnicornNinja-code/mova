@@ -15,16 +15,16 @@ import {
 describe("Leaflet MapOps Spatial Workspace & Controls", () => {
   it("generates custom Leaflet DivIcons with correct classes and markup", () => {
     const riderIcon = createPulsingRiderIcon("COMPLIANT");
-    expect(riderIcon.options.className).toBe("mova-rider-marker");
+    expect(riderIcon.options.className).toContain("mova-rider-marker");
     expect(riderIcon.options.html).toContain("#10B981");
 
     const spotIcon = createSpotIcon(1, 0.95);
-    expect(spotIcon.options.className).toBe("mova-spot-marker");
+    expect(spotIcon.options.className).toContain("mova-spot-marker");
     expect(spotIcon.options.html).toContain("#1");
     expect(spotIcon.options.html).toContain("0.95");
 
     const compIcon = createCompetitorIcon("Janji Jiwa");
-    expect(compIcon.options.className).toBe("mova-competitor-marker");
+    expect(compIcon.options.className).toContain("mova-competitor-marker");
     expect(compIcon.options.html).toContain("Janji Jiwa");
   });
 

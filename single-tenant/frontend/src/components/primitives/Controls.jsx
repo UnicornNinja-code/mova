@@ -16,13 +16,13 @@ export function RadioGroupItem({ className, ...props }) {
   return (
     <RadioGroupPrimitive.Item
       className={cn(
-        "aspect-square h-4 w-4 rounded-full border border-[var(--border-strong)] text-[var(--accent-primary)] ring-offset-[var(--background)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center bg-[var(--surface)]",
+        "aspect-square h-4 w-4 rounded-full border border-slate-300 dark:border-white/20 text-[var(--brand-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center bg-white dark:bg-[#111318]",
         className
       )}
       {...props}
     >
       <RadioGroupPrimitive.Indicator className="flex items-center justify-center">
-        <Circle className="h-2 w-2 fill-[var(--accent-primary)] text-[var(--accent-primary)]" />
+        <Circle className="h-2 w-2 fill-[var(--brand-primary)] text-[var(--brand-primary)]" />
       </RadioGroupPrimitive.Indicator>
     </RadioGroupPrimitive.Item>
   );
@@ -35,10 +35,10 @@ export function Slider({ className, ...props }) {
       className={cn("relative flex w-full touch-none select-none items-center", className)}
       {...props}
     >
-      <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-[var(--surface-muted)] border border-[var(--border-subtle)]">
-        <SliderPrimitive.Range className="absolute h-full bg-[var(--accent-primary)]" />
+      <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-slate-200 dark:bg-[#181B22]">
+        <SliderPrimitive.Range className="absolute h-full bg-[var(--brand-primary)]" />
       </SliderPrimitive.Track>
-      <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full border-2 border-[var(--accent-primary)] bg-[var(--surface)] ring-offset-[var(--background)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:pointer-events-none disabled:opacity-50 cursor-pointer shadow-sm hover:scale-110" />
+      <SliderPrimitive.Thumb className="block h-4 w-4 rounded-full border-2 border-[var(--brand-primary)] bg-white dark:bg-[#111318] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] disabled:pointer-events-none disabled:opacity-50 cursor-pointer shadow-sm" />
     </SliderPrimitive.Root>
   );
 }
@@ -46,8 +46,8 @@ export function Slider({ className, ...props }) {
 // --- Toggle ---
 export function Toggle({ className, variant = "default", size = "default", ...props }) {
   const variantStyles = {
-    default: "bg-transparent hover:bg-[var(--surface-raised)] text-[var(--text-secondary)] data-[state=on]:bg-[var(--accent-primary)] data-[state=on]:text-white",
-    outline: "border border-[var(--border)] bg-transparent hover:bg-[var(--surface-raised)] data-[state=on]:border-[var(--accent-primary)] data-[state=on]:bg-[var(--accent-primary)]/10 data-[state=on]:text-[var(--accent-primary)]",
+    default: "bg-transparent hover:bg-slate-100 dark:hover:bg-[#181B22] text-slate-500 dark:text-slate-400 data-[state=on]:bg-[var(--brand-primary)] data-[state=on]:text-white",
+    outline: "border border-slate-200 dark:border-white/10 bg-transparent hover:bg-slate-100 dark:hover:bg-[#181B22] data-[state=on]:border-[var(--brand-primary)] data-[state=on]:bg-[var(--brand-subtle)] data-[state=on]:text-[var(--brand-primary)]",
   };
 
   const sizeStyles = {
@@ -59,7 +59,7 @@ export function Toggle({ className, variant = "default", size = "default", ...pr
   return (
     <TogglePrimitive.Root
       className={cn(
-        "inline-flex items-center justify-center rounded-[var(--radius-sm)] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+        "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
         variantStyles[variant] || variantStyles.default,
         sizeStyles[size] || sizeStyles.default,
         className
@@ -75,7 +75,7 @@ export const ToggleGroupContext = React.createContext({ size: "default", variant
 export function ToggleGroup({ className, variant = "default", size = "default", children, ...props }) {
   return (
     <ToggleGroupPrimitive.Root
-      className={cn("inline-flex items-center justify-center gap-1 rounded-[var(--radius-sm)] bg-[var(--surface-muted)] p-1 border border-[var(--border-subtle)]", className)}
+      className={cn("inline-flex items-center justify-center gap-1 rounded-xl bg-slate-100/80 dark:bg-[#14161D] p-1 border border-slate-200/80 dark:border-white/5", className)}
       {...props}
     >
       <ToggleGroupContext.Provider value={{ variant, size }}>
@@ -86,11 +86,10 @@ export function ToggleGroup({ className, variant = "default", size = "default", 
 }
 
 export function ToggleGroupItem({ className, children, variant, size, ...props }) {
-  const context = React.useContext(ToggleGroupContext);
   return (
     <ToggleGroupPrimitive.Item
       className={cn(
-        "inline-flex items-center justify-center rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-[var(--surface)] data-[state=on]:text-[var(--text-primary)] data-[state=on]:shadow-xs",
+        "inline-flex items-center justify-center rounded-lg px-3 py-1 text-xs font-medium text-slate-500 dark:text-slate-400 transition-colors hover:text-slate-900 dark:hover:text-white focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-white dark:data-[state=on]:bg-[#181B22] data-[state=on]:text-slate-900 dark:data-[state=on]:text-white data-[state=on]:shadow-xs",
         className
       )}
       {...props}
@@ -105,7 +104,7 @@ export function Toolbar({ className, ...props }) {
   return (
     <ToolbarPrimitive.Root
       className={cn(
-        "flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface)] p-1 shadow-xs",
+        "flex items-center gap-1.5 rounded-xl border border-slate-200/80 dark:border-white/5 bg-white dark:bg-[#111318] p-1 shadow-xs",
         className
       )}
       {...props}

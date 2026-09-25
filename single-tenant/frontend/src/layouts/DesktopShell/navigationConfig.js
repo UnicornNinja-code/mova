@@ -35,7 +35,7 @@ export const NAVIGATION_PILLARS = [
       { label: "Live MapOps", path: "/operations/mapops", icon: Map, roles: ["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"] },
       { label: "Prediksi Cuaca", path: "/operations/weather", icon: CloudRain, roles: ["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"] },
       { label: "Zona Operasional", path: "/operations/zones", icon: MapPin, roles: ["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"] },
-      { label: "Armada & Rider", path: "/operations/riders", icon: Bike, roles: ["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"] },
+      { label: "Unit & Barista Keliling", path: "/operations/riders", icon: Bike, roles: ["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"] },
       { label: "Sesi Lapangan", path: "/operations/sessions", icon: Clock, roles: ["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"] },
       { label: "Distribusi Produk", path: "/operations/distribution", icon: Package, roles: ["SUPERADMIN", "MANAGEMENT", "SUPERVISOR"] },
     ],

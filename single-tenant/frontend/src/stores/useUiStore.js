@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
-const THEME_KEY = "mova_theme";
-const SIDEBAR_KEY = "mova_sidebar_collapsed";
+const THEME_KEY = "kopigo_theme";
+const SIDEBAR_KEY = "kopigo_sidebar_collapsed";
 
 export const useUiStore = create((set, get) => {
   let initialTheme = "dark";

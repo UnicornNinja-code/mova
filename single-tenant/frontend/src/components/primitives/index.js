@@ -14,3 +14,5 @@ export * from "./Accordion";
 export * from "./Controls";
 export * from "./Menus";
 export * from "./Presentation";
+export * from "./ThemeToggle";
+export * from "./Icon";

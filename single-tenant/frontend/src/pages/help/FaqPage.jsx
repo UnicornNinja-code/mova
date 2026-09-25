@@ -38,18 +38,18 @@ export function FaqPage() {
   const faqData = [
     // --- UMUM / SISTEM ---
     {
-      id: "faq-mova-overview",
+      id: "faq-kopigo-overview",
       role: "ALL",
       roleLabel: "Umum",
       category: "Tentang Sistem",
-      question: "Apa itu aplikasi MOVA dan bagaimana sistem ini membantu operasional harian?",
+      question: "Apa itu aplikasi KopiGo dan bagaimana sistem ini membantu operasional harian?",
       answer: (
         <div className="space-y-2 text-xs leading-relaxed text-[var(--text-secondary)]">
           <p>
-            <strong className="text-[var(--text-primary)]">MOVA</strong> adalah platform manajemen dan pusat komando operasional untuk armada gerobak serta motor minuman keliling di wilayah Sidoarjo.
+            <strong className="text-[var(--text-primary)]">KopiGo</strong> adalah platform manajemen dan pusat komando operasional untuk unit gerobak serta motor kopi keliling bertema Kopi Sejuta Jiwa di wilayah Sidoarjo.
           </p>
           <p>
-            Sistem ini membantu menghubungkan seluruh tim operasional: mulai dari <strong className="text-[var(--text-primary)]">Manajemen</strong> yang memantau total omzet harian, <strong className="text-[var(--text-primary)]">Supervisor</strong> yang menentukan titik jualan paling ramai dan menugaskan rider, hingga <strong className="text-[var(--text-primary)]">Rider Lapangan</strong> yang mengambil armada dan mencatat transaksi penjualan produk secara langsung.
+            Sistem ini membantu menghubungkan seluruh tim operasional: mulai dari <strong className="text-[var(--text-primary)]">Manajemen</strong> yang memantau total omzet harian, <strong className="text-[var(--text-primary)]">Supervisor</strong> yang menentukan titik jualan paling ramai dan menugaskan barista, hingga <strong className="text-[var(--text-primary)]">Barista Keliling</strong> yang mengoperasikan unit dan mencatat transaksi penjualan produk secara langsung.
           </p>
         </div>
       ),
@@ -100,7 +100,7 @@ export function FaqPage() {
       answer: (
         <div className="space-y-2 text-xs leading-relaxed text-[var(--text-secondary)]">
           <p>
-            Sistem rekomendasi MOVA mengevaluasi lokasi berdasarkan 6 pertimbangan utama:
+            Sistem rekomendasi KopiGo mengevaluasi lokasi berdasarkan 6 pertimbangan utama:
           </p>
           <div className="p-3 rounded-md bg-[var(--surface-muted)] border border-[var(--border-subtle)] space-y-1">
             <ol className="list-decimal list-inside space-y-1 text-[var(--text-secondary)]">
@@ -224,7 +224,7 @@ export function FaqPage() {
       answer: (
         <div className="space-y-2 text-xs leading-relaxed text-[var(--text-secondary)]">
           <p>
-            Setiap zona memiliki kuota maksimal jumlah gerobak/motor (misal: 3 unit) untuk mencegah persaingan jualan antar sesama armada MOVA dalam satu radius yang sempit.
+            Setiap zona memiliki kuota maksimal jumlah gerobak/motor (misal: 3 unit) untuk mencegah persaingan jualan antar sesama unit KopiGo dalam satu radius yang sempit.
           </p>
           <p>
             Jika kuota suatu zona telah penuh, sistem akan mengunci penugasan ke zona tersebut dan menyarankan supervisor untuk menempatkan rider di zona alternatif terbaik berikutnya.
@@ -321,7 +321,7 @@ export function FaqPage() {
             FAQ & Panduan Operasional
           </h1>
           <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-            Panduan alur kerja dan jawaban atas pertanyaan umum seputar operasional harian sistem MOVA.
+            Panduan alur kerja dan jawaban atas pertanyaan umum seputar operasional harian sistem KopiGo.
           </p>
         </div>
 

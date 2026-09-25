@@ -15,7 +15,7 @@ export function AccessChangedPage() {
       return location.state;
     }
     try {
-      const stored = sessionStorage.getItem("mova_access_changed_state");
+      const stored = sessionStorage.getItem("kopigo_access_changed_state");
       if (stored) {
         return JSON.parse(stored);
       }
@@ -32,7 +32,7 @@ export function AccessChangedPage() {
 
   const handleSignInAgain = () => {
     try {
-      sessionStorage.removeItem("mova_access_changed_state");
+      sessionStorage.removeItem("kopigo_access_changed_state");
     } catch (e) {}
     navigate("/login", { replace: true });
   };

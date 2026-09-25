@@ -203,15 +203,15 @@ export function ActivatePage() {
       {verifying ? (
         <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
           <Spinner size="lg" />
-          <p className="text-xs text-[var(--text-muted)] font-mono">Memverifikasi keabsahan token aktivasi...</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">Memverifikasi keabsahan token aktivasi...</p>
         </div>
       ) : !verifiedToken ? (
         /* ════════════════════════════════════════════════════════════
            TAHAP 1: INPUT & VERIFIKASI TOKEN AKTIVASI
            ════════════════════════════════════════════════════════════ */
         <div className="space-y-4">
-          <div className="text-xs text-[var(--text-secondary)] leading-relaxed">
-            Masukkan token aktivasi yang Anda terima dari Administrator untuk mengaktifkan akun staf MOVA.
+          <div className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            Masukkan token aktivasi yang Anda terima dari Administrator untuk mengaktifkan akun staf KopiGo.
           </div>
 
           {verifyError && (
@@ -233,7 +233,7 @@ export function ActivatePage() {
                     type="button"
                     onClick={() => setShowToken(!showToken)}
                     aria-label={showToken ? "Sembunyikan token" : "Tampilkan token"}
-                    className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                    className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                   >
                     {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -252,18 +252,18 @@ export function ActivatePage() {
               variant="primary"
               size="lg"
               loading={verifying}
-              className="w-full mt-2"
+              className="w-full mt-4"
             >
               Verifikasi & Lanjutkan
             </Button>
           </form>
 
-          <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] text-center">
+          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5 text-center">
             <Link
               to="/login"
-              className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              className="text-xs text-slate-500 dark:text-slate-400 hover:text-[var(--brand-primary)] transition-colors"
             >
-              Sudah punya akun aktif? <span className="text-[var(--accent-primary)] font-medium">Masuk ke Login</span>
+              Sudah punya akun aktif? <span className="text-[var(--brand-primary)] font-medium">Masuk ke Login</span>
             </Link>
           </div>
         </div>
@@ -273,13 +273,13 @@ export function ActivatePage() {
            ════════════════════════════════════════════════════════════ */
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-[var(--text-primary)]">
+            <span className="text-xs font-medium text-slate-900 dark:text-white">
               Lengkapi Data Akun
             </span>
             <button
               type="button"
               onClick={handleResetToken}
-              className="text-[11px] font-mono text-[var(--text-muted)] hover:text-[var(--accent-primary)] flex items-center gap-1 cursor-pointer transition-colors"
+              className="text-[11px] font-mono text-slate-400 hover:text-[var(--brand-primary)] flex items-center gap-1 cursor-pointer transition-colors"
             >
               <RotateCcw className="w-3 h-3" />
               Ganti Token
@@ -288,19 +288,19 @@ export function ActivatePage() {
 
           {/* Account Metadata Bar */}
           {tokenData?.email && (
-            <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--surface-raised)] border border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="p-3.5 rounded-xl bg-slate-50/50 dark:bg-[#111318] border border-slate-200/80 dark:border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
               <div>
-                <span className="text-[10px] text-[var(--text-muted)] uppercase font-mono block">Email</span>
-                <span className="font-medium text-[var(--text-primary)] font-mono">{tokenData.email}</span>
+                <span className="text-[10px] text-slate-400 uppercase font-mono block">Email</span>
+                <span className="font-medium text-slate-900 dark:text-white font-mono">{tokenData.email}</span>
               </div>
               {tokenData.phone && (
                 <div>
-                  <span className="text-[10px] text-[var(--text-muted)] uppercase font-mono block">No. Telepon</span>
-                  <span className="font-medium text-[var(--text-secondary)] font-mono">{tokenData.phone}</span>
+                  <span className="text-[10px] text-slate-400 uppercase font-mono block">No. Telepon</span>
+                  <span className="font-medium text-slate-600 dark:text-slate-300 font-mono">{tokenData.phone}</span>
                 </div>
               )}
               {tokenData.role && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border border-[var(--accent-primary)]/20">
+                <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-semibold bg-[var(--brand-subtle)] text-[var(--brand-primary)] border border-[var(--brand-primary)]/20">
                   {tokenData.role}
                 </span>
               )}
@@ -346,7 +346,7 @@ export function ActivatePage() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
-                    className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                    className="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -359,15 +359,15 @@ export function ActivatePage() {
 
             {/* Minimal Strength Indicator */}
             {enteredPassword.length > 0 && (
-              <div className="space-y-1.5 p-2.5 rounded-[var(--radius-sm)] bg-[var(--surface-raised)] border border-[var(--border-subtle)]">
+              <div className="space-y-1.5 p-3 rounded-xl bg-slate-50/50 dark:bg-[#111318] border border-slate-200/80 dark:border-white/10">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[var(--text-muted)] text-[11px]">Kekuatan Sandi</span>
-                  <span className="font-semibold text-[var(--text-primary)] text-xs">{strength.label}</span>
+                  <span className="text-slate-400 text-[11px]">Kekuatan Sandi</span>
+                  <span className="font-semibold text-slate-900 dark:text-white text-xs">{strength.label}</span>
                 </div>
-                <div className="grid grid-cols-3 gap-1 h-1 w-full">
-                  <div className={`h-full rounded-full transition-all duration-200 ${strength.score >= 1 ? strength.color : "bg-zinc-700/40"}`} />
-                  <div className={`h-full rounded-full transition-all duration-200 ${strength.score >= 2 ? strength.color : "bg-zinc-700/40"}`} />
-                  <div className={`h-full rounded-full transition-all duration-200 ${strength.score >= 3 ? strength.color : "bg-zinc-700/40"}`} />
+                <div className="grid grid-cols-3 gap-1.5 h-1.5 w-full">
+                  <div className={`h-full rounded-full transition-all duration-200 ${strength.score >= 1 ? strength.color : "bg-slate-200 dark:bg-zinc-800"}`} />
+                  <div className={`h-full rounded-full transition-all duration-200 ${strength.score >= 2 ? strength.color : "bg-slate-200 dark:bg-zinc-800"}`} />
+                  <div className={`h-full rounded-full transition-all duration-200 ${strength.score >= 3 ? strength.color : "bg-slate-200 dark:bg-zinc-800"}`} />
                 </div>
               </div>
             )}
@@ -395,18 +395,18 @@ export function ActivatePage() {
               variant="primary"
               size="lg"
               loading={submitting}
-              className="w-full mt-2"
+              className="w-full mt-4"
             >
               Aktifkan Akun Saya
             </Button>
           </form>
 
-          <div className="mt-5 pt-3 border-t border-[var(--border-subtle)] text-center">
+          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/5 text-center">
             <Link
               to="/login"
-              className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              className="text-xs text-slate-500 dark:text-slate-400 hover:text-[var(--brand-primary)] transition-colors"
             >
-              Sudah punya akun? <span className="text-[var(--accent-primary)] font-medium">Masuk ke Login</span>
+              Sudah punya akun? <span className="text-[var(--brand-primary)] font-medium">Masuk ke Login</span>
             </Link>
           </div>
         </div>

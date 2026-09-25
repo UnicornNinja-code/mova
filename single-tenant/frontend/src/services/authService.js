@@ -2,11 +2,10 @@ import { api } from "./api";
 
 export const authService = {
   // --- Auth Group 1 ---
-  async login({ username, password, turnstileToken }) {
+  async login({ username, password }) {
     const response = await api.post("/api/auth/login", {
       identifier: username,
       password,
-      turnstileToken,
     });
     return response.data?.data || response.data;
   },

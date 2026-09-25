@@ -16,20 +16,20 @@ export const Input = forwardRef(function Input(
   ref
 ) {
   const sizeStyles = {
-    sm: "h-8 text-xs px-2.5",
-    md: "h-9 text-sm px-3",
-    lg: "h-11 text-base px-4 min-h-[44px]",
-  }[size] || "h-9 text-sm px-3";
+    sm: "h-8 text-xs px-2.5 rounded-lg",
+    md: "h-10 text-sm px-3.5 rounded-xl",
+    lg: "h-11 text-sm px-4 rounded-xl min-h-[44px]",
+  }[size] || "h-10 text-sm px-3.5 rounded-xl";
 
   const variantStyles = {
-    default: "bg-[var(--surface-raised)] border-[var(--border)]",
-    recessed: "bg-[var(--surface-muted)]/70 border-[var(--border-subtle)] focus:bg-[var(--surface-raised)]",
-  }[variant] || "bg-[var(--surface-raised)] border-[var(--border)]";
+    default: "bg-slate-50/50 dark:bg-[#111318] border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500",
+    recessed: "bg-[var(--surface-muted)]/70 border-[var(--border-subtle)] focus:bg-white dark:focus:bg-[#111318]",
+  }[variant] || "bg-slate-50/50 dark:bg-[#111318] border-slate-200 dark:border-white/10 text-slate-900 dark:text-slate-100";
 
   return (
     <div className="relative flex items-center w-full">
       {LeadingIcon && (
-        <div className="absolute left-3 flex items-center pointer-events-none text-[var(--text-muted)]">
+        <div className="absolute left-3.5 flex items-center pointer-events-none text-slate-400">
           <LeadingIcon className="w-4 h-4" aria-hidden="true" />
         </div>
       )}
@@ -38,12 +38,12 @@ export const Input = forwardRef(function Input(
         ref={ref}
         aria-invalid={invalid}
         className={cn(
-          "w-full border text-[var(--text-primary)] placeholder:text-[var(--text-muted)] rounded-[var(--radius-md)] transition-all duration-150 focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] disabled:opacity-50 disabled:cursor-not-allowed",
+          "w-full border text-sm transition-all duration-150 focus:outline-none focus:border-[var(--brand-primary)] focus:ring-2 focus:ring-[var(--brand-primary)]/20 disabled:opacity-50 disabled:cursor-not-allowed shadow-xs",
           variantStyles,
           sizeStyles,
           LeadingIcon && "pl-10",
           (TrailingIcon || trailingElement) && "pr-10",
-          invalid && "border-[var(--status-danger)] focus:border-[var(--status-danger)] focus:ring-[var(--status-danger)]",
+          invalid && "border-red-500 focus:border-red-500 focus:ring-red-500/20",
           className
         )}
         {...props}

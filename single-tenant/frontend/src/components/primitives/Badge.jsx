@@ -3,12 +3,12 @@ import { cn } from "@/lib/utils";
 
 export function Badge({ children, variant = "neutral", size = "sm", pill = true, className, ...props }) {
   const variantStyles = {
-    neutral: "bg-[var(--surface-raised)] text-[var(--text-secondary)] border border-[var(--border-subtle)]",
+    neutral: "bg-[var(--surface-raised)] text-[var(--text-secondary)] border border-[var(--border-subtle)] font-medium",
     success: "bg-[var(--status-success-bg)] text-[var(--status-success)] border border-[var(--status-success)]/20 font-medium",
     warning: "bg-[var(--status-warning-bg)] text-[var(--status-warning)] border border-[var(--status-warning)]/20 font-medium",
     danger: "bg-[var(--status-danger-bg)] text-[var(--status-danger)] border border-[var(--status-danger)]/20 font-medium",
     info: "bg-[var(--status-info-bg)] text-[var(--status-info)] border border-[var(--status-info)]/20 font-medium",
-    brand: "bg-[var(--accent-primary)]/15 text-[var(--accent-primary)] border border-[var(--accent-primary)]/25 font-medium",
+    brand: "bg-[var(--brand-subtle)] text-[var(--brand-primary)] border border-[var(--brand-primary)]/20 font-medium",
   }[variant] || "bg-[var(--surface-raised)] text-[var(--text-secondary)]";
 
   const sizeStyles = {
@@ -21,7 +21,7 @@ export function Badge({ children, variant = "neutral", size = "sm", pill = true,
     <span
       className={cn(
         "inline-flex items-center justify-center tracking-normal transition-colors",
-        pill ? "rounded-[var(--radius-full)]" : "rounded-[var(--radius-sm)]",
+        pill ? "rounded-full" : "rounded-lg",
         variantStyles,
         sizeStyles,
         className

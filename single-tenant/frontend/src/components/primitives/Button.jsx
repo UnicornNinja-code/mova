@@ -15,17 +15,17 @@ export function Button({
   ...props
 }) {
   const variantStyles = {
-    primary: "bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] text-white border border-transparent font-medium shadow-xs",
-    secondary: "bg-[var(--surface-raised)] hover:bg-[var(--surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-medium",
-    danger: "bg-[var(--status-danger)] hover:opacity-90 text-white border border-transparent font-medium shadow-xs",
-    ghost: "bg-transparent hover:bg-[var(--surface-raised)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent",
-    outline: "bg-transparent hover:bg-[var(--surface-raised)] text-[var(--text-primary)] border border-[var(--border)] font-medium",
-  }[variant] || "bg-[var(--accent-primary)] text-white";
+    primary: "bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-hover)] active:bg-[var(--brand-primary-active)] text-white font-heading font-medium border border-transparent shadow-xs transition-colors duration-150",
+    secondary: "bg-[var(--surface-raised)] hover:bg-[var(--surface-muted)] text-[var(--text-primary)] border border-[var(--border-subtle)] font-medium transition-colors duration-150",
+    danger: "bg-[var(--status-danger)] hover:opacity-90 text-white border border-transparent font-medium shadow-xs transition-colors duration-150",
+    ghost: "bg-transparent hover:bg-[var(--surface-raised)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent transition-colors duration-150",
+    outline: "bg-transparent hover:bg-[var(--surface-raised)] text-[var(--text-primary)] border border-[var(--border)] font-medium transition-colors duration-150",
+  }[variant] || "bg-[var(--brand-primary)] text-white";
 
   const sizeStyles = {
-    sm: "h-8 px-3 text-xs gap-1.5 rounded-[var(--radius-md)]",
-    md: "h-9 px-4 text-sm gap-2 rounded-[var(--radius-md)]",
-    lg: "h-11 px-5 text-base gap-2.5 rounded-[var(--radius-lg)] min-h-[44px]", // 44px touch target for Rider
+    sm: "h-8 px-3 text-xs gap-1.5 rounded-lg",
+    md: "h-9 px-4 text-sm gap-2 rounded-xl",
+    lg: "h-11 px-5 text-sm gap-2.5 rounded-xl min-h-[44px]", // 44px touch target for Rider
   }[size] || "h-9 px-4 text-sm gap-2";
 
   return (
@@ -33,7 +33,7 @@ export function Button({
       type={type}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98] cursor-pointer",
+        "inline-flex items-center justify-center transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer",
         variantStyles,
         sizeStyles,
         className

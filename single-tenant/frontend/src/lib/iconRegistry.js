@@ -145,7 +145,7 @@ export function getHubIconUrl(variant = "central") {
 /**
  * Creates custom Leaflet DivIcon for POIs with 3D Carto Teardrop Pin
  */
-export function createPoiMarkerIcon(categoryName = "Lainnya", { size = 32, className = "mova-poi-badge-marker" } = {}) {
+export function createPoiMarkerIcon(categoryName = "Lainnya", { size = 32, className = "mova-poi-badge-marker kopigo-poi-badge-marker" } = {}) {
   const iconUrl = getPoiIconUrl(categoryName);
   const height = Math.round(size * (56 / 48));
 
@@ -165,7 +165,7 @@ export function createPoiMarkerIcon(categoryName = "Lainnya", { size = 32, class
 /**
  * Creates custom Leaflet DivIcon for Riders with 3D Coffee Delivery Scooter
  */
-export function createRiderMarkerIcon(status = "COMPLIANT", { size = 38, label = "", className = "mova-rider-marker" } = {}) {
+export function createRiderMarkerIcon(status = "COMPLIANT", { size = 38, label = "", className = "mova-rider-marker kopigo-rider-marker" } = {}) {
   const iconUrl = getRiderIconUrl(status);
   const isDeviated = status === "DEVIATED" || status === "OUTSIDE_ZONE" || status === "PROHIBITED_ROAD_ALERT";
   const pulseColor = isDeviated ? "#EF4444" : "#10B981";
@@ -192,7 +192,7 @@ export function createHubMarkerIcon({ size = 42, label = "Central Hub" } = {}) {
   const iconUrl = getHubIconUrl("central");
 
   return L.divIcon({
-    className: "mova-hub-badge-marker",
+    className: "mova-hub-badge-marker kopigo-hub-badge-marker",
     html: `
       <div style="position: relative; width: ${size}px; height: ${size}px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
         <img src="${iconUrl}" alt="${label}" style="width: ${size}px; height: ${size}px; object-fit: contain; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.45));" />

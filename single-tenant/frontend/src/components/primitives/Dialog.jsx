@@ -22,10 +22,10 @@ export function DialogContent({ title, description, children, maxWidth = "md", c
 
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs animate-in fade-in-0" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 dark:bg-black/80 backdrop-blur-xs animate-in fade-in-0" />
       <DialogPrimitive.Content
         className={cn(
-          "fixed left-[50%] top-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 border border-[var(--border)] bg-[var(--surface)] p-6 shadow-lg duration-200 animate-in fade-in-0 zoom-in-95 rounded-[var(--radius-md)]",
+          "fixed left-[50%] top-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 border border-slate-200/80 dark:border-white/10 bg-white dark:bg-[#111318] p-6 shadow-2xl duration-200 animate-in fade-in-0 zoom-in-95 rounded-2xl",
           maxWidthClass,
           className
         )}
@@ -33,12 +33,12 @@ export function DialogContent({ title, description, children, maxWidth = "md", c
       >
         <div className="flex flex-col space-y-1.5 text-left">
           {title && (
-            <DialogPrimitive.Title className="text-base font-semibold text-[var(--text-primary)] leading-none">
+            <DialogPrimitive.Title className="text-base font-heading font-medium text-slate-900 dark:text-white leading-none">
               {title}
             </DialogPrimitive.Title>
           )}
           {description && (
-            <DialogPrimitive.Description className="text-xs text-[var(--text-secondary)]">
+            <DialogPrimitive.Description className="text-xs text-slate-500 dark:text-slate-400">
               {description}
             </DialogPrimitive.Description>
           )}
@@ -46,7 +46,7 @@ export function DialogContent({ title, description, children, maxWidth = "md", c
 
         {children}
 
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-[var(--radius-sm)] opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] text-[var(--text-secondary)]">
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
           <X className="h-4 w-4" />
           <span className="sr-only">Tutup</span>
         </DialogPrimitive.Close>
@@ -65,7 +65,7 @@ export function DialogHeader({ children, className }) {
 
 export function DialogTitle({ children, className, ...props }) {
   return (
-    <DialogPrimitive.Title className={cn("text-base font-semibold text-[var(--text-primary)] leading-none", className)} {...props}>
+    <DialogPrimitive.Title className={cn("text-base font-heading font-medium text-slate-900 dark:text-white leading-none", className)} {...props}>
       {children}
     </DialogPrimitive.Title>
   );
@@ -73,7 +73,7 @@ export function DialogTitle({ children, className, ...props }) {
 
 export function DialogDescription({ children, className, ...props }) {
   return (
-    <DialogPrimitive.Description className={cn("text-xs text-[var(--text-secondary)]", className)} {...props}>
+    <DialogPrimitive.Description className={cn("text-xs text-slate-500 dark:text-slate-400", className)} {...props}>
       {children}
     </DialogPrimitive.Description>
   );
@@ -81,7 +81,7 @@ export function DialogDescription({ children, className, ...props }) {
 
 export function DialogFooter({ children, className }) {
   return (
-    <div className={cn("flex items-center justify-end gap-2 mt-4 pt-3 border-t border-[var(--border-subtle)]", className)}>
+    <div className={cn("flex items-center justify-end gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-white/5", className)}>
       {children}
     </div>
   );

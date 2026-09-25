@@ -212,3 +212,26 @@ Dokumen ini memetakan seluruh daftar pekerjaan, checklist pengembangan fitur, se
    - Orkestrasi multi-service: PostgreSQL PostGIS, Redis, Backend API, BullMQ Worker, dan Frontend Nginx Reverse Proxy.
 3. 📋 **Automasi Pipeline CI/CD GitHub Actions (`deploy.yml`)**
    - Otomasi linting, eksekusi test suite unit/security, pembuatan Docker image, dan deployment zero-downtime ke server produksi.
+
+4. ✅ **Rebranding Menyeluruh: MOVA ke KopiGo (Skripsi Unit Kopi Keliling)**
+   - Perubahan nama aplikasi dari MOVA (single-tenant) menjadi **KopiGo** (*Kopi + Go*: Fokus pada pergerakan dan mobilitas unit kopi keliling).
+   - Penggunaan istilah operasional lapangan: **Barista Keliling** dan **Unit KopiGo**.
+   - Pembaruan metadata, header, sidebar, login hero, activate page, 404, FAQ, storage keys (`kopigo_*`), package.json, dan environment database (`kopigo_db`).
+
+5. ✅ **Transformasi Desain Sistem Bertema Kopi Sejuta Jiwa (70-30-1)**
+   - **Font Heading**: Gilroy (`gilroyff`) via Webfont CDN + modern sans-serif fallback.
+   - **Font Body / Deskripsi**: Work Sans (`worksansff`) via Google Fonts.
+   - **Color Brand (30%)**: `#FF5052` (Sejuta Jiwa Coral/Red) untuk CTA, active tabs, header accent, dan status pin.
+   - **Color Neutral (70%)**: Pure Pitch Onyx (`#090A0D`, `#111318`) untuk Dark Mode dan Pure White / Crisp Slate (`#FFFFFF`, `#F8FAFC`) untuk Light Mode.
+   - **Color Accent (1%)**: Emerald / Mint Green (`#10B981`) dengan pulse beacon untuk status operasional & unit aktif.
+   - **Icon System**: Google Material Symbols Rounded Webfont + komponen primitive reusable `<Icon name="..." />` (`frontend/src/components/primitives/Icon.jsx`).
+
+6. ✅ **Redesain Halaman Auth Modern & Kalibrasi Tipografi Gilroy (Clean 60:40 Split-Screen)**
+   - **Eliminasi Teks Redundan**: Menghapus badge berisik, bullet cards, dan deskripsi berulang agar antarmuka fokus, lapang, dan bernafas (*clean aesthetic*).
+   - **Kalibrasi Tipografi Gilroy**: Mengintegrasikan mapping `@font-face` Gilroy (400 Regular, 500 Medium, 600-700 Bold) dengan default heading bobot 500 (`font-medium`) ramping dan presisi.
+   - **Layout Split-Screen 60:40**: 
+     - **Porsi 60% (Hero)**: Artwork fluid dinamis (`light_mode.jpg` / `dark_mode.jpg`) dengan headline editorial minimalis (*"Mobilitas Kopi, Presisi Setiap Langkah"*).
+     - **Porsi 40% (Form)**: Panel form bersih dengan border pemisah halus, input elegan, pill ThemeToggle, dan alur autentikasi ringkas di `LoginPage.jsx` dan `AuthLayout.jsx`.
+   - **Palet Dark Mode (Pure Pitch Onyx Minimalist)**: Nuansa hitam pekat `#090A0D` dengan kontras aksen brand coral `#FF5052` menyala tegas.
+
+

@@ -34,7 +34,7 @@ export function createPulsingRiderIcon(status = "COMPLIANT") {
 
 export function createSpotIcon(rank = 1, score = null) {
   return L.divIcon({
-    className: "mova-spot-marker",
+    className: "mova-spot-marker kopigo-spot-marker",
     html: `
       <div style="background-color: #3B82F6; color: white; border: 2px solid white; font-weight: 700; font-size: 11px; font-family: monospace; border-radius: 4px; padding: 2px 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); display: inline-flex; align-items: center; gap: 2px;">
         <span>#${rank}</span>
@@ -49,7 +49,7 @@ export function createSpotIcon(rank = 1, score = null) {
 
 export function createCompetitorIcon(brandName = "Kompetitor") {
   return L.divIcon({
-    className: "mova-competitor-marker",
+    className: "mova-competitor-marker kopigo-competitor-marker",
     html: `
       <div style="background-color: #8B5CF6; color: white; border: 2px solid white; font-size: 10px; font-weight: 600; border-radius: 4px; padding: 2px 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.3); white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis;">
         ☕ ${brandName}

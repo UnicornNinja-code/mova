@@ -23,7 +23,7 @@ export function createSafePopupContent({
   statusBadge = null,
 }) {
   const container = document.createElement("div");
-  container.className = "mova-safe-popup p-3 text-sm text-[var(--text-primary)] font-sans max-w-[280px]";
+  container.className = "kopigo-safe-popup mova-safe-popup p-3 text-sm text-[var(--text-primary)] font-sans max-w-[280px]";
 
   // Title section
   if (title) {

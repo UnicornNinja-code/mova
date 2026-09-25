@@ -53,7 +53,7 @@ api.interceptors.response.use(
         if (typeof window !== "undefined" && window.location.pathname !== "/access-changed") {
           try {
             sessionStorage.setItem(
-              "mova_access_changed_state",
+              "kopigo_access_changed_state",
               JSON.stringify({
                 previousRole: errData.previousRole || null,
                 newRole: errData.newRole || null,

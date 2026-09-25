@@ -127,7 +127,7 @@ export function RoadMapCanvas({
               <strong style="color: #b45309;">[JALAN PROTOKOL]</strong> ${name}<br/>
               <span style="color: #6b7280; font-size: 10px;">Tipe: ${hType} · Dilarang untuk berjualan</span>
             </div>`,
-            { sticky: true, className: "mova-road-tooltip" }
+            { sticky: true, className: "kopigo-road-tooltip mova-road-tooltip" }
           );
 
           layerItem.on({
@@ -194,7 +194,7 @@ export function RoadMapCanvas({
               <strong style="color: #da1e28;">[JALAN TOL]</strong> ${name}<br/>
               <span style="color: #6b7280; font-size: 10px;">Bebas Hambatan · DILARANG MOTOR & BERJUALAN</span>
             </div>`,
-            { sticky: true, className: "mova-road-tooltip" }
+            { sticky: true, className: "kopigo-road-tooltip mova-road-tooltip" }
           );
 
           layerItem.on({

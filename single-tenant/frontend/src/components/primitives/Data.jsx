@@ -6,7 +6,7 @@ import { Button, IconButton } from "./Button";
 
 export function Table({ children, className, ...props }) {
   return (
-    <div className="w-full overflow-x-auto border border-[var(--border-subtle)] rounded-[var(--radius-lg)] bg-[var(--surface)]">
+    <div className="w-full overflow-x-auto border border-slate-200/80 dark:border-white/5 rounded-xl bg-white dark:bg-[#111318] shadow-xs">
       <table className={cn("w-full text-left text-xs border-collapse", className)} {...props}>
         {children}
       </table>
@@ -16,7 +16,7 @@ export function Table({ children, className, ...props }) {
 
 export function TableHeader({ children, className, ...props }) {
   return (
-    <thead className={cn("bg-[var(--surface-raised)]/60 border-b border-[var(--border-subtle)] text-[var(--text-secondary)] uppercase tracking-wider font-semibold text-[10px]", className)} {...props}>
+    <thead className={cn("bg-slate-50/80 dark:bg-[#14161D] border-b border-slate-200/80 dark:border-white/5 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-heading font-medium text-[11px]", className)} {...props}>
       {children}
     </thead>
   );
@@ -24,7 +24,7 @@ export function TableHeader({ children, className, ...props }) {
 
 export function TableBody({ children, className, ...props }) {
   return (
-    <tbody className={cn("divide-y divide-[var(--border-subtle)] bg-[var(--surface)]", className)} {...props}>
+    <tbody className={cn("divide-y divide-slate-100 dark:divide-white/5 bg-white dark:bg-[#111318]", className)} {...props}>
       {children}
     </tbody>
   );
@@ -34,8 +34,8 @@ export function TableRow({ children, selected = false, className, ...props }) {
   return (
     <tr
       className={cn(
-        "transition-colors hover:bg-[var(--surface-raised)]/50",
-        selected && "bg-[var(--accent-primary)]/10 hover:bg-[var(--accent-primary)]/15",
+        "transition-colors duration-150 hover:bg-slate-50/70 dark:hover:bg-[#181B22]/70",
+        selected && "bg-[var(--brand-subtle)] hover:bg-[var(--brand-subtle)]",
         className
       )}
       {...props}
@@ -47,7 +47,7 @@ export function TableRow({ children, selected = false, className, ...props }) {
 
 export function TableHead({ children, className, ...props }) {
   return (
-    <th scope="col" className={cn("px-4 py-3 font-semibold text-[var(--text-secondary)] select-none", className)} {...props}>
+    <th scope="col" className={cn("px-4 py-3 font-heading font-medium text-slate-700 dark:text-slate-200 select-none", className)} {...props}>
       {children}
     </th>
   );
@@ -55,7 +55,7 @@ export function TableHead({ children, className, ...props }) {
 
 export function TableCell({ children, className, ...props }) {
   return (
-    <td className={cn("px-4 py-3 text-[var(--text-primary)] align-middle", className)} {...props}>
+    <td className={cn("px-4 py-3.5 text-slate-800 dark:text-slate-200 align-middle", className)} {...props}>
       {children}
     </td>
   );
@@ -71,7 +71,7 @@ export function Tabs({ defaultValue, value, onValueChange, children, className }
 
 export function TabsList({ children, className }) {
   return (
-    <TabsPrimitive.List className={cn("inline-flex items-center gap-1 border border-[var(--border-subtle)] bg-[var(--surface-muted)]/60 p-1 rounded-[var(--radius-md)] w-full", className)}>
+    <TabsPrimitive.List className={cn("inline-flex items-center gap-1 border border-slate-200/80 dark:border-white/5 bg-slate-100/80 dark:bg-[#14161D] p-1 rounded-xl w-full", className)}>
       {children}
     </TabsPrimitive.List>
   );
@@ -83,7 +83,7 @@ export function TabsTrigger({ value, children, icon: Icon, disabled = false, cla
       value={value}
       disabled={disabled}
       className={cn(
-        "inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium rounded-[var(--radius-sm)] text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--accent-primary)] data-[state=active]:bg-[var(--surface)] data-[state=active]:text-[var(--accent-primary)] data-[state=active]:shadow-xs disabled:opacity-50 disabled:pointer-events-none cursor-pointer",
+        "inline-flex items-center gap-2 px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-600 dark:text-slate-400 transition-colors hover:text-slate-900 dark:hover:text-slate-100 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--brand-primary)] data-[state=active]:bg-white dark:data-[state=active]:bg-[#181B22] data-[state=active]:text-[var(--brand-primary)] data-[state=active]:font-semibold data-[state=active]:shadow-xs disabled:opacity-50 disabled:pointer-events-none cursor-pointer",
         className
       )}
     >
@@ -105,9 +105,9 @@ export function Pagination({ currentPage, totalPages, onPageChange, className })
   if (totalPages <= 1) return null;
 
   return (
-    <div className={cn("flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)] bg-[var(--surface)] text-xs text-[var(--text-secondary)] select-none", className)}>
+    <div className={cn("flex items-center justify-between px-4 py-3 border-t border-slate-200/80 dark:border-white/5 bg-white dark:bg-[#111318] text-xs text-slate-500 dark:text-slate-400 select-none rounded-b-xl", className)}>
       <span>
-        Halaman <strong className="font-semibold text-[var(--text-primary)]">{currentPage}</strong> dari <strong className="font-semibold text-[var(--text-primary)]">{totalPages}</strong>
+        Halaman <strong className="font-semibold text-slate-800 dark:text-slate-200">{currentPage}</strong> dari <strong className="font-semibold text-slate-800 dark:text-slate-200">{totalPages}</strong>
       </span>
       <div className="flex items-center gap-1">
         <IconButton

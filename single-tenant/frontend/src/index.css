@@ -1,15 +1,46 @@
 @import "tailwindcss";
 
+/* Gilroy Unified Typography Hierarchy */
+@font-face {
+  font-family: 'Gilroy';
+  src: local('Gilroy-Regular'), url('https://fonts.cdnfonts.com/s/16219/Gilroy-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src: local('Gilroy-Medium'), url('https://fonts.cdnfonts.com/s/16219/Gilroy-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gilroy';
+  src: local('Gilroy-Bold'), url('https://fonts.cdnfonts.com/s/16219/Gilroy-Bold.woff') format('woff');
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Gilroy', 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
+
+  --color-brand: #FF5052;
+  --color-brand-hover: #E64244;
+  --color-brand-subtle: rgba(255, 80, 82, 0.12);
+  --color-accent-highlight: #10B981;
 }
 
 @layer base {
   :root {
-    /* Neural Command DNA — Light Theme */
+    /* 70% Neutral — Modern Slate & Pure White Light Theme */
     --background: #F8FAFC;
     --surface: #FFFFFF;
     --surface-raised: #F1F5F9;
@@ -24,20 +55,31 @@
     --text-secondary: #475569;
     --text-muted: #64748B;
 
-    --accent-primary: #2563EB;
-    --accent-primary-hover: #1D4ED8;
-    --accent-cyan: #0891B2;
+    /* 30% Brand — Kopi Sejuta Jiwa Coral/Red */
+    --brand-primary: #FF5052;
+    --brand-primary-hover: #E64244;
+    --brand-primary-active: #CC3638;
+    --brand-subtle: rgba(255, 80, 82, 0.10);
 
-    --status-success: #16A34A;
+    /* Component token bridge to brand */
+    --accent-primary: #FF5052;
+    --accent-primary-hover: #E64244;
+    --accent-cyan: #06B6D4;
+
+    /* 1% Accent Highlight — Emerald/Mint */
+    --accent-highlight: #10B981;
+    --accent-highlight-bg: rgba(16, 185, 129, 0.12);
+
+    --status-success: #10B981;
     --status-success-bg: #DCFCE7;
-    --status-warning: #D97706;
+    --status-warning: #F59E0B;
     --status-warning-bg: #FEF3C7;
-    --status-danger: #DC2626;
+    --status-danger: #EF4444;
     --status-danger-bg: #FEE2E2;
     --status-info: #0284C7;
     --status-info-bg: #E0F2FE;
 
-    /* Modern Soft-Rounded Radius Scale (Bento Command Center) */
+    /* Modern Soft-Rounded Radius Scale */
     --radius-xs: 4px;
     --radius-sm: 6px;
     --radius-md: 10px;
@@ -53,33 +95,44 @@
   }
 
   .dark {
-    /* Neural Command DNA — Dark Theme (Default Control Room) */
-    --background: #0A0D14;
-    --surface: #121826;
-    --surface-raised: #1A2234;
-    --surface-muted: #161F30;
-    --card: #141B2D;
+    /* 70% Neutral — Pure Pitch Onyx Minimalist Dark Theme */
+    --background: #090A0D;
+    --surface: #111318;
+    --surface-raised: #181B22;
+    --surface-muted: #14161D;
+    --card: #111318;
 
-    --border: #2A364F;
-    --border-subtle: #1E293B;
-    --border-strong: #3E4F6E;
+    --border: #222632;
+    --border-subtle: #191C26;
+    --border-strong: #333A4D;
 
     --text-primary: #F8FAFC;
     --text-secondary: #94A3B8;
     --text-muted: #64748B;
 
-    --accent-primary: #3B82F6;
-    --accent-primary-hover: #2563EB;
+    /* 30% Brand — Kopi Sejuta Jiwa Coral/Red */
+    --brand-primary: #FF5052;
+    --brand-primary-hover: #FF686A;
+    --brand-primary-active: #E64244;
+    --brand-subtle: rgba(255, 80, 82, 0.16);
+
+    /* Component token bridge to brand */
+    --accent-primary: #FF5052;
+    --accent-primary-hover: #FF686A;
     --accent-cyan: #06B6D4;
 
+    /* 1% Accent Highlight — Emerald/Mint */
+    --accent-highlight: #10B981;
+    --accent-highlight-bg: rgba(16, 185, 129, 0.16);
+
     --status-success: #10B981;
-    --status-success-bg: rgba(16, 185, 129, 0.12);
+    --status-success-bg: rgba(16, 185, 129, 0.14);
     --status-warning: #F59E0B;
-    --status-warning-bg: rgba(245, 158, 11, 0.12);
+    --status-warning-bg: rgba(245, 158, 11, 0.14);
     --status-danger: #EF4444;
-    --status-danger-bg: rgba(239, 68, 68, 0.12);
+    --status-danger-bg: rgba(239, 68, 68, 0.14);
     --status-info: #38BDF8;
-    --status-info-bg: rgba(56, 189, 248, 0.12);
+    --status-info-bg: rgba(56, 189, 248, 0.14);
 
     /* Modern Soft-Rounded Radius Scale */
     --radius-xs: 4px;
@@ -90,27 +143,48 @@
     --radius-2xl: 24px;
     --radius-full: 9999px;
 
-    /* Elevation & Card Shadows for Dark Command Center */
-    --shadow-card: 0 4px 24px -2px rgba(0, 0, 0, 0.45), 0 2px 8px -2px rgba(0, 0, 0, 0.35);
-    --shadow-elevated: 0 12px 36px -4px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.4);
-    --shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.25);
+    /* Elevation & Card Shadows for Pure Pitch Onyx */
+    --shadow-card: 0 4px 24px -2px rgba(0, 0, 0, 0.55), 0 2px 8px -2px rgba(0, 0, 0, 0.45);
+    --shadow-elevated: 0 16px 40px -4px rgba(0, 0, 0, 0.75), 0 4px 16px -2px rgba(255, 80, 82, 0.08);
+    --shadow-subtle: 0 2px 6px rgba(0, 0, 0, 0.35);
   }
 }
 
 body {
-  font-family: var(--font-sans), 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans), 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--background);
   color: var(--text-primary);
   letter-spacing: -0.01em;
 }
 
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-heading), 'Gilroy', 'Work Sans', sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
 code, pre, .font-mono {
-  font-family: var(--font-mono), 'IBM Plex Mono', monospace;
+  font-family: var(--font-mono), monospace;
   font-variant-numeric: tabular-nums;
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* Material Symbols Rounded Core Styling */
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Custom Scrollbar for modern dense command view */
@@ -132,7 +206,7 @@ code, pre, .font-mono {
   background: var(--border-strong);
 }
 
-/* Bento Elevated Card Container */
+/* KopiGo Elevated Card Container */
 .card-elevated {
   background-color: var(--surface);
   border: 1px solid var(--border-subtle);
@@ -145,6 +219,45 @@ code, pre, .font-mono {
   border-color: var(--border);
 }
 
+/* KopiGo High-Legibility Frosted Glass */
+.glass-card-frosted {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 20px 50px -10px rgba(15, 23, 42, 0.15), 0 0 1px 1px rgba(255, 255, 255, 0.6);
+  border-radius: var(--radius-2xl);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .glass-card-frosted {
+  background: rgba(17, 19, 24, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.85), 0 0 25px -5px rgba(255, 80, 82, 0.08);
+}
+
+.glass-card-frosted:hover {
+  box-shadow: 0 24px 60px -10px rgba(15, 23, 42, 0.18);
+}
+
+.dark .glass-card-frosted:hover {
+  border-color: rgba(255, 80, 82, 0.25);
+  box-shadow: 0 28px 70px -12px rgba(0, 0, 0, 0.9), 0 0 35px -5px rgba(255, 80, 82, 0.15);
+}
+
+/* Minimalist Floating Topbar */
+.glass-topbar {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.dark .glass-topbar {
+  background: rgba(9, 10, 13, 0.45);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 /* Recessed Input Container */
 .input-recessed {
   background-color: var(--surface-muted);
@@ -155,8 +268,8 @@ code, pre, .font-mono {
 }
 
 .input-recessed:focus-within {
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 1px var(--accent-primary);
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 1px var(--brand-primary);
 }
 
 /* Pill Status Badges */
@@ -169,6 +282,35 @@ code, pre, .font-mono {
   font-size: 11px;
   font-weight: 500;
   line-height: 1;
+}
+
+/* 1% Accent Live Operational Indicator */
+.accent-live-beacon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.accent-live-beacon::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  background-color: var(--accent-highlight);
+  animation: beacon-pulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes beacon-pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  70%, 100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
 }
 
 /* Web Performance & Rendering Optimization Utilities */

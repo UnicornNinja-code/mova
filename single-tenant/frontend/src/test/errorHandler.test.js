@@ -23,7 +23,7 @@ describe("🛡️ formatApiError — Polite & Reassuring Error Translator", () =
 
     const formatted = formatApiError(networkError);
     expect(formatted.title).toBe("Koneksi Terputus");
-    expect(formatted.message).toContain("Tidak dapat terhubung ke server MOVA");
+    expect(formatted.message).toContain("Tidak dapat terhubung ke server KopiGo");
     expect(formatted.message).not.toContain("ERR_NETWORK");
   });
 
@@ -63,7 +63,7 @@ describe("🛡️ formatApiError — Polite & Reassuring Error Translator", () =
 
     const formatted = formatApiError(server500);
     expect(formatted.title).toBe("Layanan Sedang Mengalami Penyesuaian");
-    expect(formatted.message).toContain("Sistem pusat MOVA sedang dalam penanganan teknis");
+    expect(formatted.message).toContain("Sistem pusat KopiGo sedang dalam penanganan teknis");
   });
 
   it("preserves object if already formatted with title and message", () => {

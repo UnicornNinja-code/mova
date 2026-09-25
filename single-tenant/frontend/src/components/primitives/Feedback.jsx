@@ -14,32 +14,32 @@ export function Alert({ title, children, variant = "info", icon: CustomIcon, cla
   const Icon = CustomIcon || iconMap[variant] || Info;
 
   const variantStyles = {
-    info: "bg-[var(--status-info-bg)] border-[var(--status-info)]/30 text-[var(--text-primary)]",
-    success: "bg-[var(--status-success-bg)] border-[var(--status-success)]/30 text-[var(--text-primary)]",
-    warning: "bg-[var(--status-warning-bg)] border-[var(--status-warning)]/30 text-[var(--text-primary)]",
-    danger: "bg-[var(--status-danger-bg)] border-[var(--status-danger)]/30 text-[var(--text-primary)]",
-  }[variant] || "bg-[var(--status-info-bg)]";
+    info: "bg-sky-500/10 border-sky-500/20 text-slate-800 dark:text-slate-100",
+    success: "bg-emerald-500/10 border-emerald-500/20 text-slate-800 dark:text-slate-100",
+    warning: "bg-amber-500/10 border-amber-500/20 text-slate-800 dark:text-slate-100",
+    danger: "bg-red-500/10 border-red-500/20 text-slate-800 dark:text-slate-100",
+  }[variant] || "bg-sky-500/10 border-sky-500/20 text-slate-800 dark:text-slate-100";
 
   const iconColors = {
-    info: "text-[var(--status-info)]",
-    success: "text-[var(--status-success)]",
-    warning: "text-[var(--status-warning)]",
-    danger: "text-[var(--status-danger)]",
-  }[variant] || "text-[var(--status-info)]";
+    info: "text-sky-500 dark:text-sky-400",
+    success: "text-emerald-500 dark:text-emerald-400",
+    warning: "text-amber-500 dark:text-amber-400",
+    danger: "text-red-500 dark:text-red-400",
+  }[variant] || "text-sky-500 dark:text-sky-400";
 
   return (
     <div
       role="alert"
       className={cn(
-        "flex items-start gap-3 p-3.5 border rounded-[var(--radius-sm)] text-sm",
+        "flex items-start gap-3 p-3.5 border rounded-xl text-sm transition-colors",
         variantStyles,
         className
       )}
     >
       <Icon className={cn("w-5 h-5 shrink-0 mt-0.5", iconColors)} aria-hidden="true" />
       <div className="flex-1 min-w-0">
-        {title && <h5 className="font-semibold text-sm mb-0.5">{title}</h5>}
-        <div className="text-xs text-[var(--text-secondary)] leading-relaxed">{children}</div>
+        {title && <h5 className="font-heading font-medium text-sm mb-0.5 text-slate-900 dark:text-white">{title}</h5>}
+        <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{children}</div>
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>
@@ -54,8 +54,8 @@ export function Spinner({ size = "md", label = "Memuat data...", className }) {
   }[size] || "w-6 h-6";
 
   return (
-    <div role="status" className={cn("inline-flex items-center gap-2 text-[var(--text-secondary)]", className)}>
-      <Loader2 className={cn("animate-spin text-[var(--accent-primary)]", sizeStyles)} aria-hidden="true" />
+    <div role="status" className={cn("inline-flex items-center gap-2 text-slate-500 dark:text-slate-400", className)}>
+      <Loader2 className={cn("animate-spin text-[var(--brand-primary)]", sizeStyles)} aria-hidden="true" />
       {label && <span className="text-xs">{label}</span>}
       <span className="sr-only">{label}</span>
     </div>
@@ -66,7 +66,7 @@ export function Skeleton({ className, ...props }) {
   return (
     <div
       className={cn(
-        "animate-pulse bg-[var(--surface-raised)] border border-[var(--border-subtle)] rounded-[var(--radius-sm)]",
+        "animate-pulse bg-slate-100 dark:bg-[#181B22] border border-slate-200/80 dark:border-white/5 rounded-xl",
         className
       )}
       {...props}
@@ -83,11 +83,11 @@ export function EmptyState({
 }) {
   return (
     <div className={cn("flex flex-col items-center justify-center py-10 px-4 text-center", className)}>
-      <div className="w-12 h-12 rounded-[var(--radius-sm)] bg-[var(--surface-raised)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-muted)] mb-3">
+      <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-[#181B22] border border-slate-200/80 dark:border-white/5 flex items-center justify-center text-slate-400 mb-3">
         <Icon className="w-6 h-6" aria-hidden="true" />
       </div>
-      <h4 className="text-sm font-semibold text-[var(--text-primary)] mb-1">{title}</h4>
-      <p className="text-xs text-[var(--text-secondary)] max-w-sm mb-4">{description}</p>
+      <h4 className="text-sm font-heading font-medium text-slate-900 dark:text-white mb-1">{title}</h4>
+      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mb-4">{description}</p>
       {action}
     </div>
   );

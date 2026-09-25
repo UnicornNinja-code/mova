@@ -205,7 +205,7 @@ export function ProfilePage() {
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
-                  {profileData?.name || authUser?.name || "Pengguna MOVA"}
+                  {profileData?.name || authUser?.name || "Pengguna KopiGo"}
                 </h1>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -213,7 +213,7 @@ export function ProfilePage() {
                 </span>
               </div>
               <p className="text-xs text-[var(--text-secondary)] font-mono mt-0.5">
-                @{profileData?.username || authUser?.username || "username"} • {profileData?.email || authUser?.email || "email@mova.id"}
+                @{profileData?.username || authUser?.username || "username"} • {profileData?.email || authUser?.email || "email@kopigo.id"}
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-[var(--surface-raised)] border border-[var(--border-subtle)] text-[var(--text-primary)]">
